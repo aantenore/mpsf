@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.1
+
+- Role duties that publish records use the base worktree one at a time: when main-green and knowledge distill start together, the second waits for the first instead of committing its files.
+- A project in a subfolder of its repository runs those duties in the same subfolder of the base worktree, so its records are published.
+- Presence, roles and duties no longer stop ticking for a while when the computer's clock goes back.
+- Change Observatory: no change needed. Compatibility: nothing changes for older plugins.
+
 ## 0.157.0
 
 - **Capability catalog.** An optional `.sdlc/capability-discovery/catalog.json` (`{"schema_version": "capability-catalog:v1", "allow": [...]}`) is an allowlist for installed tools: with it, `capability inventory`, `capability recommend --from-inventory` and the suggestion in `task start` and `status` only consider declared entries. Items are a bare name or `skill:`, `command:`, `plugin:`, `mcp:` plus a name; an allowed plugin brings its own skills and commands. Without the file nothing changes. An unreadable catalog stops the command rather than allowing everything. Older plugins ignore the file. See [Self-service CLI](docs/self-service-cli.md#see-what-tools-are-already-installed).

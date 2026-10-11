@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.157.1** — role duties one at a time on the base worktree; subfolder projects; ticks robust to clock changes.
 - **0.157.0** — capability catalog: an optional `.sdlc/capability-discovery/catalog.json` allowlist limits the installed-tool inventory, recommendations and suggestions to the skills, commands, plugins and MCP servers the project declares.
 - **0.156.1** — coordinator duties for claims and waits: `coordinator free-claims` (with the handoff pack of each freed story), `settle-waits` and `handoff`, each idempotent with `--dry-run`, run only where the coordinator role is held.
 - **0.156.0** — records name their format in `schema_version`; records without it read as format 1, and records from a newer plugin raise a warning instead of an error.
