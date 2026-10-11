@@ -128,6 +128,17 @@ test("policy defaults come from the shipped file and the project, env opt-in win
   assert.equal(reapOnStopEnabled(policy(null), { AGENTIC_SDLC_REAP_ON_STOP: "1" }), true);
   assert.equal(reapOnStopEnabled(policy({ host_policy: { process_reaper: { reap_on_stop: true } } }), {}), true);
   assert.equal(reapOnStopEnabled(policy({ host_policy: { process_reaper: { reap_on_stop: true } } }), { AGENTIC_SDLC_REAP_ON_STOP: "0" }), false);
+  // At Stop the shared config only narrows: no reap_on_stop, scope, includes or shorter limit.
+  const auto = resolveReaperPolicy({ host_policy: { process_reaper: { reap_on_stop: true, scope_paths: ["/usr"], include_patterns: [".*"], use_default_patterns: false, older_than_minutes: 1, exclude_patterns: ["keep"] } } }, {}, defaults, { automatic: true });
+  assert.equal(reapOnStopEnabled(auto, {}), false);
+  assert.deepEqual(auto.scope_paths, []);
+  assert.deepEqual(auto.include_patterns, defaults.include_patterns);
+  assert.equal(auto.older_than_seconds, defaults.older_than_minutes * 60);
+  assert.ok(auto.exclude_patterns.includes("keep"));
+  assert.equal(resolveReaperPolicy({ host_policy: { process_reaper: { older_than_minutes: 60 } } }, {}, defaults, { automatic: true }).older_than_seconds, 3600);
+  const local = resolveReaperPolicy(null, {}, defaults, { automatic: true, local: { reap_on_stop: true, older_than_minutes: 2 } });
+  assert.equal(reapOnStopEnabled(local, {}), true);
+  assert.equal(local.older_than_seconds, 120);
   for (const pattern of defaults.include_patterns.concat(defaults.exclude_patterns)) assert.doesNotThrow(() => new RegExp(pattern, "iu"), pattern);
   assert.equal(parseOlderThanSeconds("10"), 600);
   assert.equal(parseOlderThanSeconds("90s"), 90);

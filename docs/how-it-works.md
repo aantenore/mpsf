@@ -1361,10 +1361,14 @@ pattern (`observe`, `message listen`, `watch` and `run` wrappers are always excl
 never itself or its parents. Patterns, limit and extra folders come from
 `config/process-reaper.json` and `host_policy.process_reaper` in
 `.sdlc/config.json`; `AGENTIC_SDLC_REAP_EXCLUDE` adds exclusions. At Stop the
-hook reaps when `AGENTIC_SDLC_REAP_ON_STOP=1` or
-`host_policy.process_reaper.reap_on_stop: true` (the variable wins, `0` turns
-it off), otherwise it warns at most
-once every 5 minutes when something is over the limit.
+hook reaps when `AGENTIC_SDLC_REAP_ON_STOP=1` or `reap_on_stop: true` in the
+machine-local `<git common dir>/agentic-sdlc/process-reaper.json` (the
+variable wins, `0` turns it off), otherwise it warns at most
+once every 5 minutes when something is over the limit. `.sdlc/config.json` is
+shared through git, so at Stop only its `exclude_patterns` and a limit longer
+than the default apply: its `reap_on_stop`, `include_patterns`,
+`use_default_patterns`, `scope_paths` and shorter limits are ignored there
+(the local file accepts all of them).
 
 A command whose main thread is stuck in long synchronous work cannot run its
 own timer or signal handlers, so each registered command (not the Change

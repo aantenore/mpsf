@@ -8,7 +8,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { processHygieneAtStop, takePendingReapWarning, WARNING_STATE_FILE } from "../../lib/host-hooks/process-hygiene.mjs";
+import { LOCAL_POLICY_FILE, processHygieneAtStop, takePendingReapWarning, WARNING_STATE_FILE } from "../../lib/host-hooks/process-hygiene.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const HOOK = path.join(ROOT, "hooks", "agentic-sdlc-guard.mjs");
@@ -76,12 +76,17 @@ test("nothing over the limit leaves no warning and no throttle stamp", async () 
   }
 });
 
-test("the opt-in (env or config) reaps for real at Stop and reports what it stopped", async () => {
-  for (const [config, env] of [[null, { AGENTIC_SDLC_REAP_ON_STOP: "1" }], [{ host_policy: { process_reaper: { reap_on_stop: true } } }, {}]]) {
-    const dir = project(config);
+test("the opt-in (env or machine-local file) reaps for real at Stop and reports what it stopped", async () => {
+  for (const [local, env] of [[null, { AGENTIC_SDLC_REAP_ON_STOP: "1" }], [{ reap_on_stop: true }, {}]]) {
+    const dir = project();
+    const common = fs.mkdtempSync(path.join(os.tmpdir(), "hygiene-git-"));
     try {
+      if (local) {
+        fs.mkdirSync(path.join(common, "agentic-sdlc"));
+        fs.writeFileSync(path.join(common, "agentic-sdlc", LOCAL_POLICY_FILE), JSON.stringify(local));
+      }
       const calls = [];
-      const result = await processHygieneAtStop(dir, { env, now: NOW, reap: async (options) => {
+      const result = await processHygieneAtStop(dir, { env, commonDir: common, now: NOW, reap: async (options) => {
         calls.push(options.dryRun);
         return { older_than_minutes: 10, processes: [{ pid: 7, age_minutes: 12, command: "x", outcome: "terminated" }, { pid: 8, age_minutes: 12, command: "y", outcome: "failed" }] };
       } });
@@ -89,7 +94,31 @@ test("the opt-in (env or config) reaps for real at Stop and reports what it stop
       assert.equal(result.message, "Stopped 1 processes older than 10 min: 7.");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(common, { recursive: true, force: true });
     }
+  }
+});
+
+test("the shared config can neither enable reaping at Stop nor widen what is selected", async () => {
+  const wide = { host_policy: { process_reaper: { reap_on_stop: true, use_default_patterns: false, include_patterns: [".*"], scope_paths: ["/usr", "/Applications"], older_than_minutes: 0.01 } } };
+  const dir = project(wide);
+  const common = fs.mkdtempSync(path.join(os.tmpdir(), "hygiene-git-"));
+  const rows = [
+    { pid: 501, ppid: 1, age_seconds: 60 * 60, command: "/Applications/Firefox.app/Contents/MacOS/firefox" },
+    { pid: 502, ppid: 1, age_seconds: 60, command: `npm test --prefix ${dir}` },
+  ];
+  try {
+    const calls = [];
+    const result = await processHygieneAtStop(dir, { env: {}, commonDir: common, now: NOW, rows, reap: async (options) => {
+      calls.push(options.dryRun);
+      const { reapProcesses } = await import("../../lib/runtime/process-reaper.mjs");
+      return reapProcesses({ ...options, platform: "linux", worktrees: [], selfPid: 1 });
+    } });
+    assert.deepEqual(calls, [true], "dry run only");
+    assert.equal(result.message, "");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(common, { recursive: true, force: true });
   }
 });
 
@@ -105,7 +134,11 @@ test("a failing reaper never breaks the hook", async () => {
 test("the hook warns once at Stop, hands the warning to the next prompt, and reaps with the opt-in", { skip: process.platform === "win32" }, async () => {
   // The pattern holds this run's pid, so only the process spawned below can match it.
   const unique = `hygiene-${process.pid}-${Date.now()}`;
-  const dir = project({ host_policy: { process_reaper: { older_than_minutes: 0.01, include_patterns: [unique] } } });
+  const dir = project();
+  spawnSync("git", ["init", "-q", dir]);
+  // Machine-local settings: the shared .sdlc/config.json may not lower the limit or add patterns at Stop.
+  fs.mkdirSync(path.join(dir, ".git", "agentic-sdlc"), { recursive: true });
+  fs.writeFileSync(path.join(dir, ".git", "agentic-sdlc", LOCAL_POLICY_FILE), JSON.stringify({ older_than_minutes: 0.01, include_patterns: [unique] }));
   const marker = path.join(dir, unique);
   const hook = (event, env = {}) => spawnSync(process.execPath, [HOOK, event], {
     input: JSON.stringify({ cwd: dir }),
