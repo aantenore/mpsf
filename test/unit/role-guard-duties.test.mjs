@@ -124,3 +124,40 @@ test("a duty that writes records runs on the base worktree and publishes them to
   assert.equal(runDutyOnBase(project, "knowledge-distill", ["knowledge", "distill"], { run: racing }).published, true);
   assert.equal(git(bare, ["log", "-2", "--format=%s", "main"]).split("\n")[1], "work");
 });
+
+test("a project in a subfolder of its repository publishes its records from the same subfolder of the base worktree", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { runDutyOnBase } = await import("../../lib/engine/role-duty-worker.mjs");
+  const { createBareOrigin } = await import("../helpers/test-isolation.mjs");
+  const git = (cwd, args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  const repo = createFixtureDir("role-duty-sub-");
+  git(repo, ["init", "-q", "-b", "main"]);
+  git(repo, ["config", "user.email", "t@example.test"]);
+  git(repo, ["config", "user.name", "T"]);
+  const project = path.join(repo, "app");
+  fs.mkdirSync(path.join(project, ".sdlc"), { recursive: true });
+  fs.writeFileSync(path.join(project, ".sdlc", "config.json"), "{}\n");
+  git(repo, ["add", "-A"]);
+  git(repo, ["commit", "-q", "-m", "seed"]);
+  const bare = createBareOrigin(repo);
+  git(repo, ["push", "-q", "origin", "main"]);
+  let ranIn = null;
+  const write = (cwd) => {
+    ranIn = cwd;
+    fs.mkdirSync(path.join(cwd, ".sdlc", "knowledge"), { recursive: true });
+    fs.writeFileSync(path.join(cwd, ".sdlc", "knowledge", "KN-1.json"), "{}\n");
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  assert.equal(runDutyOnBase(project, "knowledge-distill", ["knowledge", "distill"], { run: write }).published, true);
+  assert.equal(path.basename(ranIn), "app");
+  assert.equal(git(bare, ["show", "main:app/.sdlc/knowledge/KN-1.json"]), "{}");
+});
+
+test("throttles never stall when the clock went back", async () => {
+  const { recentlyAt } = await import("../../lib/engine/role-leases.mjs");
+  assert.equal(recentlyAt(NOW - MIN, 5 * MIN, NOW), true);
+  assert.equal(recentlyAt(NOW + 60 * MIN, 5 * MIN, NOW), false);
+  assert.equal(recentlyAt(undefined, 5 * MIN, NOW), false);
+  const duties = [{ key: "a", role: "coordinator", command: ["a"], every_ms: 15 * MIN, auto: true }];
+  assert.equal(dueRoleDuties({ duties, roles: ["coordinator"], last: { a: NOW + 60 * MIN }, now: NOW, hasCommand: () => true }).length, 1);
+});
