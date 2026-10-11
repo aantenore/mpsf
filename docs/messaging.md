@@ -174,7 +174,7 @@ The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defau
 Every computer that runs the plugin on a project with a shared remote keeps a presence ref there, and the computers share two roles without any message:
 
 ```
-refs/agentic-sdlc/presence/<computer id>        replaced by its computer at each renewal: when, until when, stories held, roles held, plugin version
+refs/agentic-sdlc/presence/<computer id>        replaced by its computer at each renewal: when, until when, stories held and when each was last worked on, roles held, plugin version
 refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created only if it does not exist yet: who, until when
 ```
 
@@ -183,6 +183,8 @@ refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created onl
 - The holder keeps a lease (`lease_minutes`, 30 by default) and renews it after half of it. When another computer should hold the role (one joined that ranks first) it hands over at that renewal; when the holder disappears its lease expires and the next computer takes it. Two computers trying at the same moment cannot both win: an epoch is created only once.
 - Without a valid lease, without a shared remote, or with `AGENTIC_SDLC_ROLES=off`, every computer does the duties itself, as before roles. Older plugins ignore these refs.
 - `roles status [--offline] [--json]` shows the alive computers, who holds each role, who should, and what this computer is. The Change Observatory shows the same from the copies already fetched.
+- The presence also carries, for each story held, when it was last worked on here (branch reflog, worktree index and HEAD log, story records, workflow checkpoint). That renews the claim's lease for every computer, so the claim time to live can be short: a forgotten claim lapses, one in progress does not.
+- When a session ends and no other session of the same clone worked in the last 15 minutes, the SessionEnd hook starts a detached push (bounded to 5 seconds, outside the hook's 3) that marks the presence expired and hands back the roles this computer holds. Claims are not released: the same person resumes them, or they lapse one time to live after the last work. If the push is cut, presence and leases lapse on their own.
 - Pushing these refs triggers no CI: they are not branches.
 
 ## Settings
