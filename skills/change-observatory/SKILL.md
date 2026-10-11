@@ -33,6 +33,8 @@ Launch the plugin-local, read-only visual lineage application for the selected p
 
 Explain only what canonical records support. Generated explanations are labeled and limited to recorded evidence; they are not private chain-of-thought. Call out `missing`, `malformed`, `inferred`, or blocked states instead of inventing history.
 
+Records kept on the `sdlc-state` branch (action receipts, executions, gate reports) are fetched and shown with the base branch; when one is missing, say so rather than inferring it. A `schema_version_newer` warning means a newer plugin wrote that record: it is still shown; suggest updating the plugin on this computer. The computers and role holders shown come from the presence and role leases on the remote.
+
 Treat IntentABI observations as content-free, advisory shadow evidence. A story
 link exists only when a trace explicitly cites the observation path and records
 `story_id`. `MAC present / not verified` is not semantic equivalence, cache

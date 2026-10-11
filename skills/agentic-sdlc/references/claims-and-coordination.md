@@ -241,4 +241,4 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    reserved to the coordinator, leave that step to the coordinator (hand over
    the pull request or the records) and go on with the rest; never set
    `AGENTIC_SDLC_ROLES=off` yourself to get past it. Messaging is
-   optional (`github`, `local` or `none`): claims and waits never depend on it.
+   optional (`git`, `github`, `local` or `none`): claims and waits never depend on it.

@@ -1080,6 +1080,16 @@ arguments, environment, headers, and URLs are never read into the output.
 Paths are project-relative or `~`-relative, and there is no network access.
 It works before `init` and changes nothing.
 
+When the project has a capability catalog,
+`.sdlc/capability-discovery/catalog.json`
+(`{"schema_version": "capability-catalog:v1", "allow": [...]}`), only the
+entries it declares are listed, recommended, and suggested; the output's
+`catalog` says how many installed tools were left out. An item is a bare name
+or `skill:`, `command:`, `plugin:`, or `mcp:` plus a name, and an allowed
+plugin brings its own skills and commands. A project without the file keeps
+the full inventory; an unreadable catalog stops the command. The catalog is
+the user's list: never add an entry to make a tool usable.
+
 `capability recommend --from-inventory` uses that inventory as the available
 capabilities, so the list is never built by hand. Only installed skills,
 plugins, and servers whose name or description names a technology declared by
@@ -2042,6 +2052,27 @@ node bin/mpsf.mjs story prepare --root <project> --resolve [--id ST-002]
 `story prepare` does, while `--depends-on` (a story id or a pull request URL) is still open, everything that does not need the dependency: the implementation contract (`contract-<story>-implementation`), the delivery profile (only with `--level`, otherwise it stays to do with `autonomy delivery propose`) and a worktree plus branch cut from the current remote base branch (`--worktree-path`, default a sibling folder named `<project>-<story>`). Nothing is started or claimed. The preparation and the dependency are recorded in `.sdlc/prepared-starts/<story>.json` (`state: waiting`); a step that cannot run (missing input, refusal) stays `pending` in the record with its error instead of failing the preparation. For a story dependency the record notes whether the approved dependency graph already has the edge.
 
 `story prepare --resolve` looks at every waiting preparation (the watch and the keep-going hook run it by themselves; `AGENTIC_SDLC_PREPARED_STARTS=off` switches that off). A story dependency counts as merged when it has a closure record, a pull request when `gh pr view` reports it merged. When the dependency is merged the worktree is rebased onto the freshly fetched base branch, `task start` and `story claim` run, the record becomes `started` and the channel gets an `info` message. When the dependency is closed without a merge (a pull request closed, a story superseded or cancelled) the record becomes `dependency_closed`, a `question` is sent and nothing starts. If the realignment or the start is refused the record becomes `start_blocked` with the reason and the same message is sent. A handled record is final, so resolving again does nothing. If the state of the dependency cannot be read (no `gh`, no network) the preparation keeps waiting.
+
+## Operational records on the state branch
+
+A project may keep delivery action receipts (`autonomy/actions/`), autonomy
+executions (`autonomy/executions/`) and gate reports (`gates/`, except
+`gates/<story>-final.json`) on an orphan `sdlc-state` branch of the same
+remote instead of the base branch. `state status` says which applies. There the
+files are still plain files in `.sdlc/` and every command reads them as before,
+but git no longer tracks them on the base branch:
+
+```bash
+node bin/mpsf.mjs state status --root <project> --json   # where they live, how many are not pushed
+node bin/mpsf.mjs state pull --root <project>            # bring records written by other computers
+node bin/mpsf.mjs state sync --root <project>            # pull, then push (the hooks run it with --if-due)
+```
+
+The host hooks sync in the background, so normally nothing is needed. Run
+`state pull` before calling a receipt or gate report missing, and in a CI job
+after checkout. Never `git add` these records to the base branch, never delete
+them, and never edit the state branch by hand. `state migrate` changes where
+every computer keeps them: run it only when the user asks.
 
 ## Messages between computers
 

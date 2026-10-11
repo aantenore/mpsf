@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.2
+
+- Skills updated for today's features: the main skill has a "Several Computers" section (roles and presence, operational records on the `sdlc-state` branch, a local warning only for an old plugin, `newer_record_format`, the capability catalog) and two new guardrails; the command reference documents `state status|pull|sync` and the catalog; the assessment and Change Observatory skills mention the catalog, state-branch records and newer record formats. Skill ids are unchanged.
+
 ## 0.157.1
 
 - Role duties that publish records use the base worktree one at a time: when main-green and knowledge distill start together, the second waits for the first instead of committing its files.
