@@ -200,7 +200,7 @@ test("a story merged without its records is never ready, its claim is refused, a
   assert.deepEqual(status.merged_but_open[0].merged_by, { author: "agente-cat-001", branch: "feature/ST-CAT-001" });
   assert.doesNotMatch(JSON.stringify(status.capability_suggestion || {}), /ST-CAT-001/u);
   const lines = mustRun(["status", "--root", second], second).stdout;
-  assert.match(lines, /ST-CAT-001: appears merged into main .* its work records are not on this branch.*from agente-cat-001's computer \(branch feature\/ST-CAT-001\)/u);
+  assert.match(lines, /ST-CAT-001(?: \([^)]*\))?: appears merged into main .* its work records are not on this branch.*from agente-cat-001's computer \(branch feature\/ST-CAT-001\)/u);
   assert.doesNotMatch(lines, /ST-CAT-001.*story complete-step/u);
 
   const orchestration = mustRunJson(["orchestrate", "status", "--root", second], second);
