@@ -20,7 +20,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.148.1 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.148.2 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -30,6 +30,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.148.2** — the channel stops repeating `[auto] stato`: status goes out only when the set of stories or their phase changes, plus one notice per story and phase stalled for 4 h (`AGENTIC_SDLC_MESSAGING_STALL_HOURS`); a claim released on another computer is no longer reported as active from an outdated checkout or worktree.
 - **0.148.1** — fixes: `task start` with an invalid delivery profile returns a blocked decision instead of aborting; an invalid `--autonomy-ceiling` is a user error listing the allowed values; the Codex installer updates a plugin installed under the old package name; docs: hooks work in Codex through `CLAUDE_PLUGIN_ROOT`.
 - **0.148.0** — `context pack` and `context get` give an agent the small slice of a story it needs; commands print a short form inside agent sessions (`--verbose` for the full text); `--json-profile agent|full`; hook output is deduplicated and budgeted.
 - **0.147.0** — messaging is optional (`github`, `local` or `none`); records go through a store (`git-sdlc` or `local-fs`); `host_policy.adapters` and a `coordinator` role in `host_policy.roles`.

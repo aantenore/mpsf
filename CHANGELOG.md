@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.148.2
+
+- Presence on the channel: `[auto] stato` goes out only when the set of claimed stories or their phase changes, instead of every 15 minutes. A story that stays in the same phase gets one notice after 4 hours (`AGENTIC_SDLC_MESSAGING_STALL_HOURS`, 0 turns it off). Setting `AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES` explicitly brings back the periodic status.
+- A claim released or replaced on another computer (its release or a later epoch is in the shared claim refs of this clone) no longer counts as active here: presence, join/welcome and keep-going stop reporting a story from an outdated checkout or worktree.
+- Presence covers every worktree of the clone; the record in the story's own worktree wins over an older copy elsewhere.
+
 ## 0.148.1
 
 - `task start` with an invalid delivery profile no longer aborts while reading the profile for the drift check: the decision is returned blocked with `autonomy_profile_invalid`.
