@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.151.0
+
+- Local releases now run on Windows. The `release.local` smoke test runs in a fresh AppContainer with no capabilities (`windows-appcontainer-readonly-no-network`): no network, no loopback, writes only in the container's private storage, reads limited to the smoke directory, the runtime's folder and the system folders. Windows PowerShell starts it with a launcher script shipped in the plugin, whose SHA-256 is sealed into the authorization and checked again before the run. Windows 10 1809 or later, no admin rights.
+- Where PowerShell cannot run the launcher in FullLanguage mode (AppLocker, WDAC, execution policy forced by Group Policy) the proposal still stops early with the options (WSL2, pull request).
+- macOS and Linux authorizations are unchanged. Compatibility: the first Windows local release in a project records that it needs this version, so older plugins ask for an update instead of rejecting its receipt.
+
 ## 0.150.0
 
 - New `git` messaging provider: the channel lives in the project's own remote, one ref per computer (`refs/agentic-sdlc/channel/<machine-id>`), each message a small signed commit. Any git host, no other service or account; each computer pushes only to its own ref, so there are no conflicts. Reads fetch only the channel refs and walk only new commits; a message pushed late is still delivered; each computer compacts its ref to the last 14 days. Hosts that refuse custom refs get branches `agentic-sdlc/channel/<machine-id>` (with `[skip ci]`), detected at the first refused push.
