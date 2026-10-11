@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.19** — gates, claims and story writes verify every upstream receipt; fast views label unverified receipts as not re-checked.
 - **0.159.18** — the test suite is slimmer: redundant scenarios are merged, with the same behaviors still asserted.
 - **0.159.17** — the guard closes session-marker, alias, variable and API bypasses of the merge and push rules.
 - **0.159.16** — messages injected into the agent show their trust; untrusted requests and version announcements are ignored.
