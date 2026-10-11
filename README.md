@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.10** — the guard protects delivery action receipts, story claims and the whole record tree.
 - **0.159.9** — messages signed by another key can no longer read as trusted through the signature cache.
 - **0.159.8** — documentation and CLI help aligned with the code.
 - **0.159.7** — tests only: sealed-receipt checks ask for the full re-verification.
