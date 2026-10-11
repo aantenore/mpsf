@@ -1,7 +1,7 @@
 {
   "name": "agentic-sdlc-codex-plugin",
-  "version": "0.154.0",
-  "description": "A Codex plugin for contract-driven delivery, verified assessments, and visual project lineage.",
+  "version": "0.155.0",
+  "description": "MPSF (My Personal Software Factory): a Codex plugin for contract-driven delivery, verified assessments, and visual project lineage.",
   "author": {
     "name": "Antonio Antenore",
     "url": "https://github.com/aantenore"
@@ -20,9 +20,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Agentic SDLC",
+    "displayName": "MPSF",
     "shortDescription": "Guided assessments, pull requests, and local delivery for Codex.",
-    "longDescription": "Agentic SDLC helps Codex understand an existing project, agree requirements and work briefs in plain language, implement and verify new or existing pull requests or local-only results, and open a local Change Observatory that explains the recorded delivery lineage.",
+    "longDescription": "MPSF (My Personal Software Factory) helps Codex understand an existing project, agree requirements and work briefs in plain language, implement and verify new or existing pull requests or local-only results, and open a local Change Observatory that explains the recorded delivery lineage.",
     "developerName": "Antonio Antenore",
     "category": "Productivity",
     "composerIcon": "./assets/icon.png",

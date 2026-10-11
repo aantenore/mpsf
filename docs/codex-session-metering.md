@@ -46,7 +46,7 @@ replace the approved project budget.
 Capture the baseline after proposal approval and before apply:
 
 ```bash
-agentic-sdlc budget meter start \
+mpsf budget meter start \
   --root /path/to/project \
   --proposal ASSESS-001
 ```
@@ -54,7 +54,7 @@ agentic-sdlc budget meter start \
 During execution, append the measured delta:
 
 ```bash
-agentic-sdlc budget meter record \
+mpsf budget meter record \
   --root /path/to/project \
   --proposal ASSESS-001
 ```
@@ -68,15 +68,15 @@ link, and must contain matching `session_meta`.
 
 | Message | What to do |
 |---|---|
-| `requires CODEX_THREAD_ID` | Inside a Codex task the host sets it. Outside one, pass `--thread-id <id>`. On a host that does not run Codex tasks there is no session to read: enable the `codeburn` adapter with that host's log provider, or record usage manually with `agentic-sdlc budget usage record --proposal <id> --input-tokens <n> --output-tokens <n>`. |
+| `requires CODEX_THREAD_ID` | Inside a Codex task the host sets it. Outside one, pass `--thread-id <id>`. On a host that does not run Codex tasks there is no session to read: enable the `codeburn` adapter with that host's log provider, or record usage manually with `mpsf budget usage record --proposal <id> --input-tokens <n> --output-tokens <n>`. |
 | `cwd does not match the target project root` | The message names both directories (your home directory is shown as `~`). Meter the task that worked in this project, or pass the `--root` of the project the task used. |
 | `adapter '<id>' is disabled` | Set `budget_policy.metering_adapters.<id>.enabled` to `true` in `.sdlc/config.json`, then pin the edit (below). |
 | `CodeBurn is not installed or not on PATH` | Install CodeBurn 0.9.x separately or point `budget_policy.metering_adapters.codeburn.command.executable` at it, then pin the edit (below). |
 
 Editing `.sdlc/config.json` by hand does not take effect on its own: the
 project keeps using its pinned configuration until you run
-`agentic-sdlc config migrate`, review the plan, and apply it with
-`agentic-sdlc config migrate --apply --plan-hash <hash>`.
+`mpsf config migrate`, review the plan, and apply it with
+`mpsf config migrate --apply --plan-hash <hash>`.
 
 The baseline, snapshots, deltas, and usage receipts are hash-bound and
 append-only. Repeating an unchanged observation is idempotent. File truncation,

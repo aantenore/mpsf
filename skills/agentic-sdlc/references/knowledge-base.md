@@ -61,7 +61,7 @@ Manifests under `.sdlc/manifests/` are shared compact maps of canonical KB state
 When SDLC tracking starts on a project that already has code or documentation, create a baseline proposal instead of inventing past history:
 
 ```bash
-node bin/agentic-sdlc.mjs onboard existing-project --root <project> --document README.md
+node bin/mpsf.mjs onboard existing-project --root <project> --document README.md
 ```
 
 The baseline is inferred context until approved. It can describe what exists now, but it cannot prove who made past decisions, why they were made, or whether previous approvals happened unless those facts are present in canonical evidence files.
@@ -69,7 +69,7 @@ The baseline is inferred context until approved. It can describe what exists now
 Approve a baseline only with explicit user or CI confirmation:
 
 ```bash
-node bin/agentic-sdlc.mjs baseline approve --id BASELINE-INITIAL --actor-type human --approval-source explicit-user --summary "<confirmed scope>"
+node bin/mpsf.mjs baseline approve --id BASELINE-INITIAL --actor-type human --approval-source explicit-user --summary "<confirmed scope>"
 ```
 
 ## What Does Not Belong In The Plugin
@@ -112,13 +112,13 @@ Never cite cache files as canonical evidence. Cite the source paths recorded in 
 Use `report activity` to answer recent-history questions from real trace events:
 
 ```bash
-node bin/agentic-sdlc.mjs report activity --root <project> --since 3d --view business
+node bin/mpsf.mjs report activity --root <project> --since 3d --view business
 ```
 
 Use `report query` for broader questions such as "all changes by me", "new functional stories in the last 10 days", or "outputs changed for a requirement". Natural language must be normalized by Codex or another LLM into `schemas/report-query.schema.json`; the CLI executes only the canonical query JSON:
 
 ```bash
-node bin/agentic-sdlc.mjs report query --root <project> --query-json '<canonical-report-query-json>' --json
+node bin/mpsf.mjs report query --root <project> --query-json '<canonical-report-query-json>' --json
 ```
 
 Use `manifest rebuild` for a compact shared map of stories, contracts, outputs, approvals, and activity. In each story entry, `status` and `phase` preserve the canonical record; use `effective_status`, `effective_phase`, and the `lifecycle_*` fields for the verified workflow projection identified by `story_projection_schema_version`. Use `trace compact` when raw JSONL history is too long for context; compaction is additive and must keep the original source trace. Use `archive closed` as a plan-first command for old reports and compactions.

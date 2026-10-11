@@ -1,6 +1,6 @@
-# How Agentic SDLC 0.154.0 Works
+# How MPSF 0.155.0 Works
 
-Agentic SDLC turns a natural-language request into a bounded, reproducible execution tranche. Codex handles conversation and reasoning; the CLI handles deterministic validation and state changes; the target repository keeps the evidence under `.sdlc/`.
+MPSF turns a natural-language request into a bounded, reproducible execution tranche. Codex handles conversation and reasoning; the CLI handles deterministic validation and state changes; the target repository keeps the evidence under `.sdlc/`.
 
 The core rule is simple: **Codex may reason broadly, but it may write only what the approved requirement, current delivery unit, and exact authorization all allow.**
 
@@ -64,7 +64,7 @@ The technical chain for `ST-TRIP-POLICY-001` is:
    the complete story after that release:
 
    ```bash
-   agentic-sdlc gate check --strict --story ST-TRIP-POLICY-001 --lifecycle-complete
+   mpsf gate check --strict --story ST-TRIP-POLICY-001 --lifecycle-complete
    ```
 
 Only that lifecycle-complete form is the final story certificate. It binds all
@@ -174,7 +174,7 @@ hashes, and low-level transition commands remain optional audit detail.
 flowchart LR
   U["User"] <-->|"request, corrections, exact approvals"| C["Codex"]
   R["Project files<br/>untrusted evidence"] -->|"inspect and summarize"| C
-  C -->|"structured commands and files"| CLI["Agentic SDLC CLI<br/>deterministic control plane"]
+  C -->|"structured commands and files"| CLI["MPSF CLI<br/>deterministic control plane"]
   CLI -->|"schema, hash, policy, and authorization checks"| S[".sdlc/<br/>canonical project state"]
   S -->|"current state and evidence"| CLI
   CLI -->|"only approved writes"| R
@@ -196,7 +196,7 @@ The command name used in the examples below is concise notation for the CLI
 entry point. Run the installer-managed staging copy directly:
 
 ```bash
-PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/agentic-sdlc.mjs"
+PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
 node "$PLUGIN_CLI" --help
 ```
 
@@ -207,12 +207,12 @@ use the `codex_target.home` reported by installer `apply` (the default is
 ```bash
 VERSION="$(node -p 'require(process.argv[1]).version' "$HOME/plugins/agentic-sdlc-codex-plugin/package.json")"
 CODEX_STATE_HOME="$HOME/.codex"
-node "$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSION/bin/agentic-sdlc.mjs" --help
+node "$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSION/bin/mpsf.mjs" --help
 ```
 
 An npm installation may additionally create an npm bin shim. From a source
-checkout, use `node /path/to/agentic-sdlc/bin/agentic-sdlc.mjs`.
-All examples below use commands exposed by the `Agentic SDLC 0.154.0` help output and assume the shell is in the target project:
+checkout, use `node /path/to/agentic-sdlc/bin/mpsf.mjs`.
+All examples below use commands exposed by the `MPSF 0.155.0` help output and assume the shell is in the target project:
 
 ```bash
 cd /path/to/target-project
@@ -256,7 +256,7 @@ A normal assessment has exactly two logical user checkpoints. Internal records a
 sequenceDiagram
   actor U as User
   participant C as Codex
-  participant CLI as Agentic SDLC CLI
+  participant CLI as MPSF CLI
   participant S as .sdlc
 
   C->>CLI: onboard existing-project or baseline propose
@@ -285,15 +285,15 @@ Codex inspects the repository and proposes a baseline containing source paths an
 This approval means: “this is an acceptable project context for preparing a proposal.” It does **not** authorize the assessment, implementation, tool installation, external access, or any output.
 
 ```bash
-agentic-sdlc onboard existing-project \
+mpsf onboard existing-project \
   --project-name "Example Service" \
   --document README.md \
   --source src \
   --summary "Observable current state for review"
 
-agentic-sdlc baseline status --id BASELINE-INITIAL
+mpsf baseline status --id BASELINE-INITIAL
 
-agentic-sdlc baseline approve \
+mpsf baseline approve \
   --id BASELINE-INITIAL \
   --actor-type human \
   --approval-source explicit-user \
@@ -305,7 +305,7 @@ If a hashed baseline source changes after approval, proposal application fails. 
 The baseline also records the directories it was discovered from and the discovery policy in force (`source_discovery`). Every freshness check rediscovers those directories, so a file created after approval, for example by a delivered story, makes the baseline stale in the same way as a changed file. The next task cannot start until the baseline is refreshed:
 
 ```bash
-agentic-sdlc baseline propose --id BASELINE-INITIAL --force \
+mpsf baseline propose --id BASELINE-INITIAL --force \
   --summary "Current state after the delivered work"
 ```
 
@@ -316,7 +316,7 @@ The only exception is a file created by the task currently running, inside every
 When a pull request is merged or a local release completes, the result names the next step: record the delivered state as the successor of the current baseline.
 
 ```bash
-agentic-sdlc baseline refresh --from BASELINE-INITIAL
+mpsf baseline refresh --from BASELINE-INITIAL
 ```
 
 The refresh never rewrites the approved baseline. It creates a new revision (`BASELINE-INITIAL-R2`, then `-R3`, …) that records every added, changed, and removed file compared with its predecessor, and the story that produced each change. Work that started from the previous revision keeps its own reference; new work starts from the successor.
@@ -334,7 +334,7 @@ A refresh reads the base branch as committed, because its snapshot is the state 
 A refresh that should never replace its predecessor (for example one recorded from a story branch before this check existed) is withdrawn instead of being approved:
 
 ```bash
-agentic-sdlc baseline refresh withdraw --id BASELINE-INITIAL-R2 \
+mpsf baseline refresh withdraw --id BASELINE-INITIAL-R2 \
   --reason "Recorded from an unmerged story branch" \
   --actor-type human --approval-source explicit-user --summary "Withdraw that refresh"
 ```
@@ -348,8 +348,8 @@ A refresh line can grow without limit. Each refresh pins the approval hash of it
 Git merges text, not intentions. When two stories start from the same project state and both change one area, the second to merge was planned and checked without the first one's change, even if the merge is clean. Before `pull_request.merge` is authorized, the story is compared with every other story's merged delivery of the same baseline line that is not in the commit it started from (read from `git rev-list` of that commit). The files each such merge changed (`git diff-tree` against its first parent) that fall inside this story's write scope are overlaps to review; files it only read from its baseline are reported as context changes.
 
 ```bash
-agentic-sdlc story overlap --id ST-SECOND
-agentic-sdlc story overlap confirm --id ST-SECOND --summary "Rebased on the status change and re-ran the status tests"
+mpsf story overlap --id ST-SECOND
+mpsf story overlap confirm --id ST-SECOND --summary "Rebased on the status change and re-ran the status tests"
 ```
 
 `story overlap confirm` records a review under `.sdlc/stories/<story>/overlap-reviews/` that names each change by path, delivering story, merge commit, and exact bytes, with a trace event; a later change to the same file needs a new review. Until then the strict story gate lists each unreviewed change and the merge authorization is refused. `orchestration_policy.delivered_overlap` sets the behavior: `write_scope` and `context` take `confirm`, `warn`, or `off` (defaults `confirm` and `warn`), `confirmation_actor` is `any` or `human`, and `claim` (`warn` or `off`) lists, when a story is claimed, the other stories in progress whose write scope shares files with it. The claim warning never blocks: locking files would serialize parallel work.
@@ -376,7 +376,7 @@ The proposal includes the exact:
 - baseline reference and every field covered by `proposal_hash`.
 
 ```bash
-agentic-sdlc assessment proposal prepare \
+mpsf assessment proposal prepare \
   --id ASSESS-001 \
   --baseline BASELINE-INITIAL \
   --scope-title "Architecture assessment" \
@@ -391,7 +391,7 @@ agentic-sdlc assessment proposal prepare \
   --section "Architecture and risks" \
   --acceptance "Every major claim is linked to approved baseline evidence"
 
-agentic-sdlc assessment proposal approve \
+mpsf assessment proposal approve \
   --id ASSESS-001 \
   --actor-type human \
   --approval-source explicit-user \
@@ -590,8 +590,8 @@ flowchart TB
 `assessment proposal apply` consumes the proposal-bound authorization and materializes only the approved write-set. Existing records are reused only when their semantic content exactly matches the proposal. The application record is the commit marker for that materialization.
 
 ```bash
-agentic-sdlc assessment proposal apply --id ASSESS-001
-agentic-sdlc assessment proposal status --id ASSESS-001
+mpsf assessment proposal apply --id ASSESS-001
+mpsf assessment proposal status --id ASSESS-001
 ```
 
 The authorization ID returned by approval may also be supplied explicitly with `--authorization`. Omitting it uses the authorization referenced by the matching approval.
@@ -603,7 +603,7 @@ Main-agent and subagent usage is aggregated into the proposal budget. Manual val
 An exact runtime receipt is imported like this:
 
 ```bash
-agentic-sdlc budget usage record \
+mpsf budget usage record \
   --proposal ASSESS-001 \
   --receipt-file .sdlc/receipts/runtime/USAGE-001.json
 ```
@@ -613,15 +613,15 @@ incremental observations for the exact task. It is always estimated/advisory
 and cannot, by itself, prove a financial or token hard limit:
 
 ```bash
-agentic-sdlc budget meter start \
+mpsf budget meter start \
   --proposal ASSESS-001 \
   --id METER-ASSESS-001-CODEX-SESSION
 
-agentic-sdlc budget meter record \
+mpsf budget meter record \
   --proposal ASSESS-001 \
   --baseline METER-ASSESS-001-CODEX-SESSION
 
-agentic-sdlc budget status --proposal ASSESS-001
+mpsf budget status --proposal ASSESS-001
 ```
 
 Capture the baseline after checkpoint 2 approval and before `apply`. The Codex
@@ -635,9 +635,9 @@ its provider and project-cumulative counters, route a supported noisy command,
 or capture a manual diagnostic with:
 
 ```bash
-agentic-sdlc optimization status --proposal ASSESS-001 --json
-agentic-sdlc optimization run --proposal ASSESS-001 --command-json '["npm","test"]'
-agentic-sdlc optimization capture --proposal ASSESS-001 --phase manual --json
+mpsf optimization status --proposal ASSESS-001 --json
+mpsf optimization run --proposal ASSESS-001 --command-json '["npm","test"]'
+mpsf optimization capture --proposal ASSESS-001 --phase manual --json
 ```
 
 The gateway passes an argument vector without a shell. Supported fixed test,
@@ -706,7 +706,7 @@ large artifact itself. Signed URLs, URI credentials, query strings, fragments,
 raw excerpts, and absolute or parent-traversing local paths are not valid
 manifest locations.
 
-Agentic SDLC reads, redacts, and fingerprints only that bounded manifest. It
+MPSF reads, redacts, and fingerprints only that bounded manifest. It
 does not silently open or hash the referenced raw artifact, and the manifest
 therefore records `verified_by_agentic_sdlc: false`. A strict gate can prove
 that the linked manifest stayed unchanged; it does not turn a declared
@@ -1060,7 +1060,7 @@ The plugin merges a pull request only through an authorized `pull_request.merge`
 A person (or CI) acknowledges the merge:
 
 ```bash
-agentic-sdlc autonomy delivery reconcile --id AUT-PR-184 \
+mpsf autonomy delivery reconcile --id AUT-PR-184 \
   --pr-url https://github.com/owner/repository/pull/184 \
   --actor-type human --approval-source explicit-user \
   --summary "I merged PR 184 on GitHub myself"
@@ -1122,7 +1122,7 @@ Codex creates the approved artifact, and the CLI links it to the approved story,
 A generator receipt proves which capability produced the exact artifact hash; it does not replace render evidence. Inspect the persisted result with:
 
 ```bash
-agentic-sdlc output status \
+mpsf output status \
   --story ST-ASSESS-001 \
   --type technical-analysis \
   --json
@@ -1133,9 +1133,9 @@ Format-specific linking examples are in [Agent Interactions](agent-interactions.
 ### Completion is a release transaction
 
 ```bash
-agentic-sdlc assessment proposal complete --id ASSESS-001
+mpsf assessment proposal complete --id ASSESS-001
 
-agentic-sdlc gate check \
+mpsf gate check \
   --scope release-manifest \
   --release-manifest RELEASE-ASSESS-001 \
   --strict \
@@ -1212,7 +1212,7 @@ Approve 20 additional active minutes for ASSESS-001, changing the total from 60 
 Do not extend the budget. Stop and report the evidence collected so far as a non-released partial result, including every unmet acceptance criterion.
 ```
 
-The "no extension" answer is recorded with `agentic-sdlc assessment proposal cancel --id <proposal> --reason <text>` and the same direct human or CI approval flags as the proposal approval. It moves the workflow to `cancelled`, closes the proposal authorization, releases nothing, and lists already linked outputs as the non-released partial result.
+The "no extension" answer is recorded with `mpsf assessment proposal cancel --id <proposal> --reason <text>` and the same direct human or CI approval flags as the proposal approval. It moves the workflow to `cancelled`, closes the proposal authorization, releases nothing, and lists already linked outputs as the non-released partial result.
 
 A budget amendment changes only the displayed limits. It cannot authorize a new artifact, path, tool, external system, secret, production action, destructive operation, or wider scope. If the amended budget is still exceeded, the workflow remains `exception_pending`.
 
@@ -1241,7 +1241,7 @@ by the throttled poll) and, when this computer still has work, answers
 2. coordination questions or requests to this computer not yet answered
    (`message send --kind answer --reply-to <id> ...`);
 3. with neither, stories without a claim that are not done (check their
-   dependencies with `agentic-sdlc status` before claiming one).
+   dependencies with `mpsf status` before claiming one).
 
 Items that need a person, such as an expired claim to renew or force, never
 block: they are only mentioned. If the turn already continued because of this
@@ -1250,7 +1250,7 @@ blocks in a row (state in `<git-common-dir>/agentic-sdlc/keep-going.json`).
 `AGENTIC_SDLC_KEEP_GOING=off` disables the check.
 
 Hosts without a blocking end-of-turn hook, such as Codex, use the same
-decision through `agentic-sdlc next` (read-only, local files only): the shared
+decision through `mpsf next` (read-only, local files only): the shared
 skill tells the agent to run it before ending a turn and to continue while it
 prints a next step. The hook script also accepts a Codex `Stop` payload
 (`cwd`, `stop_hook_active`) and answers in the same format, so it can be
@@ -1259,7 +1259,7 @@ registered as a Codex `Stop` hook where hooks are enabled.
 ### Never stay asleep: `watch`
 
 A session with nothing to do stops, and a stopped session never wakes up on
-its own. `agentic-sdlc watch [--timeout 30m] [--json]` is the alarm: it waits
+its own. `mpsf watch [--timeout 30m] [--json]` is the alarm: it waits
 for the first relevant event and exits printing a short summary (for example
 `domanda di Alice · PC1 su ST-X (titolo): ...` or `nuova story libera ST-Y
 (titolo)`). Relevant events: a message on the channel for this computer or for
@@ -1272,14 +1272,14 @@ by the deadline it exits 0 with `nessun evento` and the agent re-arms it.
 In Claude Code a command started with Bash `run_in_background` re-invokes the
 agent when it exits, so the background watch is the wake-up. The Stop hook
 enforces it: with no work and no active watch it blocks once, asking to start
-`agentic-sdlc watch --timeout 30m` in the background; with a watch active (pid
+`mpsf watch --timeout 30m` in the background; with a watch active (pid
 and heartbeat in `<git-common-dir>/agentic-sdlc/watch.json`) it lets the stop
 through; at most one request per 10 minutes. The SessionStart context carries
 the same rule.
 
 Other hosts (Codex, ...): there is no blocking Stop hook, so run the same
 command as any background process that has a deadline (never an unbounded
-loop or `nohup`), for example `agentic-sdlc run --timeout 35m -- agentic-sdlc
+loop or `nohup`), for example `mpsf run --timeout 35m -- agentic-sdlc
 watch --timeout 30m`, read its output when it exits and start it again.
 
 Settings: `AGENTIC_SDLC_WATCH_TIMEOUT` (30m), `AGENTIC_SDLC_WATCH_POLL_SECONDS`
@@ -1295,17 +1295,17 @@ and stops itself after `AGENTIC_SDLC_MAX_RUN_MINUTES` (default 10, `0` for
 none); `message listen` after `AGENTIC_SDLC_LISTEN_MAX_HOURS` (default 8).
 Every command, and the host hook at the end of a turn or session, stops this
 user's plugin commands that outlived their limit, also those started by older
-plugin versions, after checking the process is still an agentic-sdlc command.
-The Change Observatory is never stopped. `agentic-sdlc runs list` and
-`agentic-sdlc runs stop [--older-than <minutes>] [--pid <pid>]` do the same by
+plugin versions, after checking the process is still an mpsf command.
+The Change Observatory is never stopped. `mpsf runs list` and
+`mpsf runs stop [--older-than <minutes>] [--pid <pid>]` do the same by
 hand.
 
 Commands that are not the plugin's own (test suites, builds, dev servers)
-are bounded the same way. `agentic-sdlc run --timeout <duration> [--log <file>]
+are bounded the same way. `mpsf run --timeout <duration> [--log <file>]
 -- <command>` starts the command in its own process group (Windows: with
 `taskkill /T /F` as the stop) and, at the deadline, stops the whole tree and
 exits 124; otherwise it passes input and output through and returns the
-command's exit code. `agentic-sdlc processes reap [--older-than 10m]
+command's exit code. `mpsf processes reap [--older-than 10m]
 [--dry-run] [--json]` stops what is left: processes of the current user
 older than the limit, whose command line names the project root, one of its
 worktrees or the plugin cache, that match an include pattern and no exclude
@@ -1335,7 +1335,7 @@ per story (from `--story`, or `--id` when it is a story id; otherwise per
 command); trace rebase, baseline refresh/approve and story publish-records take
 one lock per repository. The lock is a file under
 `<git-common-dir>/agentic-sdlc/locks/` created exclusively; a second start
-while the holder is a live agentic-sdlc process exits with code 5 and says which
+while the holder is a live mpsf process exits with code 5 and says which
 pid holds it. A dead, foreign or over-limit holder is taken over, and the
 reaper removes stale locks. `AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS` (default 0)
 waits instead of refusing. Read-only commands are never blocked.
@@ -1360,7 +1360,7 @@ Migration updates the control plane without rewriting approved history.
 First run a dry plan against the newest valid released manifest:
 
 ```bash
-agentic-sdlc migration active \
+mpsf migration active \
   --release-manifest RELEASE-ASSESS-001
 ```
 
@@ -1376,7 +1376,7 @@ The dry run:
 Apply that plan explicitly:
 
 ```bash
-agentic-sdlc migration active \
+mpsf migration active \
   --release-manifest RELEASE-ASSESS-001 \
   --apply
 ```
@@ -1390,7 +1390,7 @@ Logical active-release migration is deliberately different from `archive closed 
 An explicit identity correction uses its own dry-run-first migration because attribution can be inside approved records and historical authorization receipts:
 
 ```bash
-agentic-sdlc migration identity \
+mpsf migration identity \
   --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}'
 ```
 

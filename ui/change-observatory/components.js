@@ -228,7 +228,7 @@ export function renderKnowledgeBaseMissing(container, model) {
       attrs: { role: "status" },
     }, [
       icon("source"),
-      node("strong", { text: "No Agentic SDLC records were found in this folder", i18n: true }),
+      node("strong", { text: "No MPSF records were found in this folder", i18n: true }),
       node("p", {
         text: "Change Observatory looked for a project knowledge base in the folder you opened and did not find one, so there is nothing to show yet. Nothing is broken.",
         i18n: true,
@@ -238,7 +238,7 @@ export function renderKnowledgeBaseMissing(container, model) {
         node("code", { text: checkedPath }),
         document.createTextNode(` ${t("inside the project folder shown in your terminal")}`),
       ]),
-      node("p", { text: "To start recording: ask your agent to initialize Agentic SDLC for this project, or run the initialize command in a terminal inside the project folder, then press Refresh.", i18n: true }),
+      node("p", { text: "To start recording: ask your agent to initialize MPSF for this project, or run the initialize command in a terminal inside the project folder, then press Refresh.", i18n: true }),
       node("p", {}, [
         node("code", { text: "agentic-sdlc init" }),
       ]),

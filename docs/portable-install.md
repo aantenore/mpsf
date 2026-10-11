@@ -1,6 +1,6 @@
 # Portable Codex Install
 
-Agentic SDLC 0.154.0 includes a self-contained Codex packaging. The repository root is the plugin root because it contains `.codex-plugin/plugin.json`; all manifest and agent-card paths are repository-relative.
+MPSF 0.155.0 includes a self-contained Codex packaging. The repository root is the plugin root because it contains `.codex-plugin/plugin.json`; all manifest and agent-card paths are repository-relative.
 
 The Codex packaging keeps the install identifier `agentic-sdlc-codex-plugin` (the `.codex-plugin/plugin.json` name, the installer's `PLUGIN_NAME`, the `codex plugin add/remove` argument, and the `~/plugins/agentic-sdlc-codex-plugin` destination) even though the npm package and repository are named `agentic-sdlc`. This keeps existing Codex installations updating in place instead of creating a second, parallel installation.
 
@@ -45,7 +45,7 @@ The npm `files` allowlist defines the package surface. Project-specific `.sdlc/`
 ## Prerequisites
 
 - Codex with the `codex plugin` command group.
-- Node.js 18.20.3–18.x, 20.12.0–20.x, or 21.6.0+ for `bin/agentic-sdlc.mjs`. Earlier releases in those lines contain a native shutdown livelock fixed upstream.
+- Node.js 18.20.3–18.x, 20.12.0–20.x, or 21.6.0+ for `bin/mpsf.mjs`. Earlier releases in those lines contain a native shutdown livelock fixed upstream.
 - Python 3.8 or newer for the repository staging installer.
 - A source checkout outside the generated `~/plugins/agentic-sdlc-codex-plugin` destination.
 - Optional: RTK 0.43 or newer on `PATH` for the gateway's default automatic runtime route. The first candidate is canonicalized and must resolve outside the project root; project-local or configured custom providers require the explicit per-invocation trust switch described below.
@@ -115,7 +115,7 @@ by V2. The source-checkout form shown above performs the same checks. It:
 - never installs/configures CodeBurn and never uses network or authentication.
 
 Autoconfiguration is outside V2's retained-backup boundary because RTK guidance
-is user-global and can affect projects that do not use Agentic SDLC. It does
+is user-global and can affect projects that do not use MPSF. It does
 not download or upgrade RTK. For automatic runtime routing, put an approved RTK
 binary on `PATH`; the gateway resolves and canonicalizes the first candidate
 before execution. A PATH candidate or symlink target inside the project root
@@ -127,7 +127,7 @@ A successful list result contains an installed, enabled entry with:
 ```json
 {
   "pluginId": "agentic-sdlc-codex-plugin@personal",
-  "version": "0.154.0",
+  "version": "0.155.0",
   "installed": true,
   "enabled": true
 }
@@ -145,17 +145,17 @@ use one as installation evidence:
 
 ```bash
 # Run in the source checkout.
-node bin/agentic-sdlc.mjs --version --json
+node bin/mpsf.mjs --version --json
 
 # Run the installer-managed staging copy.
-node "$HOME/plugins/agentic-sdlc-codex-plugin/bin/agentic-sdlc.mjs" --version --json
+node "$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs" --version --json
 
 # Derive the cache path from staging; no release number is hard-coded.
 VERSION="$(node -p 'require(process.argv[1]).version' "$HOME/plugins/agentic-sdlc-codex-plugin/package.json")"
 # Use technical_details.codex_target.home from apply. This is the exact default;
 # replace it only when apply bound an explicit --codex-home.
 CODEX_STATE_HOME="$HOME/.codex"
-CACHE_COMMAND="$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSION/bin/agentic-sdlc.mjs"
+CACHE_COMMAND="$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSION/bin/mpsf.mjs"
 
 # Run the exact cache loaded by Codex, including help; no global bin is assumed.
 node "$CACHE_COMMAND" --version --json
@@ -166,7 +166,7 @@ Each result contains at least:
 
 ```json
 {
-  "package_version": "0.154.0",
+  "package_version": "0.155.0",
   "build_fingerprint": "<sha256-of-distributed-paths-and-bytes>",
   "git_commit": "<source-commit>",
   "git_dirty": false
@@ -278,7 +278,7 @@ Run the plugin's non-destructive doctor from the source checkout. The npm script
 ```bash
 npm run doctor
 npm run doctor -- --root /path/to/target-project --json
-node bin/agentic-sdlc.mjs doctor --root /path/to/target-project --json
+node bin/mpsf.mjs doctor --root /path/to/target-project --json
 ```
 
 Without `--root`, doctor checks the repository used as the current directory; `--root` selects another project. In both cases it validates the project's effective configuration, and its KB and output registry when `.sdlc/` exists. It returns a non-zero exit code when a check fails.
@@ -295,7 +295,7 @@ Interpret the results as follows:
 
 | Check | Expected result | Recovery |
 | --- | --- | --- |
-| `codex plugin list --available --json` | Installed entry is enabled and reports `0.154.0` | Rerun staging, add again, then open a new task |
+| `codex plugin list --available --json` | Installed entry is enabled and reports `0.155.0` | Rerun staging, add again, then open a new task |
 | `npm run doctor` or CLI doctor | Reports runtime, version, assessment entry point, all four skills, Caveman/native-meter assets, Observatory launcher/UI, preset, optional RTK provider, and project KB checks as passed or not applicable | Repair a required failed item, restage, and open a new task |
 | `npm run check` | JavaScript syntax checks pass | Repair the reported source syntax before reinstalling |
 | Package dry run | Contains manifest, all four skills, agent cards, CLI, Observatory core/UI, schemas, and templates; excludes `.sdlc/` and `test/` | Repair `package.json` `files`, then restage |
@@ -345,7 +345,7 @@ The installed skill must launch the plugin-local CLI, open or return a token-bea
 
 ## Windows
 
-The CLI, hooks, messaging, claims, waits, delivery through pull requests and the Change Observatory run on Windows with Node.js. `agentic-sdlc run --timeout` stops a command and everything it started (`taskkill /T /F`).
+The CLI, hooks, messaging, claims, waits, delivery through pull requests and the Change Observatory run on Windows with Node.js. `mpsf run --timeout` stops a command and everything it started (`taskkill /T /F`).
 
 A **local release** (`autonomy delivery propose --kind local_release`) runs its smoke test in a read-only sandbox with no network. On Windows 10 1809 or later the plugin uses a per-run AppContainer with no capabilities (`windows-appcontainer-readonly-no-network`), started by Windows PowerShell with a launcher script shipped in the plugin and hash-sealed into the authorization. No admin rights and nothing to install. Compared with macOS and Linux it also denies loopback and lets the smoke process read only the smoke directory, the runtime's folder and the system folders; a temporary read-only permission for the per-run container is added to those folders and removed after the run.
 

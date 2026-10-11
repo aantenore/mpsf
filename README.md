@@ -1,11 +1,11 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
-    <img src="assets/logo.png" alt="Agentic SDLC" width="480">
+    <img src="assets/logo.png" alt="MPSF" width="480">
   </picture>
 </p>
 
-# Agentic SDLC
+# MPSF
 
 One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **Claude Code** (`.claude-plugin/`). Both load the same skills, schemas, templates, and Node.js CLI.
 
@@ -13,7 +13,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 **The problem:** when a coding agent works on a software project, it can be hard to tell what it understood, what it was allowed to change, why it made each decision, or whether the result really works.
 
-**What Agentic SDLC changes:** it turns that work into a reviewable journey. The goal and boundaries are agreed before execution, important decisions and evidence stay with the project, delivered files are checked, and a local visual app explains the history. A product owner can understand the outcome without reading code, while an engineer can still inspect the underlying evidence.
+**What MPSF changes:** it turns that work into a reviewable journey. The goal and boundaries are agreed before execution, important decisions and evidence stay with the project, delivered files are checked, and a local visual app explains the history. A product owner can understand the outcome without reading code, while an engineer can still inspect the underlying evidence.
 
 **Example:** a product owner asks Codex to assess an existing service and produce an architecture report. The plugin records the request, Codex's understanding, the approved boundaries, the report, and the checks that were actually run. Change Observatory then presents that history as a readable local timeline.
 
@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.154.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF 0.155.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.155.0** — renamed to **mpsf** (My Personal Software Factory): plugin `mpsf@aantenore`, `/mpsf:...` commands; the old `agentic-sdlc` entry is a bridge that installs mpsf on the next session. Records, refs and config unchanged.
 - **0.154.0** — operational records off the base branch: `state migrate` moves action receipts, executions and gate reports (not the final receipts) to an orphan `sdlc-state` branch of the same remote; the hooks sync them in the background (throttled, fast-forward only, `[skip ci]`); the Change Observatory shows them; older plugins are asked to update.
 - **0.153.7** — the repository no longer carries its own `.sdlc` folder; nothing changes for projects using the plugin.
 - **0.153.6** — computers no longer ask each other to update the plugin: each one warns only its own person, with the update command; requests from older plugins are shown as information and nothing reacts to them.
@@ -93,11 +94,11 @@ Earlier releases in those lines contain an upstream native shutdown livelock.
 
 ```bash
 /plugin marketplace add aantenore/agentic-sdlc
-/plugin install agentic-sdlc@aantenore
-/agentic-sdlc:doctor
+/plugin install mpsf@aantenore
+/mpsf:doctor
 ```
 
-Then use a starter command — `/agentic-sdlc:assess`, `/agentic-sdlc:deliver`, `/agentic-sdlc:continue-pr`, `/agentic-sdlc:local`, `/agentic-sdlc:observe` — or just describe the outcome in plain language. Full guide: [Claude Code Installation](docs/claude-code-install.md).
+Then use a starter command — `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local`, `/mpsf:observe` — or just describe the outcome in plain language. Full guide: [Claude Code Installation](docs/claude-code-install.md).
 
 ### Codex
 
@@ -235,7 +236,7 @@ stages:
    `operations` step, and release of the completed story claim, run:
 
    ```bash
-   agentic-sdlc gate check --strict --story ST-TRIP-POLICY-001 --lifecycle-complete
+   mpsf gate check --strict --story ST-TRIP-POLICY-001 --lifecycle-complete
    ```
 
 The final command is intentionally stronger than the distinct intermediate strict check.
@@ -269,7 +270,7 @@ project, repository, or global Git ignore rules match them.
 
 A **new PR** must show the repository, base branch, new head branch, allowed files, tests, push, and PR creation. An **existing PR** must show the exact PR and its current repository, base, head, and SHA; the workflow updates that PR and does not create another one. A **local-only result** excludes push, PR actions, remote deployment, and production and includes a smoke test plus rollback.
 
-If the workflow pauses, ask Codex: `Why is Agentic SDLC blocked? Explain the next safe action without changing anything.` The read-only `agentic-sdlc status` command gives the same one-next-step orientation for operators. See [Getting Started](docs/getting-started.md#when-the-workflow-pauses) for recovery.
+If the workflow pauses, ask Codex: `Why is MPSF blocked? Explain the next safe action without changing anything.` The read-only `mpsf status` command gives the same one-next-step orientation for operators. See [Getting Started](docs/getting-started.md#when-the-workflow-pauses) for recovery.
 
 The dedicated `Project Assessment` and `Change Observatory` skills are visible in Codex and can also be selected implicitly from equivalent requests. The Observatory skill resolves the plugin-local launcher directly, so a Codex plugin installation does not depend on a global shell command.
 
@@ -280,7 +281,7 @@ If you are new to the plugin, continue with [Getting Started](docs/getting-start
 The CLI explains the outcome, practical impact, any decision needed, what remains protected, and one next step before showing optional technical details. Focused help and completion work even outside an initialized project:
 
 ```bash
-PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/agentic-sdlc.mjs"
+PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
 node "$PLUGIN_CLI" help
 node "$PLUGIN_CLI" help autonomy delivery approve --locale it
 node "$PLUGIN_CLI" completion zsh
@@ -302,27 +303,27 @@ Change Observatory is a local, read-only application bundled in the plugin. It a
 From an npm/git/tarball package installation that exposes the bin entry:
 
 ```bash
-agentic-sdlc observe --root /path/to/project
+mpsf observe --root /path/to/project
 ```
 
 For automation or a machine without a browser opener:
 
 ```bash
-agentic-sdlc observe --root /path/to/project --port 0 --no-open --json
+mpsf observe --root /path/to/project --port 0 --no-open --json
 ```
 
 To compare an explicit set of local projects, pass a relative portfolio file;
 no sibling-directory discovery or fallback is performed:
 
 ```bash
-agentic-sdlc observe --root /path/to/workspace --portfolio-manifest portfolio.json
+mpsf observe --root /path/to/workspace --portfolio-manifest portfolio.json
 ```
 
 For a compact read-only status that exits without opening a server or creating
 an access token:
 
 ```bash
-agentic-sdlc portfolio status --root /path/to/workspace --manifest portfolio.json --json
+mpsf portfolio status --root /path/to/workspace --manifest portfolio.json --json
 ```
 
 Add `--fail-on-attention` to make the command exit non-zero when any project is
@@ -357,7 +358,7 @@ internally consistent history. Evidence fingerprints are calculated from the
 redacted representation, so a digest does not preserve a hidden fingerprint of
 the original secret.
 
-Check the history at any time with the read-only `agentic-sdlc trace verify`.
+Check the history at any time with the read-only `mpsf trace verify`.
 It tells an unexpected change (exit code 1, with how to back up and restore
 `.sdlc/traces` from version control) apart from an interrupted recording that
 the next recorded event repairs automatically. `doctor` and the activity and
@@ -527,7 +528,7 @@ Only the user approves a standing approval, in their own terminal: the CLI refus
 Some commands accept only a person: `requirement approve` and `requirement supersede`, `breakdown approve`, `dependency approve`, `contract approve`, `autonomy delivery evidence supersede`, `story base acknowledge`, `story overlap confirm`, `output link` with a human decision, `story abandon`, `story supersede`, `autonomy delivery approve` and `baseline approve`. An agent that passes `--actor-type human` is still not a person, and that stays true. To let the agent run them, the person signs once an explicit, limited and revocable delegation from their own terminal:
 
 ```bash
-agentic-sdlc autonomy delegation grant --id DLG-TRAVELOPS-001 --scope project --actions breakdown.approve,dependency.approve,evidence.supersede,base.acknowledge,overlap.confirm,output.link,contract.approve,requirement.approve,requirement.supersede --until 30d --summary "L'agente applica queste approvazioni per 30 giorni" --actor-type human --approval-source explicit-user
+mpsf autonomy delegation grant --id DLG-TRAVELOPS-001 --scope project --actions breakdown.approve,dependency.approve,evidence.supersede,base.acknowledge,overlap.confirm,output.link,contract.approve,requirement.approve,requirement.supersede --until 30d --summary "L'agente applica queste approvazioni per 30 giorni" --actor-type human --approval-source explicit-user
 ```
 
 - `--scope` is `project`, `requirement:<REQ-id>` or `story:<ST-id>`; `--actions` lists named action classes (`requirement.approve`, `requirement.supersede`, `breakdown.approve`, `dependency.approve`, `contract.approve`, `evidence.supersede`, `base.acknowledge`, `overlap.confirm`, `output.link`, `story.abandon`, `story.supersede`, `delivery.policy`, `delivery.approve`, `baseline.approve`); `--until` is a date, a date-time or a duration (`30d`, `12h`, `2w`), at most 90 days (`delegation_policy.max_validity_days`).
@@ -543,16 +544,16 @@ Never delegable, even when listed (the grant refuses them with a clear error): p
 Stories are the unit of parallel work: one story, one claim, one branch, one pull request. A claim file only coordinates processes on one checkout, so when the project has a git remote, `story claim` first records the claim on that remote with a push the remote accepts only if no one claimed that story first. Of two computers claiming the same story at the same moment, exactly one wins; the other is told who holds it, on which branch, and since when, and nothing is written. Releasing (`story release`, or `--release-claim` on `story complete-step` and `story prepare-handoff`) frees the story for everyone.
 
 ```bash
-agentic-sdlc orchestrate status --json        # free, claimed (with holder and branch), stale, and blocked stories from every computer
-agentic-sdlc story claim --id ST-002 --agent alice --branch feature/ST-002
-agentic-sdlc story release --id ST-002 --reason "Merged"
+mpsf orchestrate status --json        # free, claimed (with holder and branch), stale, and blocked stories from every computer
+mpsf story claim --id ST-002 --agent alice --branch feature/ST-002
+mpsf story release --id ST-002 --reason "Merged"
 ```
 
 The split is simple: publish the approved specs and story breakdown, let every computer pull them, then each runs `orchestrate status`, claims one available story, works on its branch, and opens its pull request. Claiming is the start of work, so if the remote cannot be reached the claim is refused; set `orchestration_policy.coordination.mode` to `local_only` for a project worked on from one computer only (`auto`, the default, shares claims when the remote exists; `required` refuses without it). Taking over a story held elsewhere is a person's decision, made in their own terminal with `--force` and a `--reason` that the previous holder sees. See [Parallel Work Model](docs/architecture.md#several-computers) for the step-by-step guide.
 
 ### Computers on different plugin versions
 
-Records an older plugin would misread declare the plugin version they need: a project that uses such a feature keeps a small file under `.sdlc/compatibility/` (one per feature, identical on every computer, so merges never conflict), and a shared claim record carries `minimum_plugin_version`. A computer on an older version then refuses commands that change the project, keeps read-only commands working with a warning, and shows the update command (`claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, then `/reload-plugins`) in `status`, `doctor`, and at session start. Records are never migrated; derived data such as the local cache is rebuilt when it was written by another plugin version. Features and their versions are listed in `config/plugin-compatibility.json`.
+Records an older plugin would misread declare the plugin version they need: a project that uses such a feature keeps a small file under `.sdlc/compatibility/` (one per feature, identical on every computer, so merges never conflict), and a shared claim record carries `minimum_plugin_version`. A computer on an older version then refuses commands that change the project, keeps read-only commands working with a warning, and shows the update command (`claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins`) in `status`, `doctor`, and at session start. Records are never migrated; derived data such as the local cache is rebuilt when it was written by another plugin version. Features and their versions are listed in `config/plugin-compatibility.json`.
 
 ### Working without messaging
 
@@ -594,7 +595,7 @@ After proposal approval, capture the exact task baseline **before** `apply`.
 `--thread-id` explicitly:
 
 ```bash
-node bin/agentic-sdlc.mjs budget meter start \
+node bin/mpsf.mjs budget meter start \
   --root /path/to/project \
   --proposal ASSESSMENT-001
 ```
@@ -602,7 +603,7 @@ node bin/agentic-sdlc.mjs budget meter start \
 During execution or before completion, record the incremental usage since that baseline:
 
 ```bash
-node bin/agentic-sdlc.mjs budget meter record \
+node bin/mpsf.mjs budget meter record \
   --root /path/to/project \
   --proposal ASSESSMENT-001
 ```
@@ -625,7 +626,7 @@ with nothing recorded reads "not measured".
 
 ## Context Packs And Token Saving
 
-An agent working on one story should not read whole records. `agentic-sdlc context pack --story <id> [--phase <phase>] [--budget <tokens>]` prints a deterministic summary for the phase (accepted criteria, contract essentials, decisions, dependencies, write scope with a file index, recent tests and gates, waits, next step); a cut section ends with a reference that `agentic-sdlc context get <ref>` expands. Inside an agent session commands also print only the outcome, next step, ids and exact error (`--verbose` for the full text), `--json` returns the agent profile (`--json-profile full` for the complete payload), and hooks stop repeating themselves. Budgets are in `host_policy.context`. See [Token efficiency](docs/token-efficiency.md#context-packs-and-compact-output).
+An agent working on one story should not read whole records. `mpsf context pack --story <id> [--phase <phase>] [--budget <tokens>]` prints a deterministic summary for the phase (accepted criteria, contract essentials, decisions, dependencies, write scope with a file index, recent tests and gates, waits, next step); a cut section ends with a reference that `mpsf context get <ref>` expands. Inside an agent session commands also print only the outcome, next step, ids and exact error (`--verbose` for the full text), `--json` returns the agent profile (`--json-profile full` for the complete payload), and hooks stop repeating themselves. Budgets are in `host_policy.context`. See [Token efficiency](docs/token-efficiency.md#context-packs-and-compact-output).
 
 ## Windows
 
@@ -642,9 +643,9 @@ Inspect availability, run a supported noisy command, or capture an explicit
 manual diagnostic with:
 
 ```bash
-node bin/agentic-sdlc.mjs optimization status --root /path/to/project --proposal ASSESSMENT-001 --json
-node bin/agentic-sdlc.mjs optimization run --root /path/to/project --proposal ASSESSMENT-001 --command-json '["npm","test"]'
-node bin/agentic-sdlc.mjs optimization capture --root /path/to/project --proposal ASSESSMENT-001 --phase manual --json
+node bin/mpsf.mjs optimization status --root /path/to/project --proposal ASSESSMENT-001 --json
+node bin/mpsf.mjs optimization run --root /path/to/project --proposal ASSESSMENT-001 --command-json '["npm","test"]'
+node bin/mpsf.mjs optimization capture --root /path/to/project --proposal ASSESSMENT-001 --phase manual --json
 ```
 
 Use `optimization run --exact` when unfiltered, complete output is required.
@@ -699,7 +700,7 @@ Every non-native artifact has an `artifact_generator_receipt` for the exact deli
 DOCX, XLSX, PDF, PPTX, and HTML outputs also require render or visual-check evidence. The evidence must be a real project file outside `.sdlc/cache/` and `.sdlc/indexes/`, and it must be passed when the artifact is linked:
 
 ```bash
-node bin/agentic-sdlc.mjs output link \
+node bin/mpsf.mjs output link \
   --story ST-INITIAL-ASSESSMENT \
   --type technical-analysis \
   --artifact docs/technical-assessment.pdf \
@@ -714,7 +715,7 @@ node bin/agentic-sdlc.mjs output link \
 `--authorization` is the exact proposal-bound ID returned by checkpoint 2; linking consumes its dedicated `output.link` action/subject pair and persists a usage receipt. `--receipt-file` identifies the real generator; `--render-evidence` is separate render or visual proof, not functional or test evidence. The older `--evidence` spelling remains accepted here as a compatibility alias. Inspect the persisted output link and layered receipt with:
 
 ```bash
-node bin/agentic-sdlc.mjs output status \
+node bin/mpsf.mjs output status \
   --story ST-INITIAL-ASSESSMENT \
   --type technical-analysis \
   --json
@@ -812,7 +813,7 @@ Run the built-in doctor from the source checkout. The npm script and direct CLI 
 ```bash
 npm run doctor
 npm run doctor -- --root /path/to/target-project --json
-node bin/agentic-sdlc.mjs doctor --root /path/to/target-project --json
+node bin/mpsf.mjs doctor --root /path/to/target-project --json
 codex plugin list --available --json
 npm run check
 npm pack --dry-run --json
@@ -877,29 +878,29 @@ Regole per le correzioni:
 The CLI remains available for automation and advanced project workflows:
 
 ```bash
-node bin/agentic-sdlc.mjs --help
-node bin/agentic-sdlc.mjs observe --root /path/to/project --no-open --json
-node bin/agentic-sdlc.mjs doctor --root /path/to/project --json
-node bin/agentic-sdlc.mjs optimization status --root /path/to/project --proposal ASSESSMENT-001 --json
-node bin/agentic-sdlc.mjs optimization run --root /path/to/project --command-json '["npm","test"]'
-node bin/agentic-sdlc.mjs optimization capture --root /path/to/project --proposal ASSESSMENT-001 --phase manual --json
-node bin/agentic-sdlc.mjs status --root /path/to/project
-node bin/agentic-sdlc.mjs approval requests --root /path/to/project --json
-node bin/agentic-sdlc.mjs capability inventory --root /path/to/project --json
-node bin/agentic-sdlc.mjs capability recommend --root /path/to/project --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory
-node bin/agentic-sdlc.mjs assessment proposal status --root /path/to/project --id ASSESSMENT-001 --json
-node bin/agentic-sdlc.mjs budget meter start --root /path/to/project --proposal ASSESSMENT-001
-node bin/agentic-sdlc.mjs budget meter record --root /path/to/project --proposal ASSESSMENT-001
-node bin/agentic-sdlc.mjs budget status --root /path/to/project --proposal ASSESSMENT-001 --json
-node bin/agentic-sdlc.mjs autonomy delivery checks --root /path/to/project --id AUT-PR-184
-node bin/agentic-sdlc.mjs budget usage record --root /path/to/project --delivery AUT-PR-184 --cost-amount 0.42 --currency USD
-node bin/agentic-sdlc.mjs budget status --root /path/to/project --delivery AUT-PR-184
-node bin/agentic-sdlc.mjs gate check --root /path/to/project --scope release-manifest --release-manifest RELEASE-ASSESSMENT-001 --strict --json
-node bin/agentic-sdlc.mjs migration active --root /path/to/project --release-manifest RELEASE-ASSESSMENT-001
-node bin/agentic-sdlc.mjs migration active --root /path/to/project --release-manifest RELEASE-ASSESSMENT-001 --apply
-node bin/agentic-sdlc.mjs migration identity --root /path/to/project --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}'
-node bin/agentic-sdlc.mjs migration identity --root /path/to/project --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}' --apply --plan-hash <preview-plan-hash>
-node bin/agentic-sdlc.mjs migration identity --root /path/to/project --recover --recovery-nonce <nonce-from-lock> --plan-hash <hash-from-lock>
+node bin/mpsf.mjs --help
+node bin/mpsf.mjs observe --root /path/to/project --no-open --json
+node bin/mpsf.mjs doctor --root /path/to/project --json
+node bin/mpsf.mjs optimization status --root /path/to/project --proposal ASSESSMENT-001 --json
+node bin/mpsf.mjs optimization run --root /path/to/project --command-json '["npm","test"]'
+node bin/mpsf.mjs optimization capture --root /path/to/project --proposal ASSESSMENT-001 --phase manual --json
+node bin/mpsf.mjs status --root /path/to/project
+node bin/mpsf.mjs approval requests --root /path/to/project --json
+node bin/mpsf.mjs capability inventory --root /path/to/project --json
+node bin/mpsf.mjs capability recommend --root /path/to/project --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory
+node bin/mpsf.mjs assessment proposal status --root /path/to/project --id ASSESSMENT-001 --json
+node bin/mpsf.mjs budget meter start --root /path/to/project --proposal ASSESSMENT-001
+node bin/mpsf.mjs budget meter record --root /path/to/project --proposal ASSESSMENT-001
+node bin/mpsf.mjs budget status --root /path/to/project --proposal ASSESSMENT-001 --json
+node bin/mpsf.mjs autonomy delivery checks --root /path/to/project --id AUT-PR-184
+node bin/mpsf.mjs budget usage record --root /path/to/project --delivery AUT-PR-184 --cost-amount 0.42 --currency USD
+node bin/mpsf.mjs budget status --root /path/to/project --delivery AUT-PR-184
+node bin/mpsf.mjs gate check --root /path/to/project --scope release-manifest --release-manifest RELEASE-ASSESSMENT-001 --strict --json
+node bin/mpsf.mjs migration active --root /path/to/project --release-manifest RELEASE-ASSESSMENT-001
+node bin/mpsf.mjs migration active --root /path/to/project --release-manifest RELEASE-ASSESSMENT-001 --apply
+node bin/mpsf.mjs migration identity --root /path/to/project --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}'
+node bin/mpsf.mjs migration identity --root /path/to/project --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}' --apply --plan-hash <preview-plan-hash>
+node bin/mpsf.mjs migration identity --root /path/to/project --recover --recovery-nonce <nonce-from-lock> --plan-hash <hash-from-lock>
 ```
 
 Natural-language interpretation stays in Codex. The CLI accepts canonical structured intent and performs deterministic state, format, authorization, and evidence checks.
@@ -934,7 +935,7 @@ budget credit. See [Token Efficiency](docs/token-efficiency.md).
 .codex-plugin/plugin.json                    Codex plugin metadata and starter prompts
 commands/                                    Claude Code slash commands (one per starter intent)
 assets/                                      Plugin artwork
-bin/agentic-sdlc.mjs                         CLI entry point: main, command registry, observatory launcher
+bin/mpsf.mjs                         CLI entry point: main, command registry, observatory launcher
 docs/agent-interactions.md                   Two-checkpoint assessment interaction
 docs/portable-install.md                     Install and recovery guide
 schemas/                                     Canonical data contracts

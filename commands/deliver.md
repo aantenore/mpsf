@@ -11,7 +11,7 @@ Requirement: $ARGUMENTS
 
 Rules for this command:
 
-- The plugin root is `${CLAUDE_PLUGIN_ROOT}`. The deterministic CLI is `${CLAUDE_PLUGIN_ROOT}/bin/agentic-sdlc.mjs`; run it with `node` and pass `--root` for the target project.
+- The plugin root is `${CLAUDE_PLUGIN_ROOT}`. The deterministic CLI is `${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs`; run it with `node` and pass `--root` for the target project.
 - Follow the skill's `Required Delivery Order`. Do not skip a stage because it looks obvious.
 - The delivery kind is `pull_request`. A prior pull-request choice is never reused: propose a delivery execution profile for this delivery and get it approved.
 - When you propose the delivery, ask the code review question at the same step as the autonomy choice and before `task start`, with the exact Italian or English copy in the skill (Workflow step 13, `skills/agentic-sdlc/references/delivery.md`): does the user want a person who did not author the commits to approve the code before this PR is merged? Suggest “No”, and “Yes” when the story touches security, authentication, payments, data migrations, public APIs, or infrastructure. Pass the answer to `autonomy delivery propose` with `--code-review required|not-required --code-review-actor-type human --code-review-approval-source explicit-user --code-review-summary "<the user's words>"`. Never infer it, reuse an earlier answer, or answer for the user, and do not start the task without it. The review is checked only at merge.

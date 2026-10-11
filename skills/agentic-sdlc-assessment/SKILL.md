@@ -1,9 +1,9 @@
 ---
 name: agentic-sdlc-assessment
-description: Contextualize an existing software project and deliver an initial technical, functional, architecture, or product assessment through a proposal-bound Agentic SDLC workflow. Use for natural requests in any language such as "contextualize this project", "contestualizza questo progetto e prepara un assessment", "assess the architecture and project health", or requests for a verified assessment artifact in Markdown, Word, Excel, PDF, PowerPoint, HTML, JSON, or CSV.
+description: Contextualize an existing software project and deliver an initial technical, functional, architecture, or product assessment through a proposal-bound MPSF workflow. Use for natural requests in any language such as "contextualize this project", "contestualizza questo progetto e prepara un assessment", "assess the architecture and project health", or requests for a verified assessment artifact in Markdown, Word, Excel, PDF, PowerPoint, HTML, JSON, or CSV.
 ---
 
-# Agentic SDLC Assessment
+# MPSF Assessment
 
 ## Operating Contract
 
@@ -183,7 +183,7 @@ Load the corresponding format skill before generating or validating a non-native
 The generator must emit an `artifact_generator_receipt` containing the generator identity, artifact path/hash, executor, and generation time. Pass it separately from render evidence:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs output link \
+node <plugin-root>/bin/mpsf.mjs output link \
   --root <target-project> \
   --story ST-INITIAL-ASSESSMENT \
   --type technical-analysis \

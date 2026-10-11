@@ -18,7 +18,7 @@ In the examples below, that name is shorthand for the installer-managed entry
 point:
 
 ```bash
-PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/agentic-sdlc.mjs"
+PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
 node "$PLUGIN_CLI" help
 ```
 
@@ -666,7 +666,7 @@ boundaries, removal, and recovery.
 
 ## Closing a merged story in one step
 
-`agentic-sdlc story close --id <story>` runs, after the merge, everything the
+`mpsf story close --id <story>` runs, after the merge, everything the
 story still needs: story sync, an incremental secret scan, the release trace
 when it is missing (evidence: the `pull_request.merge` receipt, or
 `--evidence <path>`), the `release` and `operations` steps when the governed
@@ -697,7 +697,7 @@ would break the phase order. `story complete-step --backfill` records it
 honestly instead:
 
 ```bash
-agentic-sdlc story complete-step --id <story> --step implementation \
+mpsf story complete-step --id <story> --step implementation \
   --backfill --reason "<why it was not recorded when done>"
 ```
 

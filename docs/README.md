@@ -1,4 +1,4 @@
-# Agentic SDLC documentation
+# MPSF documentation
 
 This page is the documentation map. Start with the goal that matches what you want to do; you do not need to read every page in order.
 

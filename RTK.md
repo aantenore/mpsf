@@ -1,10 +1,10 @@
 # RTK - Rust Token Killer (Codex CLI)
 
-**Usage**: Token-optimized command output through the Agentic SDLC gateway.
+**Usage**: Token-optimized command output through the MPSF gateway.
 
 ## Rule
 
-Prefer the shell-free `agentic-sdlc optimization run` gateway for supported
+Prefer the shell-free `mpsf optimization run` gateway for supported
 read-only Git/search commands and fixed test commands whose output enters model
 context. Pass commands as JSON argument vectors, never shell strings. The
 gateway uses native fallback when RTK is unavailable. Add `--exact` for
@@ -19,23 +19,23 @@ the cost gate can block the command before either RTK or the native fallback run
 Examples:
 
 ```bash
-agentic-sdlc optimization run --proposal ASSESS-001 --command-json '["git","status","--short"]'
-agentic-sdlc optimization run --proposal ASSESS-001 --command-json '["rg","pattern","path"]'
-agentic-sdlc optimization run --proposal ASSESS-001 --command-json '["npm","test"]'
-agentic-sdlc optimization run --proposal ASSESS-001 --command-json '["git","diff","--binary"]' --exact
+mpsf optimization run --proposal ASSESS-001 --command-json '["git","status","--short"]'
+mpsf optimization run --proposal ASSESS-001 --command-json '["rg","pattern","path"]'
+mpsf optimization run --proposal ASSESS-001 --command-json '["npm","test"]'
+mpsf optimization run --proposal ASSESS-001 --command-json '["git","diff","--binary"]' --exact
 ```
 
 ## Meta Commands
 
 ```bash
-agentic-sdlc optimization status --json
+mpsf optimization status --json
 rtk gain --project --format json
 ```
 
 ## Verification
 
 ```bash
-agentic-sdlc doctor --json
+mpsf doctor --json
 rtk --version
 rtk gain --project --format json
 ```

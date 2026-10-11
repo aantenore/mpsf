@@ -1,6 +1,6 @@
 # Token Efficiency
 
-Agentic SDLC reduces context at the command and response boundaries, then
+MPSF reduces context at the command and response boundaries, then
 measures the real resulting task usage without changing canonical project
 evidence.
 
@@ -57,9 +57,9 @@ omitted, that summary is not independently validatable as a complete
 The commands expose their complete machine payloads explicitly:
 
 ```bash
-agentic-sdlc kb search "checkout risk" --json --full
-agentic-sdlc cache status --json --full
-agentic-sdlc config migrate --json --full
+mpsf kb search "checkout risk" --json --full
+mpsf cache status --json --full
+mpsf config migrate --json --full
 ```
 
 Use `--full` only when an omitted machine field is required. It never changes
@@ -75,11 +75,11 @@ Added in 0.148.0. Four things keep an agent from re-reading text it does not nee
 **Context pack.** One story, one phase, a few hundred tokens instead of whole records (a final gate report alone can weigh hundreds of KB):
 
 ```bash
-agentic-sdlc context pack --story ST-UX-002                       # phase = first open step
-agentic-sdlc context pack --story ST-UX-002 --phase implementation --budget 1200
-agentic-sdlc context pack --story ST-UX-002 --phase handoff --json  # to pass the story on
-agentic-sdlc context get sec:ST-UX-002/implementation/scope        # a section the budget cut
-agentic-sdlc context get rec:.sdlc/requirements/REQ-001.json#/acceptance_criteria
+mpsf context pack --story ST-UX-002                       # phase = first open step
+mpsf context pack --story ST-UX-002 --phase implementation --budget 1200
+mpsf context pack --story ST-UX-002 --phase handoff --json  # to pass the story on
+mpsf context get sec:ST-UX-002/implementation/scope        # a section the budget cut
+mpsf context get rec:.sdlc/requirements/REQ-001.json#/acceptance_criteria
 ```
 
 The pack holds the accepted criteria, the contract essentials, decisions, dependencies, the write scope with a file index (paths and symbol names, no file contents), recent tests and gates, waits and the next governed step. Each section has its own budget and a cut section ends with a `context get` reference. The same input gives the same `pack_hash`; secrets are redacted; the cache lives in `.sdlc/cache/context/` and is rebuilt when a record it read changes (`--no-cache` forces it). Records are read through the record store, with the filesystem as fallback. Under the title, `base: N commits behind origin/main` says how far the checkout is from the base branch, after a bounded fetch at most once a minute (`AGENTIC_SDLC_FRESH_FETCH=off` skips it); it is not part of the hash.
@@ -113,7 +113,7 @@ Projects that set `host_policy.context` need 0.148.0 on every computer; older pl
 ## RTK command gateway
 
 [RTK](https://github.com/rtk-ai/rtk) filters noisy command output before it
-enters model context. Agentic SDLC 0.154.0 integrates RTK 0.43+ behind a
+enters model context. MPSF 0.155.0 integrates RTK 0.43+ behind a
 configurable, shell-free gateway; RTK remains an optional, separately installed
 binary.
 
@@ -121,13 +121,13 @@ Check the effective policy, provider version, cumulative project counters, and
 the latest proposal observation with:
 
 ```bash
-agentic-sdlc optimization status --root /path/to/project --proposal ASSESS-001 --json
+mpsf optimization status --root /path/to/project --proposal ASSESS-001 --json
 ```
 
 Run an allowlisted command as an argument vector rather than a shell string:
 
 ```bash
-agentic-sdlc optimization run \
+mpsf optimization run \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --command-json '["npm","test"]'
@@ -142,7 +142,7 @@ drivers, and signature-verification options that invoke GPG are rejected. Use
 output:
 
 ```bash
-agentic-sdlc optimization run \
+mpsf optimization run \
   --root /path/to/project \
   --command-json '["git","diff","--binary"]' \
   --exact
@@ -194,7 +194,7 @@ assessment whose approved write set activated context observations. It is not a
 way to manufacture an apply, checkpoint, or completion event:
 
 ```bash
-agentic-sdlc optimization capture \
+mpsf optimization capture \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --phase manual \
@@ -209,7 +209,7 @@ native, no synthetic savings observation is persisted.
 
 Caveman `v1.9.1` is vendored as `skills/caveman/`, including its agent card,
 assets, MIT license, and upstream provenance. The default project policy selects
-adaptive mode at `full` intensity. Agentic SDLC loads it for user-facing
+adaptive mode at `full` intensity. MPSF loads it for user-facing
 explanations and status updates, while its auto-clarity boundary restores normal
 wording for security warnings, irreversible actions, approvals, multi-step
 sequences that could be misread, exact commands, contracts, and durable

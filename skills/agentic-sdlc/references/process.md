@@ -1,6 +1,6 @@
 # SDLC Process
 
-Agentic SDLC keeps the classic SDLC sequence, but each phase is governed by an explicit contract and every durable decision, output structure, and handoff is captured in the project knowledge base.
+MPSF keeps the classic SDLC sequence, but each phase is governed by an explicit contract and every durable decision, output structure, and handoff is captured in the project knowledge base.
 
 Before the phase sequence becomes executable, agree a revisioned `requirement:v2` and approve its requirement execution profile. The profile defines an autonomy ceiling, not permission to run. Before every pull request or local release, ask for a separate delivery autonomy selection; no selection is inherited from an earlier delivery.
 

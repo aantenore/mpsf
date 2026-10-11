@@ -1,6 +1,6 @@
 # Architecture
 
-Agentic SDLC separates the reusable method from project-specific knowledge.
+MPSF separates the reusable method from project-specific knowledge.
 
 ```text
 Plugin (Codex or Claude Code)
@@ -98,7 +98,7 @@ The CLI is layered so that every rule can be tested without spawning a process.
 
 | Layer | Location | Role |
 |---|---|---|
-| Entry point | `bin/agentic-sdlc.mjs` | Composition root only: `main`, the command registry, and the observatory launcher that needs the script's own path. |
+| Entry point | `bin/mpsf.mjs` | Composition root only: `main`, the command registry, and the observatory launcher that needs the script's own path. |
 | Engine | `lib/engine/*.mjs` | Command implementations, storage, git, delivery, workflow and gate code: everything that reads or writes. |
 | Rules | `lib/lifecycle/*.mjs` | Pure validators, normalizers and decision helpers with no I/O anywhere in their reference closure. |
 | Host seam | `lib/runtime/host.mjs` | The only route to the outside world. |
@@ -619,8 +619,8 @@ The result is a plain-language warning, for example "ST-REPLAN-002 is not reserv
 
 1. **Publish the approved specs.** On the first computer, approve the requirements, story breakdown, contracts, and task starts (each story ready to claim), commit `.sdlc/`, and push the branch everyone starts from (for example `main`). Keep `orchestration_policy.coordination.mode` at `auto` (or `required`).
 2. **Pull on every computer.** Each computer clones or pulls that branch, so all of them read the same stories, contracts, and dependency graph.
-3. **Pick a free lane.** On each computer, run `agentic-sdlc orchestrate status --json` (or `orchestrate plan --json`). Stories claimed on any computer show as `claimed` with holder and branch; hard dependencies keep blocked stories out of the `available` list.
-4. **Check, then claim at the start of development.** Run `agentic-sdlc story availability --id <story> --json`; if `safe_to_start` is false, stop and ask the person before going on. Then run `task start` and `agentic-sdlc story claim --id <story> --agent <name> --branch feature/<story>` at the start of development, not at integration time, so the shared claim protects the work from the first moment. If another computer won the race or already holds it, the command says who and where; pick another available story. When the story cannot start yet, book it with `story reserve` and claim it later from the same computer.
+3. **Pick a free lane.** On each computer, run `mpsf orchestrate status --json` (or `orchestrate plan --json`). Stories claimed on any computer show as `claimed` with holder and branch; hard dependencies keep blocked stories out of the `available` list.
+4. **Check, then claim at the start of development.** Run `mpsf story availability --id <story> --json`; if `safe_to_start` is false, stop and ask the person before going on. Then run `task start` and `mpsf story claim --id <story> --agent <name> --branch feature/<story>` at the start of development, not at integration time, so the shared claim protects the work from the first moment. If another computer won the race or already holds it, the command says who and where; pick another available story. When the story cannot start yet, book it with `story reserve` and claim it later from the same computer.
 5. **Branch and work.** Create the story branch, implement, record traces and steps, and push the branch.
 6. **Open the pull request.** Deliver the story through its own pull request or local release, as the delivery profile says.
 7. **Release or hand off.** When the story is complete or handed to another computer, release the claim (`story release`, or `--release-claim` on `story complete-step` / `story prepare-handoff`). If the release says it was not shared, run `story release --id <story>` again once the remote can be reached.

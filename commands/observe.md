@@ -15,7 +15,7 @@ Rules for this command:
 - Launch it with the bundled CLI:
 
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/bin/agentic-sdlc.mjs" observe --root <project-root> --json
+  node "${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs" observe --root <project-root> --json
   ```
 
 - Use the current working directory as `<project-root>` when `$ARGUMENTS` is empty.

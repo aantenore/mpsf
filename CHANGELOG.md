@@ -2,6 +2,14 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.155.0
+
+- The plugin is now **mpsf** (My Personal Software Factory): plugin `mpsf@aantenore`, slash commands `/mpsf:...`, package `mpsf`, product name MPSF in the docs, the CLI messages, the Codex plugin and the Change Observatory.
+- Switching: the marketplace keeps an `agentic-sdlc` entry that is only a bridge. The usual `claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, then a new session: the bridge installs `mpsf@aantenore` and uninstalls `agentic-sdlc@aantenore`; then `/reload-plugins`. By hand: `claude plugin install mpsf@aantenore && claude plugin uninstall agentic-sdlc@aantenore`.
+- Unchanged, so older plugins and existing projects keep working together: `.sdlc/`, `refs/agentic-sdlc/*`, `sdlc-state`, config keys, `~/.config/agentic-sdlc`, `.git/agentic-sdlc`, the skill ids `agentic-sdlc` and `agentic-sdlc-assessment`, the Codex install id, record schemas, the messaging channel, `AGENTIC_SDLC_*` variables (`MPSF_*` are aliases) and the `agentic-sdlc` command (alias of `mpsf`).
+- Release workflow and its guard accept both package names.
+- Change Observatory: the header and empty states say MPSF.
+
 ## 0.154.0
 
 - **Operational records on the `sdlc-state` branch.** `state migrate` pushes delivery action receipts, autonomy executions and gate reports (final receipts `gates/<story>-final.json` excluded) to an orphan branch of the same remote, ignores them in `.sdlc/.gitignore` and stops tracking them; files and history stay. The base branch keeps requirements, contracts, decisions, baseline, config, stories, dependencies, final receipts, traces and workflow checkpoints. Works with any git host.

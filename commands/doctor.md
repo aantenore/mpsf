@@ -1,5 +1,5 @@
 ---
-description: Check the local Agentic SDLC setup and explain how to fix what is broken.
+description: Check the local MPSF setup and explain how to fix what is broken.
 argument-hint: "[project path]"
 allowed-tools: Bash(node:*)
 ---
@@ -9,7 +9,7 @@ Run the bundled diagnostic and explain the result.
 Project path (optional): $ARGUMENTS
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/bin/agentic-sdlc.mjs" doctor --root <project-root>
+node "${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs" doctor --root <project-root>
 ```
 
 Rules for this command:

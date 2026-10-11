@@ -26,7 +26,7 @@ This assessment evaluates the product experience for requests equivalent to:
 
 The bounded happy path is read-only repository and KB analysis, already-installed local capabilities, one agreed project artifact, canonical SDLC bookkeeping, format-specific verification, and a concise chat summary. If the assessment also produces a pull request or local release, checkpoint 2 must include the explicit autonomy selection for that exact delivery profile. Implementation work outside that profile, remote deployment, production inspection, secret-bearing systems, and unapproved external research are outside the path.
 
-Evidence considered includes the existing Agentic SDLC skill and interaction documentation, CLI routing and approval behavior, project configuration, output-contract schemas, package boundaries, and regression tests. Repository evidence can show implemented behavior; it cannot prove unstored historical decisions or the semantic correctness of every future assessment.
+Evidence considered includes the existing MPSF skill and interaction documentation, CLI routing and approval behavior, project configuration, output-contract schemas, package boundaries, and regression tests. Repository evidence can show implemented behavior; it cannot prove unstored historical decisions or the semantic correctness of every future assessment.
 
 ## Product Strengths Before The Change
 

@@ -75,7 +75,7 @@ test("runtime assertion reports the actionable supported ranges", () => {
   );
   assert.equal(
     unsupportedNodeRuntimeMessage("18.18.0", "it-IT"),
-    `Serve ${NODE_RUNTIME_REQUIREMENT}; rilevato Node.js 18.18.0. Aggiorna Node.js prima di usare Agentic SDLC.`,
+    `Serve ${NODE_RUNTIME_REQUIREMENT}; rilevato Node.js 18.18.0. Aggiorna Node.js prima di usare MPSF.`,
   );
 });
 
@@ -169,7 +169,7 @@ test("unsupported runtime fails before CLI dispatch and benchmark argument parsi
     assert.equal(cliError.error.code, "UNSUPPORTED_NODE_RUNTIME");
     assert.equal(
       cliError.error.message,
-      `Serve ${NODE_RUNTIME_REQUIREMENT}; rilevato Node.js ${UNSUPPORTED_NODE_VERSION}. Aggiorna Node.js prima di usare Agentic SDLC.`,
+      `Serve ${NODE_RUNTIME_REQUIREMENT}; rilevato Node.js ${UNSUPPORTED_NODE_VERSION}. Aggiorna Node.js prima di usare MPSF.`,
     );
     assert.match(cliError.human_guidance.result, /comando non è stato completato/iu);
   } finally {

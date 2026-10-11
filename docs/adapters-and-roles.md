@@ -68,10 +68,10 @@ Delivery action receipts (`autonomy/actions/`), autonomy executions (`autonomy/e
 Stays on the base branch: requirements, contracts, decisions, baseline, config, stories (`story.json`, claims, steps), dependencies, final gate receipts, and for now traces and workflow checkpoints (one unit with the trace hash chain).
 
 ```bash
-agentic-sdlc state migrate --dry-run   # what would move
-agentic-sdlc state migrate             # push the records, ignore them, stop tracking them (files and history stay)
+mpsf state migrate --dry-run   # what would move
+mpsf state migrate             # push the records, ignore them, stop tracking them (files and history stay)
 git commit -m "Operational records on sdlc-state" && git push   # through your usual flow
-agentic-sdlc state status              # where they are, how many are not pushed yet
+mpsf state status              # where they are, how many are not pushed yet
 ```
 
 `state migrate` adds `.sdlc/compatibility/sdlc-state-records.json`. That file switches every computer to the state branch and makes plugins older than 0.154.0 ask for an update instead of missing records. No configuration key is needed. To change the defaults, set `host_policy.adapters.records` to `{ "provider": "sdlc-state", "options": { "branch": "sdlc-state", "remote": "origin", "push_interval_seconds": 120, "pull_interval_seconds": 60 } }` through `config migrate`.
@@ -83,7 +83,7 @@ How the records move:
 - Pushes are throttled (`push_interval_seconds`, default 2 minutes), so many computers together stay well under the forge's push rate (GitHub suggests about 6 pushes a minute per repository).
 - Every state commit says `[skip ci]`, and the branch has no CI files, so no pipeline starts on GitHub, GitLab, Bitbucket, Azure DevOps or Gitea/Forgejo. With CircleCI, filter out `sdlc-state` in the project settings.
 - Paths on the branch are the same as in `.sdlc/`. `state status --json` groups them by story (`shards`), so a branch or ref per story can be switched on later without changing the format.
-- CI jobs that read these records run `agentic-sdlc state pull` after checkout. The Change Observatory fetches the state branch and shows its records together with the base branch.
+- CI jobs that read these records run `mpsf state pull` after checkout. The Change Observatory fetches the state branch and shows its records together with the base branch.
 
 Assurance level: `full` (all of them), `standard` (hash chain and atomic publish), `local` (less). `gate check` refuses a level the store cannot back: `strict_intermediate` needs `hash_chain`; `lifecycle_complete` needs `hash_chain`, `immutable_history`, `atomic_publish` and `base_branch_coupling`. On `local-fs` the project can work and pass the intermediate gates, but it cannot be certified as lifecycle-complete.
 

@@ -1,6 +1,6 @@
 # Requirements, Context, and Contracts
 
-Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
+Workflow steps 5–12 of the MPSF skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
 5. Agree the requirement before treating decomposition as canonical. New requirements use `requirement:v2` and move through `propose`, `approve`, `revise`, and `supersede`; `requirement create` is only a compatibility alias for a proposal and must not create approved authority. Capture outcome, acceptance criteria, non-goals, constraints, NFRs, integrations, source hashes, revision lineage, and the linked requirement execution profile. That profile sets an autonomy ceiling and is not an executable grant. A material change creates a new revision and invalidates downstream profiles bound to the prior hash.
 
@@ -15,7 +15,7 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
    durable outputs.
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs requirement propose \
+   node <plugin-root>/bin/mpsf.mjs requirement propose \
      --root <target-project> \
      --id REQ-001 \
      --title "Bounded outcome" \
@@ -27,14 +27,14 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
      --write-path evidence \
      --autonomy-ceiling checkpointed
 
-   node <plugin-root>/bin/agentic-sdlc.mjs requirement approve \
+   node <plugin-root>/bin/mpsf.mjs requirement approve \
      --root <target-project> \
      --id REQ-001 \
      --actor-type human \
      --approval-source explicit-user \
      --summary "Approve this requirement revision and ceiling"
 
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy requirement status \
+   node <plugin-root>/bin/mpsf.mjs autonomy requirement status \
      --root <target-project> \
      --id REQ-001
    ```
@@ -45,7 +45,7 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
    legacy non-canonical proposal: create a new revision first, for example:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs requirement revise \
+   node <plugin-root>/bin/mpsf.mjs requirement revise \
      --root <target-project> \
      --id REQ-001 \
      --new-id REQ-001-R2 \
@@ -66,16 +66,16 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
    After approval, when the requirement needs decomposition, propose a work breakdown and dependency graph, then ask the user to approve or correct it before treating it as canonical. Each story is a separate delivery with its own profile and autonomy choice. When the user wants one pull request or one local release for several parts, propose one delivery story with tasks instead of several stories:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs work item create --root <target-project> --type task --id T-001 --title "First part" --story ST-001 --requirement REQ-001
-   node <plugin-root>/bin/agentic-sdlc.mjs work item create --root <target-project> --type task --id T-002 --title "Second part" --story ST-001 --requirement REQ-001
-   node <plugin-root>/bin/agentic-sdlc.mjs breakdown propose --root <target-project> --id BD-REQ-001 --requirement REQ-001 --item story:ST-001 --item task:T-001 --item task:T-002
+   node <plugin-root>/bin/mpsf.mjs work item create --root <target-project> --type task --id T-001 --title "First part" --story ST-001 --requirement REQ-001
+   node <plugin-root>/bin/mpsf.mjs work item create --root <target-project> --type task --id T-002 --title "Second part" --story ST-001 --requirement REQ-001
+   node <plugin-root>/bin/mpsf.mjs breakdown propose --root <target-project> --id BD-REQ-001 --requirement REQ-001 --item story:ST-001 --item task:T-001 --item task:T-002
    ```
 
    Only when parts should ship separately, propose several stories and their dependencies:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs breakdown propose --root <target-project> --id BD-REQ-001 --requirement REQ-001 --item story:ST-001
-   node <plugin-root>/bin/agentic-sdlc.mjs dependency propose --root <target-project> --id DEP-REQ-001 --edge ST-002:ST-001:requires_artifact:validation:artifact_linked
+   node <plugin-root>/bin/mpsf.mjs breakdown propose --root <target-project> --id BD-REQ-001 --requirement REQ-001 --item story:ST-001
+   node <plugin-root>/bin/mpsf.mjs dependency propose --root <target-project> --id DEP-REQ-001 --edge ST-002:ST-001:requires_artifact:validation:artifact_linked
    ```
 
    An edge whose required state is `merged` (for example `ST-002:ST-001:blocks:implementation:merged`) is satisfied only when the upstream story's pull request is merged, by the plugin or by an acknowledged external merge (`autonomy delivery reconcile`). A pull request that is only `ready_for_review` is not enough. A verified merge stays satisfied even when the upstream story's final certification later reads as stale, for example because the dependent story edits files the upstream story certified.
@@ -86,23 +86,23 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
 7. Before technical analysis or a contract that depends on project-specific tooling, profile the project/story and propose capability recommendations. Do not keyword-match the user's language. Use repo files, `.sdlc/`, user files, or canonical JSON normalized by Codex:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs capability profile propose \
+   node <plugin-root>/bin/mpsf.mjs capability profile propose \
      --root <target-project> \
      --id CAP-PROFILE-ST-001 \
      --story ST-001 \
      --phase analysis \
      --context-file .sdlc/requirements/REQ-001.json
 
-   node <plugin-root>/bin/agentic-sdlc.mjs capability profile approve \
+   node <plugin-root>/bin/mpsf.mjs capability profile approve \
      --root <target-project> \
      --id CAP-PROFILE-ST-001 \
      --actor-type human \
      --approval-source explicit-user \
      --summary "<user-approved profile>"
 
-   node <plugin-root>/bin/agentic-sdlc.mjs capability inventory --root <target-project> --json
+   node <plugin-root>/bin/mpsf.mjs capability inventory --root <target-project> --json
 
-   node <plugin-root>/bin/agentic-sdlc.mjs capability recommend \
+   node <plugin-root>/bin/mpsf.mjs capability recommend \
      --root <target-project> \
      --id CAP-REC-ST-001 \
      --profile CAP-PROFILE-ST-001 \
@@ -121,9 +121,9 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
 9. Before creating a phase/story contract that will produce a durable output, resolve the output type. If there is no approved output template for that step/type, propose the template, summarize it to the user using the returned `assistant_message` or `approval requests`, and stop. Do not create a contract that references a draft template and do not produce the phase output until the user agrees the format:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs output resolve --root <target-project> --story ST-001 --type functional-analysis
-   node <plugin-root>/bin/agentic-sdlc.mjs output template propose --root <target-project> --type functional-analysis --summary "..."
-   node <plugin-root>/bin/agentic-sdlc.mjs approval requests --root <target-project> --story ST-001
+   node <plugin-root>/bin/mpsf.mjs output resolve --root <target-project> --story ST-001 --type functional-analysis
+   node <plugin-root>/bin/mpsf.mjs output template propose --root <target-project> --type functional-analysis --summary "..."
+   node <plugin-root>/bin/mpsf.mjs approval requests --root <target-project> --story ST-001
    ```
 
    Every newly created delivery story must include at least one observable
@@ -133,7 +133,7 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
    story-locked recovery command:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs story acceptance add \
+   node <plugin-root>/bin/mpsf.mjs story acceptance add \
      --root <target-project> \
      --id ST-001 \
      --acceptance "<observable story-level success criterion>" \
@@ -160,8 +160,8 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
    Show the returned `assistant_message` whenever available: it explains what is being approved, what approval means, and what happens next. When `assistant_message_presentation.translate_to_chat_language` is true, translate and contextualize it in the active chat language while preserving artifact IDs, story IDs, contract IDs, template IDs, file paths, CLI commands, status codes, and schema keys. Keep the primary explanation non-technical and business-facing: say "project context" before baseline, "project evidence and boundaries" before capability profile, "allowed tools for this work" before capability recommendation, "assessment format" before template, and "work brief" before contract. For every prepared artifact, show what it contains, what decision is needed, what is missing, what approval authorizes, and what it does not authorize. Give enough detail for a decision in chat; do not make JSON or Markdown the primary approval flow. Approval scope is single-use and artifact-specific unless the user explicitly grants a broader in-delivery scope. Ask again for every new delivery unit. Do not produce technical/functional analysis, implementation outputs, tests, or release evidence before the contract is approved:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs story create --root <target-project> --id ST-001 --title "..." --requirement REQ-001 --acceptance "<observable story-level success criterion>"
-   node <plugin-root>/bin/agentic-sdlc.mjs contract create \
+   node <plugin-root>/bin/mpsf.mjs story create --root <target-project> --id ST-001 --title "..." --requirement REQ-001 --acceptance "<observable story-level success criterion>"
+   node <plugin-root>/bin/mpsf.mjs contract create \
      --root <target-project> \
      --phase <phase> \
      --story ST-001 \
@@ -171,26 +171,26 @@ Workflow steps 5–12 of the Agentic SDLC skill (`../SKILL.md`). Step numbers ar
      --capability-recommendation CAP-REC-ST-001 \
      --delivery-profile AUT-PR-184 \
      --output-ref functional-analysis:functional-analysis-v1:new
-   node <plugin-root>/bin/agentic-sdlc.mjs approval requests --root <target-project> --story ST-001
+   node <plugin-root>/bin/mpsf.mjs approval requests --root <target-project> --story ST-001
    ```
 
 11. Before creating a durable output artifact, resolve the project-wide output contract:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs output resolve --root <target-project> --story ST-001 --type functional-analysis
+   node <plugin-root>/bin/mpsf.mjs output resolve --root <target-project> --story ST-001 --type functional-analysis
    ```
 
    If an approved template exists, use it. If a related story already covers the same requirement, prefer reuse plus delta. If no template exists or the structure must change, propose a template and ask the user to approve it before making it canonical:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs output template propose --root <target-project> --type functional-analysis --summary "..."
-   node <plugin-root>/bin/agentic-sdlc.mjs output template approve --root <target-project> --id functional-analysis-v1 --actor-type human --approval-source explicit-user --summary "<user-approved template>"
+   node <plugin-root>/bin/mpsf.mjs output template propose --root <target-project> --type functional-analysis --summary "..."
+   node <plugin-root>/bin/mpsf.mjs output template approve --root <target-project> --id functional-analysis-v1 --actor-type human --approval-source explicit-user --summary "<user-approved template>"
    ```
 
 12. Confirm how every durable output will link back to story, requirement, approved template, and mode, but do not create or link an implementation/release output before the final contract, delivery profile, and task start are approved. After execution produces the artifact, run `output link` before completing the phase lane. `output link` requires the story contract to be approved and fresh unless `--allow-unapproved-contract-output` is being used for explicit migration/recovery. The CLI records fingerprints, and strict gates fail if the artifact, base artifact, or approved template changes after linking:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs output link \
+   node <plugin-root>/bin/mpsf.mjs output link \
      --root <target-project> \
      --story ST-001 \
      --type functional-analysis \

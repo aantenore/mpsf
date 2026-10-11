@@ -1181,7 +1181,7 @@ class InstallerTransactionTests(unittest.TestCase):
             ),
             self.assertRaisesRegex(
                 INSTALLER_V2.InstallError,
-                "orphaned Agentic SDLC cache",
+                "orphaned MPSF cache",
             ),
         ):
             self.original_capture_codex_before(self.home, target)
@@ -1828,7 +1828,7 @@ raise SystemExit(2)
             [str(node), str(new_cache / "bin" / "agentic-sdlc.mjs"), "--help"],
             cwd=new_source,
         )
-        self.assertIn("Agentic SDLC", help_result.stdout)
+        self.assertIn("MPSF", help_result.stdout)
 
         (codex_home / "fail-next-add").write_text("fail once\n", encoding="utf-8")
         foreign_codex_home = self.root / "foreign-codex-home"

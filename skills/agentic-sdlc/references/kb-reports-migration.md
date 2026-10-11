@@ -1,16 +1,16 @@
 # Knowledge Base Cache, Reports, Migrations, and Visual History
 
-Workflow steps 20–24 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
+Workflow steps 20–24 of the MPSF skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
 20. Rebuild/search the local cache and KB index when context retrieval is needed. For large KBs, rebuild the shared manifest and use non-destructive trace compaction before relying on long raw trace history:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs manifest rebuild --root <target-project>
-   node <plugin-root>/bin/agentic-sdlc.mjs trace compact --root <target-project> --story ST-001
-   node <plugin-root>/bin/agentic-sdlc.mjs cache rebuild --root <target-project>
-   node <plugin-root>/bin/agentic-sdlc.mjs cache status --root <target-project>
-   node <plugin-root>/bin/agentic-sdlc.mjs index rebuild --root <target-project>
-   node <plugin-root>/bin/agentic-sdlc.mjs kb search --root <target-project> "query"
+   node <plugin-root>/bin/mpsf.mjs manifest rebuild --root <target-project>
+   node <plugin-root>/bin/mpsf.mjs trace compact --root <target-project> --story ST-001
+   node <plugin-root>/bin/mpsf.mjs cache rebuild --root <target-project>
+   node <plugin-root>/bin/mpsf.mjs cache status --root <target-project>
+   node <plugin-root>/bin/mpsf.mjs index rebuild --root <target-project>
+   node <plugin-root>/bin/mpsf.mjs kb search --root <target-project> "query"
    ```
 
    Keep retrieval token-efficient: prefer the human-readable CLI view when it
@@ -22,8 +22,8 @@ Workflow steps 20–24 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    RTK gateway rather than invoking an assumed global wrapper directly:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs optimization status --root <target-project> --proposal <proposal-id> --json
-   node <plugin-root>/bin/agentic-sdlc.mjs optimization run --root <target-project> --proposal <proposal-id> --command-json '["npm","test"]'
+   node <plugin-root>/bin/mpsf.mjs optimization status --root <target-project> --proposal <proposal-id> --json
+   node <plugin-root>/bin/mpsf.mjs optimization run --root <target-project> --proposal <proposal-id> --command-json '["npm","test"]'
    ```
 
    Add `--exact` for byte-exact or complete output from an already allowlisted
@@ -46,7 +46,7 @@ Workflow steps 20–24 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    capture only for an explicit diagnostic:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs optimization capture --root <target-project> --proposal <proposal-id> --phase manual --json
+   node <plugin-root>/bin/mpsf.mjs optimization capture --root <target-project> --proposal <proposal-id> --phase manual --json
    ```
 
    Never fabricate lifecycle phases with manual capture. Treat RTK counters as
@@ -60,8 +60,8 @@ Workflow steps 20–24 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
 21. Use activity reports or report queries when the user asks what happened, who changed something, which stories were created, which outputs changed, or similar history questions. For raw natural language, normalize the request into canonical report query JSON first; do not keyword-match the user's language in the CLI. Reports must cite canonical source files and must not infer unstored history:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs report activity --root <target-project> --since 3d --view business --out .sdlc/reports/activity.md
-   node <plugin-root>/bin/agentic-sdlc.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json
+   node <plugin-root>/bin/mpsf.mjs report activity --root <target-project> --since 3d --view business --out .sdlc/reports/activity.md
+   node <plugin-root>/bin/mpsf.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json
    ```
 
 22. When upgrading an existing KB, migrate only a manifest-defined active release. Run `migration active --release-manifest <id>` first without `--apply`, explain the planned config changes and exact historical evidence set, then apply only after the release manifest and every referenced immutable record validate. The command may add missing configuration defaults and a logical `archive-record:v1`; it must never rewrite approved records or move historical files. Use `archive closed --apply` separately only for an explicitly requested filesystem move.

@@ -259,7 +259,7 @@ Use `artifact` or `artifact-plus-chat-summary`, defaulting to the latter. Never 
 The format capability emits `artifact_generator_receipt:v1` for the exact artifact. Pass it separately from render evidence:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs output link \
+node <plugin-root>/bin/mpsf.mjs output link \
   --root <target-project> \
   --story ST-INITIAL-ASSESSMENT \
   --type technical-analysis \
@@ -306,8 +306,8 @@ Completion produces lineage from baseline and proposal through requirement revis
 For an existing KB, run an active-only migration as a dry run first:
 
 ```bash
-agentic-sdlc migration active --release-manifest RELEASE-ASSESSMENT-001
-agentic-sdlc migration active --release-manifest RELEASE-ASSESSMENT-001 --apply
+mpsf migration active --release-manifest RELEASE-ASSESSMENT-001
+mpsf migration active --release-manifest RELEASE-ASSESSMENT-001 --apply
 ```
 
 The selected release manifest answers the otherwise ambiguous question “what is active?” The command validates every immutable requirement, story, contract, proposal, workflow, receipt, budget, gate, and artifact reference in that manifest. `--apply` persists missing configuration defaults but does not rewrite those approved records. Evidence belonging only to older valid release manifests is retained in place and bound into an `archive-record:v1`; unfinished work outside both releases is not classified as history.

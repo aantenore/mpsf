@@ -11,7 +11,7 @@ Requested focus and extra context: $ARGUMENTS
 
 Rules for this command:
 
-- The plugin root is `${CLAUDE_PLUGIN_ROOT}`. The deterministic CLI is `${CLAUDE_PLUGIN_ROOT}/bin/agentic-sdlc.mjs`; run it with `node`.
+- The plugin root is `${CLAUDE_PLUGIN_ROOT}`. The deterministic CLI is `${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs`; run it with `node`.
 - Use `--root` to point at the project being assessed. Never assume the plugin root is the project root.
 - Follow the skill's two checkpoints: present the understanding and the proposal first, and persist the assessment artifact only after the proposal is approved.
 - Do not declare the human approval yourself. Ask, then wait for the answer in this conversation.

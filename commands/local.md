@@ -11,7 +11,7 @@ Requested local result: $ARGUMENTS
 
 Rules for this command:
 
-- The plugin root is `${CLAUDE_PLUGIN_ROOT}`. The deterministic CLI is `${CLAUDE_PLUGIN_ROOT}/bin/agentic-sdlc.mjs`; run it with `node` and pass `--root` for the target project.
+- The plugin root is `${CLAUDE_PLUGIN_ROOT}`. The deterministic CLI is `${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs`; run it with `node` and pass `--root` for the target project.
 - The delivery kind is `local_release`. The approved profile must record the target root, smoke tests, the governed smoke working directory, rollback, write paths, and allowed actions.
 - Never request `git.push`, `pull_request.create`, `pull_request.update`, or `pull_request.merge` under this command.
 - Never run `git commit` or create any commit yourself, not even an empty root commit to give the repository a base: a Git repository without commits starts from Git's empty tree. If anything ever truly requires a commit, ask the user and give the exact command.

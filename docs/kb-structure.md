@@ -1,6 +1,6 @@
 # Knowledge Base Structure
 
-Agentic SDLC uses a Git-first project knowledge base. The plugin is stateless; the KB is created inside each target project.
+MPSF uses a Git-first project knowledge base. The plugin is stateless; the KB is created inside each target project.
 
 The sample records below use neutral placeholders. The structure is generic and should be reused for any project.
 
@@ -257,7 +257,7 @@ The JSON record stores detected stack, key files, imported documents, inferred c
 Approve a baseline only after the user confirms what is canonical:
 
 ```bash
-node bin/agentic-sdlc.mjs baseline approve \
+node bin/mpsf.mjs baseline approve \
   --id BASELINE-INITIAL \
   --actor-type human \
   --approval-source explicit-user \
@@ -538,13 +538,13 @@ The registry stores templates, links, and structural decisions:
 Agents must resolve the output contract before generating a durable artifact:
 
 ```bash
-node bin/agentic-sdlc.mjs output resolve --root <target-project> --story ST-001 --type functional-analysis
+node bin/mpsf.mjs output resolve --root <target-project> --story ST-001 --type functional-analysis
 ```
 
 For related stories, the default is to reuse the existing base artifact and link a delta:
 
 ```bash
-node bin/agentic-sdlc.mjs output link \
+node bin/mpsf.mjs output link \
   --root <target-project> \
   --story ST-002 \
   --type functional-analysis \
@@ -1095,7 +1095,7 @@ that recorded policy; it never substitutes the project's current configuration.
 
 Historical `redacted_utf8_v1` references are intentionally fail-closed because
 the old format did not identify which of two writer policies produced a hash.
-Run `agentic-sdlc trace evidence bind --target-event <TR-ID>
+Run `mpsf trace evidence bind --target-event <TR-ID>
 --redaction-policy <legacy_evidence_v1|operational_evidence_v1|operational_v2>`
 after reviewing the
 historical event. The command appends (without rewriting history) one binding
@@ -1145,7 +1145,7 @@ small reference record and link that record from the trace:
 Use the manifest path, not the large artifact path, as `--evidence`. The trace
 then protects the canonical redacted manifest. The artifact digest and size
 are declarations supplied by its producer or by an independent verifier;
-Agentic SDLC does not infer them by ingesting sensitive bytes. Consequently,
+MPSF does not infer them by ingesting sensitive bytes. Consequently,
 manifest integrity is not evidence that the referenced artifact was
 independently verified. Use a separate trusted verification receipt for that
 claim. The schema is `schemas/trace-evidence-manifest.schema.json`; the starter
@@ -1197,7 +1197,7 @@ Example:
 Rebuild with:
 
 ```bash
-node bin/agentic-sdlc.mjs manifest rebuild --root <target-project>
+node bin/mpsf.mjs manifest rebuild --root <target-project>
 ```
 
 The manifest summarizes stories, claims, completed steps, contracts, output links, approvals, and trace activity. It records source paths and hashes, so it is auditable and useful for fast context assembly. It is still derived from canonical KB files; when in doubt, agents must inspect the source paths listed in the manifest.
@@ -1228,7 +1228,7 @@ Example:
 Create a plan with:
 
 ```bash
-node bin/agentic-sdlc.mjs archive closed --root <target-project> --before 90d
+node bin/mpsf.mjs archive closed --root <target-project> --before 90d
 ```
 
 The command is plan-first and emits `kind: archive_plan`. It verifies source hashes under a lock, applies the move atomically, and rolls back on failure. It only moves configured closed evidence when `--apply` is explicitly provided. Live story files, contracts, approvals, dependency graphs, output links, and raw trace JSONL are not moved by this command.
@@ -1238,8 +1238,8 @@ Create a separate `archive-record:v1` only when a release must make the historic
 Use the dry-run-first active migration to create it from prior valid releases without guessing which unfinished records are historical:
 
 ```bash
-node bin/agentic-sdlc.mjs migration active --root <target-project> --release-manifest RELEASE-ASSESSMENT-001
-node bin/agentic-sdlc.mjs migration active --root <target-project> --release-manifest RELEASE-ASSESSMENT-001 --apply
+node bin/mpsf.mjs migration active --root <target-project> --release-manifest RELEASE-ASSESSMENT-001
+node bin/mpsf.mjs migration active --root <target-project> --release-manifest RELEASE-ASSESSMENT-001 --apply
 ```
 
 Only missing configuration defaults are written during migration. Immutable records in the selected manifest are schema- and hash-validated, not rewritten. Older release evidence uses `retention: retain-in-place`, so `physical_files_moved` remains zero.
@@ -1247,9 +1247,9 @@ Only missing configuration defaults are written during migration. Immutable reco
 Identity correction is intentionally a different migration class because it must rewrite attribution embedded in historical canonical records. Preview it with a declarative mapping, then apply the same command explicitly:
 
 ```bash
-node bin/agentic-sdlc.mjs migration identity --root <target-project> \
+node bin/mpsf.mjs migration identity --root <target-project> \
   --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}'
-node bin/agentic-sdlc.mjs migration identity --root <target-project> \
+node bin/mpsf.mjs migration identity --root <target-project> \
   --identity-map-json '{"source":{"email":"old@example.invalid"},"target":{"email":"new@example.test","name":"Current User"}}' --apply --plan-hash <preview-plan-hash>
 ```
 
@@ -1260,7 +1260,7 @@ The planner updates structured JSON/JSONL values only; schema- and hash-validate
 Non-destructive summaries of raw trace history. Use them when a story trace becomes too long for efficient agent context.
 
 ```bash
-node bin/agentic-sdlc.mjs trace compact --root <target-project> --story ST-001
+node bin/mpsf.mjs trace compact --root <target-project> --story ST-001
 ```
 
 Compactions keep `source_paths` and `source_hashes` for the raw traces they summarize. They help agents read history faster, but they do not replace trace JSONL as the canonical event log.
@@ -1278,8 +1278,8 @@ Example:
 Rebuild and inspect with:
 
 ```bash
-node bin/agentic-sdlc.mjs cache rebuild --root <target-project>
-node bin/agentic-sdlc.mjs cache status --root <target-project>
+node bin/mpsf.mjs cache rebuild --root <target-project>
+node bin/mpsf.mjs cache status --root <target-project>
 ```
 
 The cache may contain full-text lookup entries, story-requirement graphs, artifact fingerprints, template resolution, compact summaries, dependency graphs, and previous `output resolve` results. Each cache build records source hashes so a changed requirement, story, output registry, or trace makes the cache stale. Stale cache is a warning; using cache or index files as canonical output evidence is a strict gate error. Cached output resolution is verified against canonical KB files before use, so a cache entry cannot override the registry or story files by itself.
@@ -1289,7 +1289,7 @@ The cache may contain full-text lookup entries, story-requirement graphs, artifa
 `report query` filters canonical KB records after Codex or another LLM normalizes a natural-language request into `schemas/report-query.schema.json`. It can query activity traces, stories, completed steps, outputs, contracts, handoffs, work items, approvals, and tests. Trace activity supports separate executor, requester, and authorizer filters so agent-executed work can still be reported as requested or authorized by a human.
 
 ```bash
-node bin/agentic-sdlc.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json
+node bin/mpsf.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json
 ```
 
 For example, use `filters.requester` for "work done on my request" and `filters.executor` for "work executed by Codex".
@@ -1309,7 +1309,7 @@ Example:
 Rebuild with:
 
 ```bash
-node bin/agentic-sdlc.mjs index rebuild --root <target-project>
+node bin/mpsf.mjs index rebuild --root <target-project>
 ```
 
 ## `reports/`

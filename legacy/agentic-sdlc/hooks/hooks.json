@@ -1,0 +1,17 @@
+{
+  "description": "agentic-sdlc is now mpsf: at session start this bridge installs mpsf@aantenore and uninstalls agentic-sdlc.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/migrate-to-mpsf.mjs\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

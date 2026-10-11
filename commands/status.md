@@ -9,7 +9,7 @@ Run the deterministic status command and explain the result.
 Project path (optional): $ARGUMENTS
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/bin/agentic-sdlc.mjs" status --root <project-root>
+node "${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs" status --root <project-root>
 ```
 
 Rules for this command:

@@ -196,7 +196,7 @@ async function pluginUpdateNotice(root) {
   });
   const verdict = evaluateRequirements(entries);
   if (verdict.satisfied) return "";
-  return `Agentic SDLC: ${pluginUpdateLine(verdict.required_plugin_version)}\n`
+  return `MPSF: ${pluginUpdateLine(verdict.required_plugin_version)}\n`
     + "Tell the user before any other agentic-sdlc work: commands that change the project are refused until the plugin is updated.\n";
 }
 

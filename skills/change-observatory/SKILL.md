@@ -1,6 +1,6 @@
 ---
 name: change-observatory
-description: Open the Change Observatory bundled with this Agentic SDLC plugin in Codex or Claude Code to inspect a project's recorded requests, decisions, contracts, changes, tests, gates, and lineage. Use when the user asks to open, launch, show, inspect, or explain the visual SDLC history or project change observatory.
+description: Open the Change Observatory bundled with this MPSF plugin in Codex or Claude Code to inspect a project's recorded requests, decisions, contracts, changes, tests, gates, and lineage. Use when the user asks to open, launch, show, inspect, or explain the visual SDLC history or project change observatory.
 ---
 
 # Change Observatory
@@ -14,7 +14,7 @@ Launch the plugin-local, read-only visual lineage application for the selected p
 3. Run the plugin-local entry point; never rely on a global `agentic-sdlc` command or mutate `PATH`:
 
    ```text
-   node <plugin-root>/bin/agentic-sdlc.mjs observe --root <target-project>
+   node <plugin-root>/bin/mpsf.mjs observe --root <target-project>
    ```
 
 4. Keep the process attached to a managed terminal session. Report the ready URL exactly as emitted. The URL fragment carries the per-run token; do not extract, repeat, or persist the token separately.
