@@ -2,6 +2,17 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.158.0
+
+- `coordinator merge` and `coordinator main-green` work on GitLab and Gitea/Forgejo too, not only GitHub. The forge comes from the remote URL (gitlab.com, codeberg.org, hosts named gitlab, gitea or forgejo) or from `AGENTIC_SDLC_FORGE=github|gitlab|gitea|forgejo`; `AGENTIC_SDLC_FORGE_URL` sets the web address for another port or a path prefix.
+- GitLab: merge requests through API v4, head pipeline as the check, merge pinned to the checked commit, `--method merge|squash` (rebase or fast-forward is the project's setting), a branch behind is rebased. Gitea/Forgejo: pull requests through API v1, commit statuses as checks, latest review per reviewer, merge pinned with `head_commit_id`.
+- Token: `GITLAB_TOKEN`, `GITEA_TOKEN`/`FORGEJO_TOKEN` or `AGENTIC_SDLC_FORGE_TOKEN`, else the system keychain through `git credential fill` (never prompting). Without one the command stops and prints how to store it. Nothing is written to `.sdlc`.
+- Change Observatory: no change needed; it does not read forges.
+- Compatibility: nothing changes for older plugins; GitHub projects behave as before.
+
+ ## 0.157.2
+ 
+
 ## 0.157.7
 
 - Faster checks of baseline files that came with the base branch and of secret scans that start after the delivery base: a fixed number of Git processes instead of up to four per file. Nothing changes in the results.

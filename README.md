@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF 0.157.7 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF 0.158.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.158.0** — `coordinator merge` also on GitLab (merge requests) and Gitea/Forgejo: forge picked from the remote, token from the environment or the system keychain.
 - **0.157.7** — base-drift and secret-scan coverage checks read Git a fixed number of times instead of several times per file.
 - **0.157.6** — push budget per computer: channel messages, presence and role leases leave in one push at most every 2 minutes, with backoff after failures.
 - **0.157.5** — story commit checks read Git once per range instead of several times per commit, so gates and status are faster on long story branches.
