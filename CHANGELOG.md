@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.13
+
+- Process reaper: the shared `.sdlc/config.json` can no longer turn on reaping at Stop or widen what the Stop hook selects (`reap_on_stop`, `include_patterns`, `use_default_patterns`, `scope_paths`, a shorter limit are ignored there; `exclude_patterns` and a longer limit still apply), so a committed config cannot stop other users' processes on every computer that pulls it. Turn it on per machine with `AGENTIC_SDLC_REAP_ON_STOP=1` or `reap_on_stop: true` in `.git/agentic-sdlc/process-reaper.json`, which accepts every key. `mpsf processes reap` run by hand is unchanged. Change Observatory: no change. Compatibility: projects that relied on `reap_on_stop: true` in the shared config now get the warning instead.
+
 ## 0.159.12
 
 - Documentation and skill fixes: the skill now points to `story cancel` for an approved story that will not be delivered, and pushes a rewritten story branch only under an approved `git.push` action (the hook denies it otherwise); an abandoned claim is described as freed by the coordinator; a newer plugin announced by another computer no longer reads as "update first". Install docs: `cd mpsf` after cloning, `/path/to/mpsf` placeholders, update with `claude plugin update` (not `/plugin install`). The `git` messaging provider is in the providers table, the coordinator duties match the code, and Change Observatory is described as never editing records rather than read-only (with `sdlc-state` it brings in records published by other computers). Change Observatory: wording of one CLI line only. Compatibility: nothing changes for older plugins.
