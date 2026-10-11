@@ -11,6 +11,10 @@
     "claimed_at"
   ],
   "properties": {
+    "schema_version": {
+      "description": "Record format. Claims written before this field existed are format 1.",
+      "const": "claim:v1"
+    },
     "story_id": {
       "type": "string"
     },
