@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.15** — an agent can no longer confirm edits to gates, trusted keys or host policy with `config migrate --apply`.
 - **0.159.14** — how-it-works examples name the current version.
 - **0.159.13** — the Stop hook reaps only with a machine-local opt-in; the shared config can only narrow it.
 - **0.159.12** — skill and install docs aligned with the code: `story cancel`, governed story-branch push, `git` messaging provider, coordinator duties.
