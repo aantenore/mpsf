@@ -187,6 +187,10 @@ refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created onl
 - The presence also carries, for each story held, when it was last worked on here (branch reflog, worktree index and HEAD log, story records, workflow checkpoint). That renews the claim's lease for every computer, so the claim time to live can be short: a forgotten claim lapses, one in progress does not.
 - When a session ends and no other session of the same clone worked in the last 15 minutes, the SessionEnd hook starts a detached push (bounded to 5 seconds, outside the hook's 3) that marks the presence expired and hands back the roles this computer holds. Claims are not released: the same person resumes them, or they lapse one time to live after the last work. If the push is cut, presence and leases lapse on their own.
 - Pushing these refs triggers no CI: they are not branches.
+- The coordinator's duties about claims and waits are standalone, idempotent commands, each with `--dry-run` and `--json`, that do nothing on a computer that does not hold the role:
+  - `coordinator free-claims` frees a claim only when its lease ended (no push within the claim time to live), no declared wait protects it and its holder has no live presence, and saves the freed story's handoff pack; for every other abandoned claim it shows the commands a person runs. Without any presence known it frees nothing.
+  - `coordinator handoff --story <id>` builds the handoff context pack of a story again on demand (previous holder, branch, last push) and saves it in `.git/agentic-sdlc/handoffs/<id>.md`.
+  - `coordinator settle-waits` closes the explicit waits past their end and the channel questions older than `question_max_age` with a resolve record.
 
 ### Coordinator tasks
 
