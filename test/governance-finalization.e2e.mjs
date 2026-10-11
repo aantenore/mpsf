@@ -151,6 +151,19 @@ function mustFail(args, project, pattern, options = {}) {
   return result;
 }
 
+// Reports trust a sealed final receipt whose own hash holds; these options ask
+// them for the full re-verification instead.
+function withFullStatusChecks(options = {}) {
+  return { ...options, env: { ...options.env, AGENTIC_SDLC_STATUS_CHECKS: "full" } };
+}
+
+// The run helpers with the full re-verification, for tests that check it.
+const FULL_STATUS_RUNNERS = Object.freeze({
+  mustRun: (args, project, options) => mustRun(args, project, withFullStatusChecks(options)),
+  mustRunJson: (args, project, options) => mustRunJson(args, project, withFullStatusChecks(options)),
+  mustFail: (args, project, pattern, options) => mustFail(args, project, pattern, withFullStatusChecks(options)),
+});
+
 function mustGit(project, args) {
   const result = spawnSync("git", ["-C", project, ...args], {
     encoding: "utf8",
@@ -1852,6 +1865,8 @@ test("lifecycle-complete strict gate requires the pre-task workflow and an alter
     ? false
     : "requires a supported local smoke sandbox for terminal local release evidence",
 }, async () => {
+  // Every check of the sealed receipt here is the full re-verification.
+  const { mustRun, mustRunJson, mustFail } = FULL_STATUS_RUNNERS;
   const project = temporaryProject("lifecycle");
   const customPhase = "package-boundary-check";
   const finalReceiptPath = ".sdlc/gates/ST-FINAL-final.json";
@@ -5070,8 +5085,8 @@ function certifyLocalReleaseStory(project, {
 }
 
 function storyCertificationView(project, storyId) {
-  const status = mustRunJson(["status", "--root", project], project);
-  const orchestration = mustRunJson(["orchestrate", "status", "--root", project], project);
+  const status = mustRunJson(["status", "--root", project], project, withFullStatusChecks());
+  const orchestration = mustRunJson(["orchestrate", "status", "--root", project], project, withFullStatusChecks());
   return {
     status,
     story: orchestration.stories.find((story) => story.id === storyId),
@@ -5083,6 +5098,8 @@ test("a certification superseded by a later valid certification stays completed 
     ? false
     : "requires a supported local smoke sandbox for terminal local release evidence",
 }, () => {
+  // Every check of the sealed receipt here is the full re-verification.
+  const { mustRun, mustRunJson, mustFail } = FULL_STATUS_RUNNERS;
   const project = temporaryProject("certification-history");
   const first = certifyLocalReleaseStory(project, {
     beforeStart: () => setCertificationDriftMode(project, "reopen"),
@@ -5134,7 +5151,7 @@ test("a certification superseded by a later valid certification stays completed 
   const coveredText = mustRun(["status", "--root", project], project).stdout;
   assert.match(
     coveredText,
-    new RegExp(`Historical certification: ${first.storyId} \\(completed; content later certified by ${second.storyId}\\)`, "u"),
+    new RegExp(`Historical certification: ${first.storyId} \\(completed; content later certified by ${second.storyId}(?: \\([^)]*\\))?\\)`, "u"),
   );
   const firstWorkflow = mustRunJson([
     "workflow", "instance", "status",
@@ -5221,6 +5238,8 @@ test("a certified story stays completed with a stale certification when its file
     ? false
     : "requires a supported local smoke sandbox for terminal local release evidence",
 }, () => {
+  // Every check of the sealed receipt here is the full re-verification.
+  const { mustRun, mustRunJson, mustFail } = FULL_STATUS_RUNNERS;
   const project = temporaryProject("certification-stale");
   const certified = certifyLocalReleaseStory(project, {
     suffix: "STALE-A",
@@ -5926,7 +5945,7 @@ function startParallelTraceStory(project, suffix) {
 }
 
 function statusStory(project, storyId) {
-  const status = mustRunJson(["status", "--root", project, "--full"], project);
+  const status = mustRunJson(["status", "--root", project, "--full"], project, withFullStatusChecks());
   return { status, story: status.orchestration.stories.find((entry) => entry.id === storyId) };
 }
 
@@ -5983,6 +6002,8 @@ test("a certified story stays completed after another computer's history is copi
     ? false
     : "requires a supported local smoke sandbox for terminal local release evidence",
 }, () => {
+  // Every check of the sealed receipt here is the full re-verification.
+  const { mustRun } = FULL_STATUS_RUNNERS;
   const project = temporaryProject("parallel-trace-certified");
   const certified = certifyLocalReleaseStory(project, {
     suffix: "PAR-CERT",

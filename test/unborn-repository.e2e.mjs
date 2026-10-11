@@ -37,6 +37,7 @@ function run(args, project, options = {}) {
   for (const key of ["CI", "GITHUB_ACTIONS", "GITHUB_ACTOR", "CODEX_AGENT_NAME", "CODEX_USER_ID", "CLAUDECODE", "AGENTIC_SDLC_AGENT_HOST"]) {
     delete env[key];
   }
+  Object.assign(env, options.env || {});
   return spawnSync(process.execPath, [CLI, ...args], {
     cwd: project,
     encoding: "utf8",
@@ -46,8 +47,8 @@ function run(args, project, options = {}) {
   });
 }
 
-function mustRun(args, project) {
-  const result = run(args, project);
+function mustRun(args, project, options = {}) {
+  const result = run(args, project, options);
   assert.equal(result.error, undefined, `${args.join(" ")} failed to execute: ${result.error?.message}`);
   assert.equal(
     result.status,
@@ -57,8 +58,8 @@ function mustRun(args, project) {
   return result;
 }
 
-function mustRunJson(args, project) {
-  return JSON.parse(mustRun([...args, "--json"], project).stdout);
+function mustRunJson(args, project, options = {}) {
+  return JSON.parse(mustRun([...args, "--json"], project, options).stdout);
 }
 
 function git(project, args, { allowFailure = false } = {}) {
@@ -488,7 +489,10 @@ test("a transient root commit with uncertified content is not accepted as the ce
   writeProjectFile(project, "src/feature.mjs", "export const feature = 1;\n");
   git(project, ["add", "--", "src"]);
   git(project, ["commit", "-m", "Restore the certified result"]);
-  const status = mustRunJson(["status", "--root", project], project);
+  // Fast status trusts the sealed receipt; the full re-verification checks the history.
+  const status = mustRunJson(["status", "--root", project], project, {
+    env: { AGENTIC_SDLC_STATUS_CHECKS: "full" },
+  });
   assert.equal(status.summary.completed_work, 0, JSON.stringify(status.summary));
 });
 
