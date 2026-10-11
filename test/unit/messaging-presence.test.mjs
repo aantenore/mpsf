@@ -38,6 +38,8 @@ test("one stall notice per story and phase", () => {
   assert.equal(stall.stalled, "ST-A-001:discovery");
   assert.equal(selectPresence({ claims, presence: { ...presence, stalled: ["ST-A-001:discovery"] }, now: NOW }), null);
   assert.equal(selectPresence({ claims, presence, now: NOW, stallMs: 0 }), null);
+  const two = [...claims, { story: "ST-B-001", phase: "implement", phaseSince: NOW - 10 * 60_000 }];
+  assert.deepEqual(selectPresence({ claims: two, presence: { ...presence, last_set: "ST-A-001:discovery,ST-B-001:implement" }, now: NOW }).stories, ["ST-A-001", "ST-B-001"]);
   assert.equal(stallHours({}), 4);
   assert.equal(stallHours({ AGENTIC_SDLC_MESSAGING_STALL_HOURS: "0" }), 0);
 });
@@ -63,7 +65,9 @@ test("a claim the claim refs show as released or superseded has ended", () => {
   assert.equal(claimEndedByRefs(claim("000001"), new Set([`${base}/000002/claim`])), true);
   assert.equal(claimEndedByRefs(claim("000002"), new Set([`${base}/000001/release`, `${base}/000002/claim`])), false);
   assert.equal(claimEndedByRefs(claim("000001"), new Set(["refs/agentic-sdlc-shared/claims/0000000000000000/ST-QA-001D/000001/release"])), false);
-  assert.equal(claimEndedByRefs(claim("000001"), new Set(["refs/agentic-sdlc/claims/ST-QA-001D/000001/release"])), true);
+  // Epochs are per remote: refs without the claim's fingerprint say nothing about it.
+  assert.equal(claimEndedByRefs(claim("000001"), new Set(["refs/agentic-sdlc/claims/ST-QA-001D/000002/claim"])), false);
+  assert.equal(claimEndedByRefs(claim("000001", { remote_fingerprint: null }), new Set(["refs/agentic-sdlc/claims/ST-QA-001D/000001/release"])), true);
   assert.equal(claimEndedByRefs({ status: "active", shared_claim: { scope: "local" } }, new Set([`${base}/000001/release`])), false);
   assert.equal(claimEndedByRefs(claim("000001"), null), false);
 });
@@ -123,4 +127,42 @@ test("[auto] notices for phase, delivery steps, tests and strict gate", () => {
   assert.equal(alertFor("test.record", { story: "ST-A-001", "exit-code": "0", passed: "12", failed: "0" }, { exitCode: 0 }).text, "tests for ST-A-001 passed (12 passed, 0 failed).");
   assert.equal(alertFor("gate.check", { story: "ST-A-001", strict: true }, { exitCode: 0 }).text, "ST-A-001 strict gate passed.");
   assert.equal(alertFor("gate.check", { story: "ST-A-001" }, { exitCode: 0 }), null);
+});
+
+test("local claims: one set for the whole clone, a live record wins over a stale worktree copy", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sdlc-presence-wt-"));
+  const git = path.join(root, ".git");
+  fs.mkdirSync(git, { recursive: true });
+  fs.writeFileSync(path.join(git, "HEAD"), "ref: refs/heads/main\n");
+  const write = (dir, id, extra) => {
+    fs.mkdirSync(path.join(dir, ".sdlc", "stories", id), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".sdlc", "stories", id, "claim.json"), JSON.stringify({
+      story_id: id, status: "active", branch: `story/${id}`, claimed_at: new Date(NOW - 60 * 60_000).toISOString(),
+      expires_at: new Date(NOW + 3600_000).toISOString(), ...extra,
+    }));
+  };
+  const worktree = (name, branch) => {
+    const dir = path.join(root, "wt", name);
+    const meta = path.join(git, "worktrees", name);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(meta, { recursive: true });
+    fs.writeFileSync(path.join(meta, "HEAD"), `ref: refs/heads/${branch}\n`);
+    fs.writeFileSync(path.join(meta, "gitdir"), `${path.join(dir, ".git")}\n`);
+    return dir;
+  };
+  const one = worktree("one", "story/ST-1");
+  const two = worktree("two", "story/ST-2");
+  // ST-1: live in the main checkout, an old released copy in its own worktree.
+  write(root, "ST-1");
+  write(one, "ST-1", { status: "released" });
+  // ST-2: only in its own worktree, with its phase there.
+  write(two, "ST-2");
+  const instance = path.join(two, ".sdlc", "workflows", "instances", "DELIVERY-ST-2");
+  fs.mkdirSync(instance, { recursive: true });
+  fs.writeFileSync(path.join(instance, "instance.json"), JSON.stringify({ metadata: { governance_binding: { story_id: "ST-2" } } }));
+  fs.writeFileSync(path.join(instance, "checkpoint.json"), JSON.stringify({ current_state: "implementation", updated_at: new Date(NOW - 5 * 60_000).toISOString() }));
+  const args = { now: NOW, branchExists: () => true };
+  for (const from of [root, one, two]) {
+    assert.deepEqual(localActiveClaims(from, args).map((item) => [item.story, item.phase]), [["ST-1", null], ["ST-2", "implementation"]]);
+  }
 });

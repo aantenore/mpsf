@@ -210,6 +210,19 @@ test("claims this clone cannot prove are not its work", async () => {
   assert.deepEqual(mine.claims.map((c) => c.storyId), ["ST-B"]);
 });
 
+test("a claim the refs show as ended is neither this clone's work nor free to take", async () => {
+  const { collectWork } = await import("../../lib/host-hooks/keep-going.mjs");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "keep-going-ended-"));
+  fs.mkdirSync(path.join(root, ".sdlc", "stories", "ST-A"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sdlc", "stories", "ST-A", "story.json"), JSON.stringify({ id: "ST-A", status: "ready" }));
+  fs.writeFileSync(path.join(root, ".sdlc", "stories", "ST-A", "claim.json"), JSON.stringify({ status: "active", story_id: "ST-A" }));
+  assert.deepEqual(collectWork(root, {}).claims.map((c) => c.storyId), ["ST-A"]);
+  const work = collectWork(root, { claimEnded: (claim) => claim.story_id === "ST-A" });
+  assert.deepEqual(work.claims, []);
+  assert.deepEqual(work.available, []);
+  assert.deepEqual(work.human, []);
+});
+
 test("claims of sibling worktrees are this computer's work; only truly free stories are available", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "keep-going-worktrees-"));
   try {
