@@ -26,6 +26,14 @@ Project state stays in the target repository under `.sdlc/`. The plugin installa
 
 You talk to Codex in normal language. Codex turns that request into structured input; the deterministic CLI checks the agreed requirement, work brief, permissions, and evidence. A new user does not need to run the low-level lifecycle commands manually.
 
+## What's new
+
+Latest first; the full list is in the [changelog](CHANGELOG.md).
+
+- **0.148.0** — `context pack` and `context get` give an agent the small slice of a story it needs; commands print a short form inside agent sessions (`--verbose` for the full text); `--json-profile agent|full`; hook output is deduplicated and budgeted.
+- **0.147.0** — messaging is optional (`github`, `local` or `none`); records go through a store (`git-sdlc` or `local-fs`); `host_policy.adapters` and a `coordinator` role in `host_policy.roles`.
+- **0.146.13 to 0.146.17** — more delegable approvals (`delivery.approve`, `baseline.approve`, `story.supersede`), a stricter base-branch guard with a person-only `guard trust-remote`, retries when publishing records, no automatic "need help" for finished stories, a much shorter skill front door, and an early, clear stop for local releases on hosts without a sandbox (Windows).
+
 ## Documentation Map
 
 - [Getting Started](docs/getting-started.md) — choose an assessment, a new pull request, an existing pull request, or a local-only result and see exactly what you will approve.
@@ -41,6 +49,9 @@ You talk to Codex in normal language. Codex turns that request into structured i
 - [Self-service CLI](docs/self-service-cli.md) — focused help, one-step status, safe presentation presets, shell completion, and machine output.
 - [Change Observatory](docs/change-observatory.md) — launch the local visual lineage app and understand its evidence and security model.
 - [Configurable Workflows](docs/configurable-workflows.md) — select a governed process, customize labels safely, and keep running history pinned and append-only.
+- [Changelog](CHANGELOG.md) — what changed in each release, in plain language.
+- [Messages between computers](docs/messaging.md) — optional notes between computers, and how to work without them.
+- [Adapters and Roles](docs/adapters-and-roles.md) — messaging providers, record stores, assurance levels and the coordinator role.
 - [Examples](docs/examples/README.md) — a copy-paste GitHub Action that turns a labelled issue into a proposed work brief and posts it as a comment, without approving, pushing, or merging anything.
 
 ## Quick Start
@@ -513,6 +524,20 @@ The split is simple: publish the approved specs and story breakdown, let every c
 
 Records an older plugin would misread declare the plugin version they need: a project that uses such a feature keeps a small file under `.sdlc/compatibility/` (one per feature, identical on every computer, so merges never conflict), and a shared claim record carries `minimum_plugin_version`. A computer on an older version then refuses commands that change the project, keeps read-only commands working with a warning, and shows the update command (`claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, then `/reload-plugins`) in `status`, `doctor`, and at session start. Records are never migrated; derived data such as the local cache is rebuilt when it was written by another plugin version. Features and their versions are listed in `config/plugin-compatibility.json`.
 
+### Working without messaging
+
+Messaging between computers is optional and only notifies. Claims, waits, delegations and records publication never depend on it. Pick the provider with `AGENTIC_SDLC_MESSAGING_PROVIDER` (`github` is the default, `local` uses a folder, `none` turns it off) or, for the whole team, with `host_policy.adapters.messaging` in `.sdlc/config.json`:
+
+```json
+{ "host_policy": { "adapters": { "messaging": { "provider": "none" } } } }
+```
+
+Records can also live in plain files instead of git (`"records": { "provider": "local-fs" }`); a store that cannot guarantee immutable history cannot certify a story as lifecycle-complete. See [Adapters and roles](docs/adapters-and-roles.md) and [Messages between computers](docs/messaging.md).
+
+### Coordinator role
+
+With several computers, one can be named coordinator: it assigns stories, merges pull requests one at a time and publishes records, while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`). In 0.148.0 the configuration is validated and resolved but not yet enforced; nothing a computer can do changes today. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
+
 ## Native Codex Metering Versus Exact Metering
 
 The bundled `codex-session` adapter reads only the exact task's local
@@ -567,6 +592,14 @@ started, first action, released or ready for review), the time it waited for a
 person, and the cost and tokens recorded against it with
 `budget usage record --delivery` or `budget meter record --delivery`; a delivery
 with nothing recorded reads "not measured".
+
+## Context Packs And Token Saving
+
+An agent working on one story should not read whole records. `agentic-sdlc context pack --story <id> [--phase <phase>] [--budget <tokens>]` prints a deterministic summary for the phase (accepted criteria, contract essentials, decisions, dependencies, write scope with a file index, recent tests and gates, waits, next step); a cut section ends with a reference that `agentic-sdlc context get <ref>` expands. Inside an agent session commands also print only the outcome, next step, ids and exact error (`--verbose` for the full text), `--json` returns the agent profile (`--json-profile full` for the complete payload), and hooks stop repeating themselves. Budgets are in `host_policy.context`. See [Token efficiency](docs/token-efficiency.md#context-packs-and-compact-output).
+
+## Windows
+
+The CLI, hooks, messaging, claims and pull-request delivery run on Windows. A local release does not run natively yet because it needs a read-only, no-network sandbox that exists on macOS and Linux only; the proposal stops early and lists the options (the CLI inside WSL2, or a pull request). See [Portable installation](docs/portable-install.md#windows).
 
 ## RTK Context Optimization
 

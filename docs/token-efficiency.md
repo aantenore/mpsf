@@ -68,6 +68,48 @@ canonical `.sdlc` files. For configuration migration, the full preview reports
 `target_config`, and permits independent schema and stable-hash verification.
 Search limits are validated and bounded to 1-100.
 
+## Context packs and compact output
+
+Added in 0.148.0. Four things keep an agent from re-reading text it does not need.
+
+**Context pack.** One story, one phase, a few hundred tokens instead of whole records (a final gate report alone can weigh hundreds of KB):
+
+```bash
+agentic-sdlc context pack --story ST-UX-002                       # phase = first open step
+agentic-sdlc context pack --story ST-UX-002 --phase implementation --budget 1200
+agentic-sdlc context pack --story ST-UX-002 --phase handoff --json  # to pass the story on
+agentic-sdlc context get sec:ST-UX-002/implementation/scope        # a section the budget cut
+agentic-sdlc context get rec:.sdlc/requirements/REQ-001.json#/acceptance_criteria
+```
+
+The pack holds the accepted criteria, the contract essentials, decisions, dependencies, the write scope with a file index (paths and symbol names, no file contents), recent tests and gates, waits and the next governed step. Each section has its own budget and a cut section ends with a `context get` reference. The same input gives the same `pack_hash`; secrets are redacted; the cache lives in `.sdlc/cache/context/` and is rebuilt when a record it read changes (`--no-cache` forces it). Records are read through the record store, with the filesystem as fallback.
+
+**Short command output.** Inside an agent session commands print the outcome, the next step, ids and the exact error instead of the long explanation. `--verbose` restores the full text, `--compact` forces the short form, `AGENTIC_SDLC_OUTPUT=auto|compact|full` sets it for a computer.
+
+**Agent JSON profile.** `--json` inside an agent session returns outcome, ids, essential hashes, next step and errors, with nested records replaced by `rec:` references. Scripts that need everything pass `--json-profile full` or set `AGENTIC_SDLC_JSON_PROFILE=full`. Typical effect: `delivery approve` 5,206 to 453 tokens, `requirement approve` 4,397 to 426.
+
+**Hook budgets.** Host hooks deduplicate per session (the same unanswered message or warning is not repeated), cap their lines and spend a token budget per event.
+
+Defaults live in the plugin's `config/context.json`; a project overrides any value in `.sdlc/config.json`:
+
+```json
+{
+  "host_policy": {
+    "context": {
+      "output": { "mode": "auto", "json_profile": "auto", "max_tokens": 300 },
+      "hooks": {
+        "dedupe": true,
+        "max_lines": 12,
+        "budget_tokens": { "session_start": 700, "user_prompt_submit": 250, "post_tool_use": 200, "pre_tool_use": 150, "stop": 150 }
+      },
+      "pack": { "budget_tokens": 2000, "file_index_max_entries": 40 }
+    }
+  }
+}
+```
+
+Projects that set `host_policy.context` need 0.148.0 on every computer; older plugins are told to update. Design: [context-module](plans/context-module.md).
+
 ## RTK command gateway
 
 [RTK](https://github.com/rtk-ai/rtk) filters noisy command output before it

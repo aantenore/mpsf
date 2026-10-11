@@ -125,6 +125,21 @@ node "$PLUGIN_CLI" status --cli-preset @human-it.json
 The exported file is directly reimportable. Import validates its schema and
 presentation-only allowlist before reading project state.
 
+## Choose how much output you get
+
+Inside an agent session the CLI prints the short form: outcome, next step, ids and the exact error. Outside one it prints the full explanation.
+
+```bash
+node "$PLUGIN_CLI" status --verbose            # full text even in an agent session
+node "$PLUGIN_CLI" status --compact            # short form anywhere
+node "$PLUGIN_CLI" status --json               # agent profile in a session, full payload otherwise
+node "$PLUGIN_CLI" status --json --json-profile full
+node "$PLUGIN_CLI" context pack --story ST-UX-002   # what an agent needs to work on one story
+node "$PLUGIN_CLI" context get <ref>                # detail behind a pack reference
+```
+
+`AGENTIC_SDLC_OUTPUT=auto|compact|full` and `AGENTIC_SDLC_JSON_PROFILE=auto|agent|full` set the default per computer, `host_policy.context.output` per project. Scripts that parse `--json` should pass `--json-profile full`. See [Token efficiency](token-efficiency.md#context-packs-and-compact-output).
+
 ## Enable shell completion
 
 Completion generation is deterministic and does not evaluate project files:
