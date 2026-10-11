@@ -9,7 +9,7 @@ import test from "node:test";
 import { assignedHolder, planRoleLease, rendezvousOrder, resolveRole } from "../../lib/coordination-roles.mjs";
 import { forgetSharedRefState } from "../../lib/engine/shared-refs.mjs";
 import { claimLeaseHolds } from "../../lib/engine/story-waits.mjs";
-import { presenceActivity, pushAccepted, readCoordinationCopies, releaseAtSessionEnd, rolesStatus, rolesTick, TICK_MS } from "../../lib/engine/role-leases.mjs";
+import { mergeClonePresence, presenceActivity, pushAccepted, readCoordinationCopies, releaseAtSessionEnd, rolesStatus, rolesTick, TICK_MS } from "../../lib/engine/role-leases.mjs";
 
 const NOW = Date.parse("2026-10-11T12:00:00Z");
 const MIN = 60_000;
@@ -190,4 +190,35 @@ test("push budget: messages written within the interval wait and leave with the 
   assert.equal(tick.pushed, true, JSON.stringify(tick));
   assert.equal(tick.messages, 1);
   assert.deepEqual(channelCount(), ["2"]);
+});
+
+test("clones of one project on one computer share its presence ref without overwriting each other", () => {
+  const entry = (at, stories, activity = {}) => ({ at: iso(at), stories, activity });
+  const mine = { clones: { a: entry(NOW - MIN, ["ST-1"], { "ST-1": iso(NOW - 2 * MIN) }), old: entry(NOW - 4 * 24 * 60 * MIN, ["ST-9"]) } };
+  const merged = mergeClonePresence({ mine, key: "b", entry: entry(NOW, ["ST-2"], { "ST-2": iso(NOW) }), now: NOW });
+  assert.deepEqual(Object.keys(merged.clones).sort(), ["a", "b"], "entries older than three days go");
+  assert.deepEqual(merged.stories, ["ST-1", "ST-2"]);
+  assert.equal(merged.activity["ST-1"], iso(NOW - 2 * MIN));
+  assert.equal(merged.otherLive, true);
+  assert.equal(mergeClonePresence({ mine: { clones: { a: { ...entry(NOW - MIN, []), ended: true } } }, key: "b", entry: null, now: NOW }).otherLive, false);
+});
+
+test("two clones on one computer: one holds the roles, the end of the other's session releases nothing", async () => {
+  const seed = createFixtureDir("roles-clones-seed-");
+  execFileSync("git", ["init", "-q"], { cwd: seed });
+  const bare = createBareOrigin(seed);
+  const a = clone(bare, "pc-x");
+  const b = clone(bare, "pc-x");
+  forgetSharedRefState();
+  assert.ok((await rolesTick(a.dir, { env: a.env, now: NOW, sessionId: "sa" })).actions.includes("take:coordinator"));
+  const second = await rolesTick(b.dir, { env: b.env, now: NOW + MIN, sessionId: "sb" });
+  assert.deepEqual(second.actions ?? [], [], JSON.stringify(second));
+  assert.deepEqual(second.roles, [], "the roles stay with the clone that wrote their lease");
+  const ended = releaseAtSessionEnd(b.dir, { env: b.env, now: NOW + 2 * MIN, sessionId: "sb" });
+  assert.deepEqual(ended.released, [], JSON.stringify(ended));
+  assert.equal(readCoordinationCopies(a.dir).leases.coordinator.host, "pc-x");
+  const seen = rolesStatus(a.dir, { env: a.env, now: NOW + 2 * MIN });
+  assert.equal(seen.computers.find((item) => item.host === "pc-x").alive, true, "the computer is still there");
+  const last = releaseAtSessionEnd(a.dir, { env: a.env, now: NOW + 3 * MIN, sessionId: "sa" });
+  assert.deepEqual(last.released.sort(), ["coordinator", "knowledge"]);
 });
