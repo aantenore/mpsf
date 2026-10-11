@@ -2487,47 +2487,37 @@ test("git.commit scope accepts directories, globs and --staged expanded to the e
     ...extra,
   ];
 
-  const directory = setupCommitScopeProject("scope-dir");
-  const byDirectory = mustRunJson(commitAction(directory, "--scope-path", "src/"));
+  // Scope expansion (directory, glob union, exact paths, --staged, --staged unions and the empty
+  // --staged refusal) is covered row by row on expandCommitScopeOptions in
+  // test/unit/lifecycle-delivery.test.mjs. One project runs the CLI wiring of --staged, the engine
+  // refusals before authorization (a failed authorization writes no receipt), then a directory
+  // authorize, commit and completion.
+  const fixture = setupCommitScopeProject("scope");
+
+  // --staged reaches the real staged set: a staged file outside the write scope is refused.
+  fs.mkdirSync(path.join(fixture.project, "docs"), { recursive: true });
+  fs.writeFileSync(path.join(fixture.project, "docs", "outside.md"), "outside\n", "utf8");
+  mustGit(fixture.project, ["add", "--", "docs/outside.md"]);
+  mustFail(commitAction(fixture, "--staged"), /outside the approved write scope: docs\/outside\.md/u);
+  mustFail(commitAction(fixture, "--staged", "--scope-path", "src/a/one.mjs"), /outside the approved write scope: docs\/outside\.md/u);
+  mustGit(fixture.project, ["rm", "--cached", "--quiet", "--", "docs/outside.md"]);
+  fs.rmSync(path.join(fixture.project, "docs", "outside.md"));
+
+  mustFail(commitAction(fixture, "--scope-path", "docs/**/*.md"), /matches no staged file/u);
+  mustFail(commitAction(fixture, "--scope-path", "src/**/*.mjs"), /staged file set to match the exact --scope-path set/u);
+
+  const byDirectory = mustRunJson(commitAction(fixture, "--scope-path", "src/"));
   assert.equal(byDirectory.status, "authorized");
   assert.deepEqual(byDirectory.action_receipt.action_details.changed_paths, allPaths);
-  mustGit(directory.project, ["commit", "-m", "test: commit by directory"]);
+  mustGit(fixture.project, ["commit", "-m", "test: commit by directory"]);
   const completed = mustRunJson(commitAction(
-    directory,
+    fixture,
     "--scope-path", "src/",
     "--outcome", "passed",
     "--authorization-receipt", byDirectory.action_receipt.id,
     "--evidence", "src/a/one.mjs",
   ));
   assert.equal(completed.status, "completed");
-
-  const glob = setupCommitScopeProject("scope-glob");
-  mustFail(commitAction(glob, "--scope-path", "docs/**/*.md"), /matches no staged file/u);
-  mustFail(commitAction(glob, "--scope-path", "src/**/*.mjs"), /staged file set to match the exact --scope-path set/u);
-  const byGlob = mustRunJson(commitAction(glob, "--scope-path", "src/**/*.mjs", "--scope-path", "src/a/two.txt"));
-  assert.deepEqual(byGlob.action_receipt.action_details.changed_paths, allPaths);
-
-  const exact = setupCommitScopeProject("scope-exact");
-  const byExact = mustRunJson(commitAction(exact, ...allPaths.flatMap((item) => ["--scope-path", item])));
-  assert.deepEqual(byExact.action_receipt.action_details.changed_paths, allPaths);
-
-  const staged = setupCommitScopeProject("scope-staged");
-  const byStaged = mustRunJson(commitAction(staged, "--staged"));
-  assert.deepEqual(byStaged.action_receipt.action_details.changed_paths, allPaths);
-
-  const stagedUnion = setupCommitScopeProject("scope-union");
-  const byUnion = mustRunJson(commitAction(stagedUnion, "--staged", "--scope-path", "src/a/one.mjs"));
-  assert.deepEqual(byUnion.action_receipt.action_details.changed_paths, allPaths);
-
-  const empty = setupCommitScopeProject("scope-empty");
-  mustGit(empty.project, ["reset", "--quiet"]);
-  mustFail(commitAction(empty, "--staged"), /--staged found no staged files/u);
-
-  const outside = setupCommitScopeProject("scope-outside");
-  fs.mkdirSync(path.join(outside.project, "docs"), { recursive: true });
-  fs.writeFileSync(path.join(outside.project, "docs", "outside.md"), "outside\n", "utf8");
-  mustGit(outside.project, ["add", "--", "docs/outside.md"]);
-  mustFail(commitAction(outside, "--staged"), /outside|write scope|write path/iu);
 });
 
 test("git.push rejects commits created outside the exact delivery action chain", () => {
@@ -2818,13 +2808,10 @@ test("pull-request merge requires an exact open pre-state and later GitHub merge
   );
 });
 
+// Fast-forward completion runs end to end in "a merged delivery refreshes its baseline without a new
+// approval while other changes wait for review"; the fast-forward and squash validator modes are
+// asserted in test/unit/pr-base-behind.test.mjs.
 for (const topology of [
-  {
-    name: "fast-forward",
-    result(fixture) {
-      return fixture.headSha;
-    },
-  },
   {
     name: "two-parent merge commit",
     result(fixture) {
@@ -2833,17 +2820,6 @@ for (const topology of [
         fixture.headSha,
         [fixture.baseSha, fixture.headSha],
         "test: exact merge result",
-      );
-    },
-  },
-  {
-    name: "single-parent squash",
-    result(fixture) {
-      return syntheticCommit(
-        fixture.project,
-        fixture.headSha,
-        [fixture.baseSha],
-        "test: exact squash result",
       );
     },
   },
@@ -5162,6 +5138,10 @@ test("a local release proposal stops early when the host has no smoke isolation 
   );
 });
 
+// Every launch-boundary rejection (resolved shells, shebang shells, indirect loaders, payloads
+// outside the artifact, nested shebang runtimes) is raised by localSmokeSandboxPolicyAttestation
+// and covered row by row in test/unit/lifecycle-delivery.test.mjs. This end-to-end row proves the
+// CLI authorization refuses before writing any action, attempt or close receipt.
 test("release.local rejects resolved shells, indirect loaders, and payloads outside the artifact before authorization", {
   skip: hostSupportsLocalSmokeSandbox() && process.platform !== "win32"
     ? false
@@ -5169,64 +5149,17 @@ test("release.local rejects resolved shells, indirect loaders, and payloads outs
   timeout: 240_000,
 }, () => {
   const externalRoot = tmpProject("local-smoke-external-payload");
-  const externalNodePayload = path.join(externalRoot, "external-smoke.mjs");
-  const externalRequirePayload = path.join(externalRoot, "external-require.cjs");
   const disguisedShell = path.join(externalRoot, "reviewed-runner");
-  fs.writeFileSync(externalNodePayload, "process.stdout.write('external\\n');\n", "utf8");
-  fs.writeFileSync(externalRequirePayload, "module.exports = {};\n", "utf8");
   fs.symlinkSync("/bin/sh", disguisedShell);
 
   const scenarios = [
-    {
-      suffix: "EXTERNAL-NODE-PAYLOAD",
-      command: [process.execPath, externalNodePayload],
-      smokeSource: "process.stdout.write('unused\\n');\n",
-      pattern: /payload .* resolves outside the released artifact/isu,
-    },
-    {
-      suffix: "EXTERNAL-NODE-REQUIRE",
-      command: [process.execPath, `--require=${externalRequirePayload}`, "--version"],
-      smokeSource: "process.stdout.write('unused\\n');\n",
-      pattern: /loader option .* is not allowed/isu,
-    },
     {
       suffix: "RESOLVED-SHELL",
       command: [disguisedShell, "-c", "exit 0"],
       smokeSource: "process.stdout.write('unused\\n');\n",
       pattern: /resolves to shell/isu,
     },
-    {
-      suffix: "SHEBANG-DASH",
-      command: ["./smoke-shebang-dash.mjs"],
-      smokeSource: "#!/bin/dash\nexit 0\n",
-      pattern: /resolves to shell/isu,
-    },
   ];
-  if (spawnSync("python3", ["--version"], {
-    encoding: "utf8",
-    timeout: 30_000,
-  }).status === 0) {
-    const externalPythonPayload = path.join(externalRoot, "external-smoke.py");
-    fs.writeFileSync(externalPythonPayload, "print('external')\n", "utf8");
-    scenarios.push({
-      suffix: "EXTERNAL-PYTHON-PAYLOAD",
-      command: ["python3", externalPythonPayload],
-      smokeSource: "process.stdout.write('unused\\n');\n",
-      pattern: /payload .* resolves outside the released artifact/isu,
-    });
-    scenarios.push({
-      suffix: "PYTHON-MODULE-CONCATENATED",
-      command: ["python3", "-mjson.tool"],
-      smokeSource: "process.stdout.write('unused\\n');\n",
-      pattern: /loader option .* is not allowed/isu,
-    });
-    scenarios.push({
-      suffix: "PYTHON-MODULE-SEPARATE",
-      command: ["python3", "-m", "json.tool"],
-      smokeSource: "process.stdout.write('unused\\n');\n",
-      pattern: /loader option .* is not allowed/isu,
-    });
-  }
 
   for (const scenario of scenarios) {
     const fixture = prepareMacOsLocalSmokeRelease({
@@ -6023,55 +5956,6 @@ process.stdout.write("shebang-runtime-ok\\n");
   assert.equal(completed.lifecycle_status, "terminal");
   assert.equal(completed.action_receipt.outcome, "passed");
   assert.equal(localReleaseAttemptReceipts(fixture.project, fixture.profileId).length, 1);
-});
-
-test("release.local rejects a nested shebang runtime before authorization", {
-  skip: hostSupportsLocalSmokeSandbox() && process.platform !== "win32"
-    ? false
-    : "requires a POSIX host with a supported local smoke sandbox",
-  timeout: 120_000,
-}, () => {
-  const runtimeBin = tmpProject("local-smoke-nested-runtime-bin");
-  const nestedNode = path.join(runtimeBin, "node");
-  fs.writeFileSync(
-    nestedNode,
-    `#!/bin/sh
-exec ${JSON.stringify(fs.realpathSync.native(process.execPath))} "$@"
-`,
-    "utf8",
-  );
-  fs.chmodSync(nestedNode, 0o755);
-  const commandOptions = {
-    env: {
-      PATH: [runtimeBin, process.env.PATH].filter(Boolean).join(path.delimiter),
-    },
-  };
-  const fixture = prepareMacOsLocalSmokeRelease({
-    suffix: "NESTED-SHEBANG-RUNTIME",
-    smokeSource: `#!/usr/bin/env node
-process.stdout.write("must-not-run\\n");
-`,
-    smokeCommandArgv: ["./smoke-nested-shebang-runtime.mjs"],
-    commandOptions,
-    authorizeRelease: false,
-  });
-
-  mustFail([
-    "autonomy", "delivery", "action",
-    "--root", fixture.project,
-    "--id", fixture.profileId,
-    "--action", "release.local",
-    "--confirm-action",
-    ...humanApproval("Attempt to authorize a nested shebang runtime"),
-  ], /resolves to nested script interpreter.*native runtime executable/isu, commandOptions);
-  assert.equal(
-    localReleaseActionReceipts(fixture.project, fixture.profileId).length,
-    0,
-  );
-  assert.equal(
-    localReleaseAttemptReceipts(fixture.project, fixture.profileId).length,
-    0,
-  );
 });
 
 test("release.local failed completion retry repairs its trace without rerunning smoke", {
@@ -7737,7 +7621,13 @@ test("a merged delivery refreshes its baseline without a new approval while othe
   ], { env: fakeGitHubEnv(project, openState) });
   mustGit(project, ["update-ref", "refs/remotes/origin/main", headSha]);
   const completion = completeAuthorizedPullRequestMerge({ project, authorization, openState }, headSha);
+  assert.equal(completion.status, "completed");
   assert.equal(completion.lifecycle_status, "terminal");
+  // Fast-forward: the proven merge result is the authorized head itself.
+  assert.equal(completion.action_receipt.runtime_target.base_sha, headSha);
+  assert.equal(completion.action_receipt.runtime_target.head_sha, headSha);
+  assert.equal(completion.action_receipt.action_details.provider_verification.base_sha, baseSha);
+  assert.equal(completion.action_receipt.action_details.provider_verification.merge_commit_sha, headSha);
   assert.deepEqual(completion.baseline_refresh, {
     from: "BASELINE-INITIAL",
     command: "mpsf baseline refresh --from BASELINE-INITIAL",

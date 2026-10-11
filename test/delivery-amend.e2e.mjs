@@ -319,8 +319,8 @@ test("a profile approved without merge is widened in place and the merge becomes
   mustRefuse(amendArgs(project, ["--merge", "manual", "--merge-actor-type", "human", "--merge-approval-source", "explicit-user", "--merge-summary", "I will do it"]), /merge of .* was already requested/u);
 });
 
-test("a delivery that is closed, or a boundary beyond the requirement, is not amended", () => {
-  const { project } = preparePullRequestDelivery();
+test("a delivery that is closed, or a boundary beyond the requirement, is not amended, and automation never amends a code review choice", () => {
+  const { project } = preparePullRequestDelivery({ codeReview: "required" });
   governedCommit(project);
   mustRefuse(amendArgs(project), /Nothing to amend/u);
   mustRefuse(amendArgs(project, ["--add-write-path", "other"]), /beyond the approved requirement write scope: other/u);
@@ -330,25 +330,20 @@ test("a delivery that is closed, or a boundary beyond the requirement, is not am
   assert.deepEqual(widened.changes.added_write_paths, ["docs"]);
   assert.deepEqual(readProfile(project).constraints.allowed_write_paths, ["docs", "src"]);
   assert.equal(readProfile(project).pull_request_target.merge_allowed, false);
-  mustRefuse(amendArgs(project, ["--add-write-path", "docs"]), /already allows the write paths/u);
-  const second = mustRunJson(amendArgs(project, ["--merge-allowed"]));
-  assert.equal(second.revision, 3);
-  assert.equal(readProfile(project).extensions.revision.history.length, 2);
-  mustRefuse(amendArgs(project, ["--merge-allowed"]), /already allows pull_request\.merge/u);
-  mustRunJson(["autonomy", "delivery", "revoke", "--root", project, "--id", PROFILE_ID, "--reason", "stop", ...humanApproval("Stop this delivery")]);
-  mustRefuse(amendArgs(project, ["--add-write-path", "docs"]), /revoked|closed/u);
-});
-
-test("a delivery with a code review choice is amended by the user, not by automation", () => {
-  const { project } = preparePullRequestDelivery({ codeReview: "required" });
+  // A delivery with a code review choice is amended by the user, not by automation.
   mustRefuse(
     ["autonomy", "delivery", "amend", "--root", project, "--id", PROFILE_ID, "--merge-allowed", "--actor-type", "agent", "--approval-source", "automation", "--summary", "go"],
     /automation cannot amend it/u,
   );
   assert.equal(readProfile(project).pull_request_target.merge_allowed, false);
-  const amended = mustRunJson(amendArgs(project, ["--merge-allowed"]));
-  assert.equal(amended.revision, 2);
+  mustRefuse(amendArgs(project, ["--add-write-path", "docs"]), /already allows the write paths/u);
+  const second = mustRunJson(amendArgs(project, ["--merge-allowed"]));
+  assert.equal(second.revision, 3);
   assert.equal(readProfile(project).pull_request_target.code_review.decision, "required");
+  assert.equal(readProfile(project).extensions.revision.history.length, 2);
+  mustRefuse(amendArgs(project, ["--merge-allowed"]), /already allows pull_request\.merge/u);
+  mustRunJson(["autonomy", "delivery", "revoke", "--root", project, "--id", PROFILE_ID, "--reason", "stop", ...humanApproval("Stop this delivery")]);
+  mustRefuse(amendArgs(project, ["--add-write-path", "docs"]), /revoked|closed/u);
 });
 
 /** The proposed profile as an older version wrote it: merge_allowed true, pull_request.merge not in allowed_actions. */
@@ -365,7 +360,14 @@ function makeMergeInconsistent(project) {
 }
 
 test("a new profile proposed with --merge-allowed lists pull_request.merge, with or without --allow-action", () => {
-  const { project } = preparePullRequestDelivery({ proposeExtra: ["--merge-allowed"] });
+  const { project, proposed } = preparePullRequestDelivery({ proposeExtra: ["--merge-allowed"] });
+  // Without --merge the profile records no merge choice and the merge waits for confirmation
+  // (checkpoint_required without a merge choice: the first test here and test/review-gate.e2e.mjs).
+  assert.equal(Object.hasOwn(proposed.delivery_profile.pull_request_target, "merge_decision"), false);
+  assert.equal(Object.hasOwn(proposed.review, "merge_decision"), false);
+  assert.ok(proposed.review.checkpoints.includes("pull_request.merge"));
+  const english = mustRun(["autonomy", "delivery", "explain", "--root", project, "--id", PROFILE_ID]);
+  assert.doesNotMatch(english.stdout, /^Merge: /mu);
   const profile = readProfile(project);
   assert.equal(profile.pull_request_target.merge_allowed, true);
   assert.ok(profile.pull_request_target.allowed_actions.includes("pull_request.merge"));

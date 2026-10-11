@@ -200,7 +200,18 @@ test("three computers refreshing the same baseline at the same moment: exactly o
 
 test("a successor claim removed from the remote is pruned locally and no longer blocks a refresh", () => {
   const { first, second, remote } = sharedBaselineProject("pruned");
+
+  // --- A refresh on a computer without a reachable remote writes nothing in a shared project ---
+  git(first, ["remote", "set-url", "origin", path.join(first, "missing-remote.git")]);
   commitFile(first, "src/first.mjs", "export const first = 1;\n");
+  const unreachable = run(["baseline", "refresh", "--root", first, "--from", "BASELINE-INITIAL", "--json"], first);
+  assert.notEqual(unreachable.status, 0);
+  assert.match(unreachable.stdout + unreachable.stderr, /another computer may already have refreshed it/u);
+  assert.equal(fs.existsSync(path.join(first, ".sdlc", "baseline", "BASELINE-INITIAL-R2.json")), false);
+  // The remote is reachable again; the refused attempt leaves nothing that blocks the refresh.
+  git(first, ["remote", "set-url", "origin", remote]);
+
+  // --- A successor claim removed from the remote is pruned locally ---
   mustRun(["baseline", "refresh", "--root", first, "--from", "BASELINE-INITIAL"], first);
   commitFile(second, "src/second.mjs", "export const second = 2;\n");
   const refused = run(["baseline", "refresh", "--root", second, "--from", "BASELINE-INITIAL", "--json"], second);
@@ -214,16 +225,6 @@ test("a successor claim removed from the remote is pruned locally and no longer 
   assert.equal(refreshed.baseline_id, "BASELINE-INITIAL-R2");
   assert.deepEqual(remoteRefreshRefs(remote), ["refs/agentic-sdlc/baseline-refresh/BASELINE-INITIAL/successor"]);
   assert.match(mirror(), /\/BASELINE-INITIAL\/successor$/mu);
-});
-
-test("a refresh on a computer without a reachable remote writes nothing in a shared project", () => {
-  const { first } = sharedBaselineProject("unreachable");
-  git(first, ["remote", "set-url", "origin", path.join(first, "missing-remote.git")]);
-  commitFile(first, "src/extra.mjs", "export const extra = 1;\n");
-  const refused = run(["baseline", "refresh", "--root", first, "--from", "BASELINE-INITIAL", "--json"], first);
-  assert.notEqual(refused.status, 0);
-  assert.match(refused.stdout + refused.stderr, /another computer may already have refreshed it/u);
-  assert.equal(fs.existsSync(path.join(first, ".sdlc", "baseline", "BASELINE-INITIAL-R2.json")), false);
 });
 
 /** Changes the coordination setting the way a person would: edit, then confirm the configuration. */

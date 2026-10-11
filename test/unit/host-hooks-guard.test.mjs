@@ -410,12 +410,6 @@ test("interpreters, brace globs, and git's own ref storage do not get past the g
   }
 });
 
-test("only a person supersedes a recorded evidence file", () => {
-  const verdict = evaluatePreToolUse(shell("node bin/agentic-sdlc.mjs autonomy delivery evidence supersede --id AUT-1 --receipt AUT-ACT-1 --path a.txt"));
-  assert.equal(verdict?.decision, "deny");
-  assert.match(verdict.reason, /ask the user to run this exact command themselves/u);
-});
-
 test("only a person abandons a story, and a message that mentions it is not blocked", () => {
   const verdict = evaluatePreToolUse(shell("node bin/agentic-sdlc.mjs story abandon --id ST-DEMO-001 --reason x --actor-type human"));
   assert.equal(verdict?.decision, "deny");
@@ -478,10 +472,18 @@ test("a message that only mentions a person-only command is allowed", () => {
 
 test("person-only commands stay blocked when really invoked", () => {
   const supersede = "autonomy delivery evidence supersede --id AUT-1 --receipt R --path a.txt";
+  // Also covers "only a person supersedes a recorded evidence file": the deny
+  // reason hands the exact supersede command to the person.
   for (const command of [
     `node /p/bin/agentic-sdlc.mjs ${supersede}`,
     `FOO=1 npx agentic-sdlc ${supersede}`,
     `echo ok && agentic-sdlc ${supersede}`,
+  ]) {
+    const verdict = evaluatePreToolUse(shell(command));
+    assert.equal(verdict?.decision, "deny", command);
+    assert.match(verdict.reason, /ask the user to run this exact command themselves/u, command);
+  }
+  for (const command of [
     `mpsf autonomy "standing" approve --id S1`,
     `mpsf project archive --apply`,
   ]) assert.equal(evaluatePreToolUse(shell(command))?.decision, "deny", command);

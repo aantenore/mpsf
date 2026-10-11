@@ -83,19 +83,19 @@ function gate(dir) {
   return JSON.parse(runCli(["gate", "check", "--root", dir, "--strict", "--json"]).stdout);
 }
 
-test("release trace without evidence is refused at append time", () => {
-  const dir = project("refuse");
-  createStory(dir, "ST-REL-1");
-  const result = mustFail(["trace", "append", "--root", dir, "--type", "release", "--story", "ST-REL-1", "--summary", "No proof"]);
-  assert.match(result.stderr + result.stdout, /requires at least one --evidence path/u);
-});
-
 test("a corrective release supersedes only an evidence-less release line", () => {
   const dir = project("correct");
+  // The strict gate also reports an output id repeated in the registry.
+  const registryPath = path.join(dir, ".sdlc/output-contracts/registry.json");
+  const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+  const template = { id: "TPL-DUP", type: "report", status: "draft", path: "missing.md" };
+  registry.templates.push(template, { ...template, updated_at: "2099-01-01T00:00:00Z" });
+  fs.writeFileSync(registryPath, `${JSON.stringify(registry, null, 2)}\n`);
   const storyId = "ST-REL-2";
   createStory(dir, storyId);
   sealDefectiveRelease(dir, storyId);
   const before = gate(dir);
+  assert.equal(before.errors.some((e) => /entries with id TPL-DUP.*keep the most recent/u.test(e)), true, before.errors.join("\n"));
   assert.equal(before.errors.some((e) => e.includes(`${storyId}.jsonl:1 release trace requires at least one evidence path`)), true);
 
   fs.writeFileSync(path.join(dir, "merge.txt"), "merged\n");
@@ -215,7 +215,8 @@ test("a person's trace-bound evidence supersede is honored by the trace drift ch
 test("evidence eol rule goes to untracked .git/info/attributes, once, never .gitattributes", async () => {
   const { ensureEvidenceGitattributes, EVIDENCE_GITATTRIBUTES_RULE } = await import("../../lib/engine/evidence-eol.mjs");
   const { execFileSync } = await import("node:child_process");
-  const dir = project("eol");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-sdlc-trace-supersede-eol-"));
+  tempDirs.add(dir);
   execFileSync("git", ["init", "-q"], { cwd: dir });
   const tracked = path.join(dir, ".gitattributes");
   fs.writeFileSync(tracked, "* text=auto");

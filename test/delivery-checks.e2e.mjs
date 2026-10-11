@@ -264,6 +264,104 @@ function recordTest(project, argv, { exitCode, passed = 0, failed = 0, framework
 test("the checks table lists what was recorded, redacts it, and follows the project as it changes", () => {
   const project = preparePullRequestDelivery();
 
+  // Authorizing a pull-request update points at the checks table, which a local release does not
+  // have. This runs before step 1: the failing scan of step 4 or the tampered record of step 6
+  // could make the action refuse.
+  const headSha = git(project, ["rev-parse", "HEAD"]);
+  const authorization = mustRunJson([
+    "autonomy", "delivery", "action", "--root", project,
+    "--id", PROFILE_ID,
+    "--action", "pull_request.update",
+    "--pr-url", PR_URL,
+    "--expected-pr-state", "ready",
+    "--confirm-action",
+    ...humanApproval("Approve marking this exact pull request ready for review"),
+  ], { env: fakeGitHubEnv(project, { headSha }) });
+  assert.equal(authorization.status, "authorized");
+  // The authorization hands over the table itself, the same bytes the command prints.
+  assert.equal(
+    authorization.pull_request_body_checks.command,
+    `mpsf autonomy delivery checks --id ${PROFILE_ID} --format markdown`,
+  );
+  assert.match(authorization.pull_request_body_checks.markdown, /^## Delivery checks\n/u);
+  assert.equal(authorization.pull_request_body_checks.markdown, mustRun(checksArgs(project)).stdout.trimEnd());
+  assert.equal(authorization.pull_request_body_checks.unavailable_reason, undefined);
+  const human = mustRun([
+    "autonomy", "delivery", "action", "--root", project,
+    "--id", PROFILE_ID,
+    "--action", "pull_request.update",
+    "--pr-url", PR_URL,
+    "--expected-pr-state", "ready",
+    "--confirm-action",
+    ...humanApproval("Approve marking this exact pull request ready for review"),
+  ], { env: fakeGitHubEnv(project, { headSha }) });
+  assert.match(human.stdout, /Put the recorded checks in the pull-request description: mpsf autonomy delivery checks --id AUT-CHECKS --format markdown/u);
+  // Completing the update records what happened; it carries no pointer.
+  const updatedAt = new Date(Date.parse(authorization.action_receipt.authorized_at) + 1_000).toISOString();
+  const completion = mustRunJson([
+    "autonomy", "delivery", "action", "--root", project,
+    "--id", PROFILE_ID,
+    "--action", "pull_request.update",
+    "--pr-url", PR_URL,
+    "--expected-pr-state", "ready",
+    "--outcome", "passed",
+    "--authorization-receipt", authorization.action_receipt.id,
+    "--evidence", "src/change.txt",
+  ], { env: fakeGitHubEnv(project, { headSha, draft: false, updatedAt }) });
+  assert.equal(completion.status, "completed");
+  assert.equal(completion.pull_request_body_checks, undefined);
+
+  // The table is built for pull requests; a local release is refused rather than reported with blanks.
+  createStoryAndContract(project, {
+    storyId: "ST-LOCAL",
+    contractId: "CONTRACT-LOCAL",
+    profileId: "AUT-LOCAL",
+    requirementId: "REQ-CHECKS",
+    approval: humanApproval("Approve the local contract"),
+  });
+  const releaseRoot = path.join(project, "src", "local-release-checks");
+  mustRunJson([
+    "autonomy", "delivery", "propose", "--root", project,
+    "--id", "AUT-LOCAL",
+    "--delivery", "LOCAL-CHECKS",
+    "--kind", "local_release",
+    "--story", "ST-LOCAL",
+    "--contract", "CONTRACT-LOCAL",
+    "--requirement", "REQ-CHECKS",
+    "--level", "checkpointed",
+    "--target-root", releaseRoot,
+    "--write-path", path.join(releaseRoot, "app"),
+    "--smoke-test", '["node","--version"]',
+    "--rollback", "Restore the previous governed local release snapshot.",
+  ]);
+  mustFail(
+    ["autonomy", "delivery", "checks", "--root", project, "--id", "AUT-LOCAL"],
+    /local_release delivery; the checks table is built for pull-request deliveries/u,
+  );
+
+  // A pull-request update whose head does not carry the story's records is refused once the
+  // project asks for them: the head holds src/ only, never the story's claim or steps.
+  const configPath = path.join(project, ".sdlc", "config.json");
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  config.orchestration_policy = {
+    ...config.orchestration_policy,
+    story_records: { ...config.orchestration_policy?.story_records, before_pull_request: "refuse" },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  const preview = mustRunJson(["config", "migrate", "--root", project]);
+  mustRunJson(["config", "migrate", "--root", project, "--apply", "--plan-hash", preview.plan.plan_hash, "--actor-type", "system"]);
+  const missingRecords = mustFail([
+    "autonomy", "delivery", "action", "--root", project,
+    "--id", PROFILE_ID,
+    "--action", "pull_request.update",
+    "--pr-url", PR_URL,
+    "--expected-pr-state", "ready",
+    "--confirm-action",
+    ...humanApproval("Approve marking this exact pull request ready for review"),
+    "--json",
+  ], /does not carry the story's records/u, { env: fakeGitHubEnv(project, { headSha }) });
+  assert.doesNotMatch(missingRecords.stdout, /"status":\s*"authorized"/u);
+
   // 1. A started delivery with nothing recorded: every check is "not run", never a pass.
   const empty = mustRun(checksArgs(project));
   assert.equal(empty.stderr, "");
@@ -417,81 +515,6 @@ test("the checks table lists what was recorded, redacts it, and follows the proj
     ["npm test", "pass"],
   ]);
   assert.match(afterTamper.stdout, /1 recorded file failed validation and was left out\./u);
-});
-
-test("authorizing a pull-request update points at the checks table, which a local release does not have", () => {
-  const project = preparePullRequestDelivery();
-  const headSha = git(project, ["rev-parse", "HEAD"]);
-  const authorization = mustRunJson([
-    "autonomy", "delivery", "action", "--root", project,
-    "--id", PROFILE_ID,
-    "--action", "pull_request.update",
-    "--pr-url", PR_URL,
-    "--expected-pr-state", "ready",
-    "--confirm-action",
-    ...humanApproval("Approve marking this exact pull request ready for review"),
-  ], { env: fakeGitHubEnv(project, { headSha }) });
-  assert.equal(authorization.status, "authorized");
-  // The authorization hands over the table itself, the same bytes the command prints.
-  assert.equal(
-    authorization.pull_request_body_checks.command,
-    `mpsf autonomy delivery checks --id ${PROFILE_ID} --format markdown`,
-  );
-  assert.match(authorization.pull_request_body_checks.markdown, /^## Delivery checks\n/u);
-  assert.equal(authorization.pull_request_body_checks.markdown, mustRun(checksArgs(project)).stdout.trimEnd());
-  assert.equal(authorization.pull_request_body_checks.unavailable_reason, undefined);
-  const human = mustRun([
-    "autonomy", "delivery", "action", "--root", project,
-    "--id", PROFILE_ID,
-    "--action", "pull_request.update",
-    "--pr-url", PR_URL,
-    "--expected-pr-state", "ready",
-    "--confirm-action",
-    ...humanApproval("Approve marking this exact pull request ready for review"),
-  ], { env: fakeGitHubEnv(project, { headSha }) });
-  assert.match(human.stdout, /Put the recorded checks in the pull-request description: mpsf autonomy delivery checks --id AUT-CHECKS --format markdown/u);
-  // Completing the update records what happened; it carries no pointer.
-  const updatedAt = new Date(Date.parse(authorization.action_receipt.authorized_at) + 1_000).toISOString();
-  const completion = mustRunJson([
-    "autonomy", "delivery", "action", "--root", project,
-    "--id", PROFILE_ID,
-    "--action", "pull_request.update",
-    "--pr-url", PR_URL,
-    "--expected-pr-state", "ready",
-    "--outcome", "passed",
-    "--authorization-receipt", authorization.action_receipt.id,
-    "--evidence", "src/change.txt",
-  ], { env: fakeGitHubEnv(project, { headSha, draft: false, updatedAt }) });
-  assert.equal(completion.status, "completed");
-  assert.equal(completion.pull_request_body_checks, undefined);
-
-  // The table is built for pull requests; a local release is refused rather than reported with blanks.
-  createStoryAndContract(project, {
-    storyId: "ST-LOCAL",
-    contractId: "CONTRACT-LOCAL",
-    profileId: "AUT-LOCAL",
-    requirementId: "REQ-CHECKS",
-    approval: humanApproval("Approve the local contract"),
-  });
-  const releaseRoot = path.join(project, "src", "local-release-checks");
-  mustRunJson([
-    "autonomy", "delivery", "propose", "--root", project,
-    "--id", "AUT-LOCAL",
-    "--delivery", "LOCAL-CHECKS",
-    "--kind", "local_release",
-    "--story", "ST-LOCAL",
-    "--contract", "CONTRACT-LOCAL",
-    "--requirement", "REQ-CHECKS",
-    "--level", "checkpointed",
-    "--target-root", releaseRoot,
-    "--write-path", path.join(releaseRoot, "app"),
-    "--smoke-test", '["node","--version"]',
-    "--rollback", "Restore the previous governed local release snapshot.",
-  ]);
-  mustFail(
-    ["autonomy", "delivery", "checks", "--root", project, "--id", "AUT-LOCAL"],
-    /local_release delivery; the checks table is built for pull-request deliveries/u,
-  );
 });
 
 function isoAfter(milliseconds) {

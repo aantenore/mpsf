@@ -11,8 +11,10 @@ import { fileURLToPath } from "node:url";
 import { resolveMessagingConfig } from "../../lib/messaging/config.mjs";
 import { cursorOf } from "../../lib/messaging/cursor.mjs";
 import { checkAttention } from "../../lib/messaging/attention.mjs";
-import { messageSend, messageSetup } from "../../lib/messaging/commands.mjs";
+import { messageRead, messageSend, messageSetup } from "../../lib/messaging/commands.mjs";
 import { createGithubProvider, fromGithubComment, parseHttpResponse, resolveSince, toGithubBody } from "../../lib/messaging/providers/github.mjs";
+import { listOptions } from "../../lib/cli/command-catalog.mjs";
+import { parseArgs } from "../../lib/engine/common.mjs";
 import { createFakeGh, installFakeGh } from "../helpers/fake-gh.mjs";
 
 const CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../bin/agentic-sdlc.mjs");
@@ -39,6 +41,14 @@ function fakeGhFor(overrides = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-gh-"));
   return installFakeGh(dir, { issues: [{ number: 1, title: "Agentic SDLC · canale tra computer", state: "open", labels: [{ name: "agentic-sdlc-channel" }] }], nextIssue: 2, start: Date.now(), ...overrides });
 }
+
+// An in-memory GitHub with the channel issue #1, for tests that call the commands in process.
+function ghChannel() {
+  const gh = createFakeGh({ issues: [{ number: 1, title: "t", state: "open", labels: [] }], nextIssue: 2, start: Date.now() });
+  return { gh, providers: { github: () => createGithubProvider({ exec: gh.exec }) } };
+}
+
+const quietEnv = (host) => ({ AGENTIC_SDLC_HOST_LABEL: host, AGENTIC_SDLC_MESSAGING_JOIN: "off" });
 
 function runCli(args, { root, env = {} }) {
   return new Promise((resolve) => {
@@ -280,14 +290,15 @@ test("send, read and listen through the CLI", async () => {
   assert.equal(JSON.parse(own.stdout).count, 0);
 });
 
+// The 'MESSAGE NOT SENT:' prefix the CLI puts on a refused send is checked in the next test.
 test("send refuses text that looks like a secret", async () => {
-  const gh = fakeGhFor();
+  const { gh, providers } = ghChannel();
   const root = projectDir();
-  const result = await runCli(["message", "send", "--text", "key AKIAABCDEFGHIJKLMNOP"], { root, env: gh.env });
-  assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /secret/u);
-  assert.match(result.stderr, /^MESSAGE NOT SENT:/u);
-  assert.equal(gh.read().comments.length, 0);
+  await assert.rejects(
+    messageSend({ root, text: "key AKIAABCDEFGHIJKLMNOP" }, quietEnv("PC1"), providers),
+    (error) => error.errorCode === "MESSAGING_SECRET_REFUSED" && /secret/u.test(error.message),
+  );
+  assert.equal(gh.state.comments.length, 0);
 });
 
 test("send accepts the text as one argument and refuses both forms together", async () => {
@@ -303,6 +314,10 @@ test("send accepts the text as one argument and refuses both forms together", as
   const many = await runCli(["message", "send", "one", "two"], { root, env: gh.env });
   assert.notEqual(many.code, 0);
   assert.match(many.stderr, /^MESSAGE NOT SENT:/u);
+  // A refusal raised by the send itself is reported the same way, first on stderr, with a failing exit.
+  const refused = await runCli(["message", "send", "--kind", "answer", "--text", "x"], { root, env: gh.env });
+  assert.notEqual(refused.code, 0);
+  assert.match(refused.stderr.split("\n")[0], /^MESSAGE NOT SENT: .*needs --reply-to/u);
   assert.equal(gh.read().comments.length, 1);
 });
 
@@ -316,26 +331,33 @@ test("the Observatory never shows or serves messaging settings", async () => {
   await assert.rejects(readSourceRecord(root, ".sdlc/messaging.json"), /settings/u);
 });
 
+// Runs the commands in process; the CLI exit on a refused send is checked by
+// 'send accepts the text as one argument and refuses both forms together'.
 test("kinds travel in the metadata, pending replies are listed and --skip-own honours an explicit --sender", async () => {
-  const gh = fakeGhFor();
+  // The CLI accepts these flags on message send and read, and hands them over as the option keys used below.
+  const flags = (command) => listOptions(command, { includeGlobal: false }).map((entry) => entry.flag);
+  for (const flag of ["--kind", "--reply-to", "--sender"]) assert.ok(flags("message send").includes(flag), `message send ${flag}`);
+  for (const flag of ["--sender", "--skip-own"]) assert.ok(flags("message read").includes(flag), `message read ${flag}`);
+  assert.deepEqual(parseArgs(["message", "send", "--json", "--kind", "answer", "--reply-to", "1", "--sender", "PC2", "--text", "x"]).options, { json: true, kind: "answer", "reply-to": "1", sender: "PC2", text: "x" });
+  assert.deepEqual(parseArgs(["message", "read", "--json", "--skip-own", "--sender", "PC1"]).options, { json: true, "skip-own": true, sender: "PC1" });
+
+  const { gh, providers } = ghChannel();
   const root = projectDir();
-  const env = gh.env;
-  const asked = JSON.parse((await runCli(["message", "send", "--json", "--kind", "question", "--sender", "PC1", "--text", "who can publish?"], { root, env: { ...env, AGENTIC_SDLC_HOST_LABEL: "PC1" } })).stdout);
+  const asked = await messageSend({ root, json: true, kind: "question", sender: "PC1", text: "who can publish?" }, quietEnv("PC1"), providers);
   assert.equal(asked.kind, "question");
-  assert.match(gh.read().comments[0].body, /^\*\*PC1\*\* · question\n/u);
-  await runCli(["message", "send", "--json", "--sender", "PC2", "--text", "hello"], { root, env: { ...env, AGENTIC_SDLC_HOST_LABEL: "PC2" } });
-  const read = JSON.parse((await runCli(["message", "read", "--json"], { root, env: { ...env, AGENTIC_SDLC_HOST_LABEL: "PC1" } })).stdout);
+  assert.match(gh.state.comments[0].body, /^\*\*PC1\*\* · question\n/u);
+  await messageSend({ root, json: true, sender: "PC2", text: "hello" }, quietEnv("PC2"), providers);
+  const read = await messageRead({ root, json: true }, quietEnv("PC1"), providers);
   assert.deepEqual(read.messages[0].pending_replies, ["PC2"]);
-  await runCli(["message", "send", "--json", "--kind", "answer", "--reply-to", asked.id, "--sender", "PC2", "--text", "me"], { root, env: { ...env, AGENTIC_SDLC_HOST_LABEL: "PC2" } });
-  const after = JSON.parse((await runCli(["message", "read", "--json"], { root, env: { ...env, AGENTIC_SDLC_HOST_LABEL: "PC1" } })).stdout);
+  await messageSend({ root, json: true, kind: "answer", "reply-to": asked.id, sender: "PC2", text: "me" }, quietEnv("PC2"), providers);
+  const after = await messageRead({ root, json: true }, quietEnv("PC1"), providers);
   assert.deepEqual(after.messages[0].pending_replies, []);
   assert.equal(after.messages[2].reply_to, asked.id);
-  const refused = await runCli(["message", "send", "--kind", "answer", "--text", "x"], { root, env });
-  assert.notEqual(refused.code, 0);
+  await assert.rejects(messageSend({ root, kind: "answer", text: "x" }, quietEnv("PC1"), providers), /needs --reply-to/u);
   // everything sent from this clone is skipped, even under other --sender names; a person's comment is not
   const later = new Date(Date.now() + 3_600_000).toISOString().replace(/\.\d{3}Z$/u, "Z");
-  gh.write((state) => state.comments.push({ id: 4999999999, issue: 1, body: "from a person", created_at: later, updated_at: later, user: { login: "alice" } }));
-  const other = JSON.parse((await runCli(["message", "read", "--json", "--skip-own"], { root, env: { ...env, AGENTIC_SDLC_HOST_LABEL: "PC9" } })).stdout);
+  gh.state.comments.push({ id: 4999999999, issue: 1, body: "from a person", created_at: later, updated_at: later, user: { login: "alice" } });
+  const other = await messageRead({ root, json: true, "skip-own": true }, quietEnv("PC9"), providers);
   assert.equal(other.count, 1);
   assert.equal(other.messages[0].from, "alice");
 });

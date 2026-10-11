@@ -581,10 +581,12 @@ function sealedFixture() {
   return fixture("sealed", (project) => ({ story: sealPullRequestStory(project, { suffix: "SEAL-A" }) }));
 }
 
-/** A story sealed, merged into main with a real merge commit, and reconciled. */
+/** The sealed story, merged into main with a real merge commit, and reconciled. */
 function mergedFixture() {
   return fixture("merged", (project) => {
-    const story = sealPullRequestStory(project, { suffix: "MERGE-A" });
+    const source = sealedFixture();
+    fs.cpSync(source.project, project, { recursive: true, force: true, preserveTimestamps: true, verbatimSymlinks: true });
+    const { story } = source;
     const mergeSha = mergeIntoMain(project, story);
     const reconciled = reconcileMerged(project, story, mergeSha);
     assert.equal(reconciled.status, "reconciled", JSON.stringify(reconciled, null, 2));
@@ -663,11 +665,6 @@ function assertNextActionLeaves(status, storyId) {
   if (action.story_id !== storyId) return;
   assert.doesNotMatch(String(action.command || ""), /story complete-step|autonomy delivery reconcile/u, JSON.stringify(action, null, 2));
 }
-
-test("a sealed story reconciled as merged stays completed", () => {
-  const { project, story } = mergedFixture();
-  assertTerminal(project, story.storyId, ["workflow_final_receipt_stale", "workflow_final_receipt"]);
-});
 
 test("documentation committed after the merge and an untracked note leave the merged story completed", () => {
   const { project, story } = mergedFixture();
@@ -800,11 +797,22 @@ test("a merged story cannot be certified again when its merge commit is not in t
   );
 });
 
-test("a story released after its delivery finished is shared as completed, so other computers never offer it again", () => {
+test("a pull request carries the story's records with its code, and its story released after the delivery finished is shared as completed", () => {
   const claims = temporaryDirectory("shared-claims-remote");
   mustGit(claims, ["init", "--bare"]);
-  const project = temporaryDirectory("shared-completion");
-  const story = sealPullRequestStory(project, { suffix: "SHARE-A", claimsRemote: claims });
+  const withRecords = temporaryDirectory("records-in-pr");
+  const story = sealPullRequestStory(withRecords, {
+    suffix: "REC-A",
+    claimsRemote: claims,
+    includeRecords: true,
+    storyRecords: { before_pull_request: "refuse" },
+  });
+  const carried = mustGit(withRecords, ["ls-tree", "-r", "--name-only", story.headSha, "--", `.sdlc/stories/${story.storyId}/`]);
+  assert.match(carried, new RegExp(`stories/${story.storyId}/claim\\.json`, "u"));
+  assert.equal(story.certification.status, "passed");
+
+  // A story released after its delivery finished is shared as completed, so
+  // other computers never offer it again.
   const record = JSON.parse(mustGit(claims, ["log", "-1", "--format=%B", `refs/agentic-sdlc/claims/${story.storyId}/000001/release`]));
   assert.equal(record.status, "completed");
   assert.equal(record.completion.terminal_status, "ready_for_review");
@@ -815,22 +823,6 @@ test("a story released after its delivery finished is shared as completed, so ot
   assert.equal(story.certification.closing_records.on_remote, false);
   assert.equal(story.certification.closing_records.branch, "main");
   assert.equal(story.certification.closing_records.path, `.sdlc/gates/${story.storyId}-final.json`);
-});
-
-test("a pull request carries the story's records with its code, and one without them is refused when the project asks", () => {
-  const withRecords = temporaryDirectory("records-in-pr");
-  const story = sealPullRequestStory(withRecords, {
-    suffix: "REC-A",
-    includeRecords: true,
-    storyRecords: { before_pull_request: "refuse" },
-  });
-  const carried = mustGit(withRecords, ["ls-tree", "-r", "--name-only", story.headSha, "--", `.sdlc/stories/${story.storyId}/`]);
-  assert.match(carried, new RegExp(`stories/${story.storyId}/claim\\.json`, "u"));
-  assert.equal(story.certification.status, "passed");
-
-  const withoutRecords = temporaryDirectory("records-missing");
-  assert.throws(
-    () => sealPullRequestStory(withoutRecords, { suffix: "REC-B", storyRecords: { before_pull_request: "refuse" } }),
-    /does not carry the story's records/u,
-  );
+  // A pull request without the story's records is refused when the project asks:
+  // test/delivery-checks.e2e.mjs covers that refusal.
 });

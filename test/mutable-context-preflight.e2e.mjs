@@ -116,17 +116,15 @@ function implementationIntent() {
   });
 }
 
+const LEGACY_APP_SOURCE = "export function status() {\n  return { status: \"legacy\" };\n}\n";
+
 function establishBrownfieldGovernance(project) {
   writeProjectFile(
     project,
     "README.md",
     "# Brownfield local service\n\nThe service exposes a deterministic local status response.\n",
   );
-  writeProjectFile(
-    project,
-    "src/app.mjs",
-    "export function status() {\n  return { status: \"legacy\" };\n}\n",
-  );
+  writeProjectFile(project, "src/app.mjs", LEGACY_APP_SOURCE);
   writeProjectFile(
     project,
     "src/config.mjs",
@@ -440,6 +438,16 @@ test("approved brownfield context may evolve after an exact preflight while unre
     false,
   );
 
+  // Merged from "a file created by the started task inside its write scope
+  // keeps the baseline usable": src/extra.mjs is outside the requirement write
+  // scope, so a sibling file created there by the task is still reported
+  // against the baseline. Removing it makes the gate pass again.
+  const gateArgs = ["gate", "check", "--root", project, "--scope", "story", "--story", "ST-BROWNFIELD", "--strict"];
+  writeProjectFile(project, "src/extra.mjs", "export const extra = 1;\n");
+  mustFail([...gateArgs, "--json"], project, /does not describe src\/extra\.mjs/u);
+  fs.rmSync(path.join(project, "src", "extra.mjs"));
+  assert.equal(mustRunJson(gateArgs, project).status, "passed");
+
   if (process.platform !== "win32") {
     const configPath = path.join(project, "src", "config.mjs");
     const originalConfigMode = fs.statSync(configPath).mode & 0o7777;
@@ -476,46 +484,32 @@ test("approved brownfield context may evolve after an exact preflight while unre
     error.includes("outside the approved requirement write paths: src/config.mjs")));
 });
 
-test("context drift before task start remains fail-closed and writes no preflight receipt", () => {
-  const project = temporaryProject("pre-start-drift");
+// Merges "context drift before task start remains fail-closed and writes no
+// preflight receipt" and "a dirty submodule cannot be exempted as unchanged
+// pre-existing workspace state". A failed preflight writes nothing, so both
+// refusals share one fixture: a passing preflight proves the exact restore, and
+// the submodule runs last because adding it commits to HEAD.
+test("pre-start drift and a dirty submodule each fail preflight closed without a receipt", () => {
+  const project = temporaryProject("pre-start-refusals");
   const fixture = establishBrownfieldGovernance(project);
-  fs.appendFileSync(path.join(project, "src", "app.mjs"), "\n// changed before start\n", "utf8");
+  const preflightArgs = ["task", "preflight", ...taskContextArgs(project), "--json"];
+  const assertNothingWritten = () => {
+    assert.equal(fs.existsSync(path.join(project, fixture.preflightPath)), false);
+    assert.equal(fs.existsSync(path.join(project, fixture.taskStartPath)), false);
+  };
 
-  const failed = mustFail([
-    "task", "preflight",
-    ...taskContextArgs(project),
-    "--json",
-  ], project, /preflight failed|restore|approve a new/iu);
+  // Context drift before task start remains fail-closed.
+  fs.appendFileSync(path.join(project, "src", "app.mjs"), "\n// changed before start\n", "utf8");
+  const failed = mustFail(preflightArgs, project, /preflight failed|restore|approve a new/iu);
   const payload = JSON.parse(failed.stdout);
   assert.equal(payload.status, "failed");
   assert.equal(payload.execution_allowed, false);
-  assert.equal(fs.existsSync(path.join(project, fixture.preflightPath)), false);
-  assert.equal(fs.existsSync(path.join(project, fixture.taskStartPath)), false);
+  assertNothingWritten();
   assert.match(payload.recovery.join(" "), /restore|approve a new/iu);
-});
+  writeProjectFile(project, "src/app.mjs", LEGACY_APP_SOURCE);
+  assert.equal(mustRunJson(["task", "preflight", ...taskContextArgs(project)], project).status, "passed");
 
-test("a context symlink into derived state cannot reuse approved bytes", () => {
-  const project = temporaryProject("derived-context-symlink");
-  const fixture = establishBrownfieldGovernance(project);
-  const appPath = path.join(project, "src", "app.mjs");
-  const derivedPath = path.join(project, ".sdlc", "cache", "approved-app.mjs");
-  fs.mkdirSync(path.dirname(derivedPath), { recursive: true });
-  fs.copyFileSync(appPath, derivedPath);
-  fs.rmSync(appPath);
-  fs.symlinkSync("../.sdlc/cache/approved-app.mjs", appPath);
-
-  mustFail([
-    "task", "preflight",
-    ...taskContextArgs(project),
-    "--json",
-  ], project, /symbolic link|symlink|derived/iu);
-  assert.equal(fs.existsSync(path.join(project, fixture.preflightPath)), false);
-  assert.equal(fs.existsSync(path.join(project, fixture.taskStartPath)), false);
-});
-
-test("a dirty submodule cannot be exempted as unchanged pre-existing workspace state", () => {
-  const project = temporaryProject("dirty-submodule");
-  const fixture = establishBrownfieldGovernance(project);
+  // A dirty submodule cannot be exempted as unchanged pre-existing state.
   const submoduleSource = temporaryProject("submodule-source");
   writeProjectFile(submoduleSource, "dependency.txt", "stable dependency\n");
   mustGit(submoduleSource, ["init"]);
@@ -536,11 +530,25 @@ test("a dirty submodule cannot be exempted as unchanged pre-existing workspace s
     "dirty dependency\n",
   );
 
+  mustFail(preflightArgs, project, /dirty directory or submodule/iu);
+  assertNothingWritten();
+});
+
+test("a context symlink into derived state cannot reuse approved bytes", () => {
+  const project = temporaryProject("derived-context-symlink");
+  const fixture = establishBrownfieldGovernance(project);
+  const appPath = path.join(project, "src", "app.mjs");
+  const derivedPath = path.join(project, ".sdlc", "cache", "approved-app.mjs");
+  fs.mkdirSync(path.dirname(derivedPath), { recursive: true });
+  fs.copyFileSync(appPath, derivedPath);
+  fs.rmSync(appPath);
+  fs.symlinkSync("../.sdlc/cache/approved-app.mjs", appPath);
+
   mustFail([
     "task", "preflight",
     ...taskContextArgs(project),
     "--json",
-  ], project, /dirty directory or submodule/iu);
+  ], project, /symbolic link|symlink|derived/iu);
   assert.equal(fs.existsSync(path.join(project, fixture.preflightPath)), false);
   assert.equal(fs.existsSync(path.join(project, fixture.taskStartPath)), false);
 });
@@ -602,40 +610,4 @@ test("files created after baseline approval make the baseline stale until it is 
     "--id", "BASELINE-INITIAL-R2",
     ...humanApproval("The refreshed snapshot includes the feature module"),
   ], project);
-});
-
-test("a file created by the started task inside its write scope keeps the baseline usable", () => {
-  const project = temporaryProject("authorized-new-file");
-  establishBrownfieldGovernance(project);
-  mustRun([
-    "task", "start",
-    ...taskContextArgs(project),
-    "--confirm-start",
-    "--actor-type", "human",
-  ], project);
-  mustRun([
-    "story", "claim",
-    "--root", project,
-    "--id", "ST-BROWNFIELD",
-    "--agent", "codex",
-  ], project);
-  writeProjectFile(project, "src/app.mjs", "export function status() {\n  return { status: \"ready\" };\n}\n");
-  writeProjectFile(project, "docs/implementation-summary.md", "# Implementation summary\n\nReady.\n");
-  mustRun([
-    "output", "link",
-    "--root", project,
-    "--story", "ST-BROWNFIELD",
-    "--type", "implementation-summary",
-    "--artifact", "docs/implementation-summary.md",
-    "--template", "implementation-summary-v1",
-    "--mode", "new",
-    "--requirement", "REQ-BROWNFIELD",
-  ], project);
-  const gateArgs = ["gate", "check", "--root", project, "--scope", "story", "--story", "ST-BROWNFIELD", "--strict"];
-  assert.equal(mustRunJson(gateArgs, project).status, "passed");
-
-  // src/config.mjs is outside the requirement write scope, so a sibling file
-  // created there by the task is still reported against the baseline.
-  writeProjectFile(project, "src/extra.mjs", "export const extra = 1;\n");
-  mustFail([...gateArgs, "--json"], project, /does not describe src\/extra\.mjs/u);
 });

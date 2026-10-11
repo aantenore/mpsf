@@ -259,35 +259,29 @@ test("CLI errors honor configured project PII patterns in JSON and human output"
   const config = readJson(configPath);
   config.observability = config.observability || {};
   config.observability.redaction = config.observability.redaction || {};
+  // The operation_name pattern also checks that configured PII cannot turn the
+  // fixed CLI operation metadata (cli.run) into an uncaught stack.
   config.observability.redaction.pii_patterns = [{
     name: "employee_id",
     pattern: "EMP-[0-9]{6}",
+  }, {
+    name: "operation_name",
+    pattern: "cli[.]run",
   }];
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
   const jsonFailure = mustFail(["help", "EMP-123456", "--root", project, "--json"]);
   assert.doesNotMatch(jsonFailure.stderr, /EMP-123456/u);
   assert.match(jsonFailure.stderr, /\[REDACTED\]/u);
+  const payload = JSON.parse(jsonFailure.stderr);
+  assert.equal(payload.schema_version, "agentic-sdlc-cli-error:v1");
+  assert.equal(payload.correlation_id.startsWith("corr-"), true);
+  assert.equal(payload.error.path, REDACTION_PLACEHOLDER);
+  assert.doesNotMatch(jsonFailure.stderr, /OperationContextError|\n\s*at\s|file:\/\//u);
   const humanFailure = mustFail(["help", "EMP-123456", "--root", project]);
   assert.doesNotMatch(humanFailure.stderr, /EMP-123456/u);
   assert.match(humanFailure.stderr, /\[REDACTED\]/u);
-});
-
-test("configured PII cannot turn fixed CLI operation metadata into an uncaught stack", () => {
-  const project = initializedProject("operation-metadata-pii");
-  const configPath = path.join(project, ".sdlc", "config.json");
-  const config = readJson(configPath);
-  config.observability.redaction.pii_patterns = [{
-    name: "operation_name",
-    pattern: "cli[.]run",
-  }];
-  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
-
-  const failure = mustFail(["help", "unknown-operation", "--root", project, "--json"]);
-  const payload = JSON.parse(failure.stderr);
-  assert.equal(payload.schema_version, "agentic-sdlc-cli-error:v1");
-  assert.equal(payload.correlation_id.startsWith("corr-"), true);
-  assert.doesNotMatch(failure.stderr, /OperationContextError|\n\s*at\s|file:\/\//u);
+  assert.doesNotMatch(humanFailure.stderr, /OperationContextError|\n\s*at\s|file:\/\//u);
 });
 
 test("CLI errors withhold user input when privacy configuration is invalid", () => {
@@ -584,34 +578,36 @@ test("strict gate reports a sealed trace that was edited after append", () => {
 });
 
 test("gate fails if its trace or checkpoint snapshot changes before semantic validation completes", () => {
-  for (const target of ["project.jsonl", "project.jsonl.checkpoint"]) {
-    const project = initializedProject(`mixed-snapshot-${target.replaceAll(".", "-")}`);
-    mustRun([
-      "trace", "append",
-      "--root", project,
-      "--type", "decision",
-      "--summary", "verified snapshot",
-      "--json",
-    ]);
+  // The gate shares one snapshot path for the trace and its checkpoint; the
+  // checkpoint swap itself is covered by trace-integrity.test.mjs ("fails closed
+  // when the verified checkpoint is swapped before semantic inspection completes").
+  const target = "project.jsonl";
+  const project = initializedProject(`mixed-snapshot-${target.replaceAll(".", "-")}`);
+  mustRun([
+    "trace", "append",
+    "--root", project,
+    "--type", "decision",
+    "--summary", "verified snapshot",
+    "--json",
+  ]);
 
-    const result = mustFail([
-      "gate", "check",
-      "--root", project,
-      "--json",
-    ], {
-      env: {
-        NODE_ENV: "test",
-        AGENTIC_SDLC_TEST_TRACE_GATE_SWAP: target,
-      },
-    });
-    const report = JSON.parse(result.stdout);
-    assert.equal(report.status, "failed");
-    assert.equal(
-      report.errors.some((error) => /trace traces\/project\.jsonl local integrity verification failed \((?:file_replaced|trace_changed_during_read|trace_snapshot_changed|checkpoint_changed_during_read|checkpoint_snapshot_changed)\)/u.test(error)),
-      true,
-      `${target}: ${report.errors.join("\n")}`,
-    );
-  }
+  const result = mustFail([
+    "gate", "check",
+    "--root", project,
+    "--json",
+  ], {
+    env: {
+      NODE_ENV: "test",
+      AGENTIC_SDLC_TEST_TRACE_GATE_SWAP: target,
+    },
+  });
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.status, "failed");
+  assert.equal(
+    report.errors.some((error) => /trace traces\/project\.jsonl local integrity verification failed \((?:file_replaced|trace_changed_during_read|trace_snapshot_changed|checkpoint_changed_during_read|checkpoint_snapshot_changed)\)/u.test(error)),
+    true,
+    `${target}: ${report.errors.join("\n")}`,
+  );
 });
 
 test("strict story gate detects trace deletion, checkpoint deletion, and deletion of both", () => {

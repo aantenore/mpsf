@@ -5,7 +5,6 @@
       "description": "Routine local check: cheap unit files run whole, plus selected end-to-end smoke tests per feature area. Releases use the full suite.",
       "files": [
         "test/unit/",
-        "test/distribution-surface-contract.e2e.mjs",
         "test/novice-plugin-metadata.test.mjs",
         "test/story-backfill.test.mjs",
         "test/token-efficiency-autoconfiguration.test.mjs"
@@ -43,7 +42,7 @@
           "projects outside git and repositories without a commit refresh as before"
         ],
         "test/baseline-refresh-shared.e2e.mjs": [
-          "a refresh on a computer without a reachable remote writes nothing in a shared project"
+          "three computers refreshing the same baseline at the same moment: exactly one successor exists"
         ],
         "test/baseline-scale.e2e.mjs": [
           "baseline summaries come from the derived index until a record changes"
@@ -71,10 +70,10 @@
           "story.supersede: a delegation lets the agent supersede one story; none or an expired one is refused"
         ],
         "test/delegation-publish.e2e.mjs": [
-          "an altered or missing delegation is never published"
+          "a delegation granted on one checkout reaches the base branch with only its files, and another checkout sees it"
         ],
         "test/doctor-records.e2e.mjs": [
-          "doctor suggests a readable identity for shared claims and confirms it once set"
+          "doctor reports records whose line endings git converts or checked out differently"
         ],
         "test/governance-finalization.e2e.mjs": [
           "the latest failed test or release trace overrides an older passing attempt for steps and final gate"
@@ -89,14 +88,13 @@
           "documentation committed after the merge and an untracked note leave the merged story completed"
         ],
         "test/novice-requirement-journey.e2e.mjs": [
-          "requirement intake is useful before a contract exists",
           "fresh init hides bootstrap records and points to the first meaningful choice"
         ],
         "test/operations-phase.e2e.mjs": [
           "a story in the operations phase records incidents and feedback against a real release manifest"
         ],
         "test/plugin-compatibility.e2e.mjs": [
-          "a project whose records this plugin understands runs normally and its cache follows the plugin version"
+          "a project runs normally while this plugin understands its records, and an older plugin refuses changes and says how to update"
         ],
         "test/project-archive.e2e.mjs": [
           "project archive refuses when a remote cannot be checked and when shared refs sit on a remote"
@@ -110,22 +108,22 @@
           "autonomy and authority matrix resolves all levels and fails closed on unverifiable authority"
         ],
         "test/release-package-verifier.e2e.mjs": [
-          "verifies a real npm pack through offline install and installed-package smoke tests"
+          "verifies a real npm pack through offline install and installed-package smoke tests, and npm pack, build identity, and the reversible installer share one distribution surface"
         ],
         "test/requirement-supersede-same-source.e2e.mjs": [
-          "the replacement revision must still be source-fresh"
+          "a revision that rewrites the same source supersedes its parent and its unstarted stories move to it"
         ],
         "test/review-gate.e2e.mjs": [
           "a new pull-request delivery needs the user's own answer on code review"
         ],
         "test/secret-scan.e2e.mjs": [
-          "an explicit commit range scans only what that range changed"
+          "a scan from the remote base branch satisfies the gate once the branch contains that base"
         ],
         "test/standing-approvals.e2e.mjs": [
           "a project without git still uses its standing approvals on this computer"
         ],
         "test/story-claims-shared.e2e.mjs": [
-          "a story claimed on another computer cannot be cancelled from here until its claim ends"
+          "a released story can be claimed again, and a release made offline is shared later"
         ],
         "test/story-close.e2e.mjs": [
           "story close on a merged story runs sync, scan and release trace with one shared fetch"
@@ -146,28 +144,28 @@
           "story sync rebases freely once the governed commit is on the remote"
         ],
         "test/story-waits.e2e.mjs": [
-          "wait conditions, leases, and claim health follow plain rules"
+          "a lapsed claim renewed by a push stays active; abandoned until a declared wait protects it"
         ],
         "test/template-overlay-security.e2e.mjs": [
           "custom template asset symlinks are rejected before initialization"
         ],
         "test/test-triage.e2e.mjs": [
-          "test record keeps the case and the failed-minor outcome in the record and in the trace"
+          "failed cases without a triage decision block the strict gate and the message names the command"
         ],
         "test/trace-rebase.e2e.mjs": [
-          "trace rebase also merges the output registry by entry id"
+          "two computers merge their forked project history with one command and both verify it"
         ],
         "test/unit/cli-observability.test.mjs": [
           "unknown JSON help paths redact GitHub tokens from every error branch"
         ],
         "test/unit/derived-verification-cli.test.mjs": [
-          "requirement propose derives secondary criteria and keeps explicit acceptance unchanged"
+          "requirement propose derives secondary criteria or records the opt-out, and revise recomputes and inherits it"
         ],
         "test/unit/governance-mutation-cli.test.mjs": [
           "CLI init completes through its exact bootstrap mutation profile"
         ],
         "test/unit/initialization-guidance.test.mjs": [
-          "an empty project is guided to init"
+          "an initialized repository with evidence and no completed work is still guided to onboarding"
         ],
         "test/unit/test-evidence-cli.test.mjs": [
           "a story still missing a passing test trace keeps failing, and disabling the policy stops the check"

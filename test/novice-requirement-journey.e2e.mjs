@@ -119,6 +119,9 @@ function initializeGitProject(project) {
   git(project, "checkout", "-b", "codex/novice-journey");
 }
 
+// Merged scenario on one fresh project (read-only commands only): fresh init
+// hides bootstrap records and points to the first meaningful choice, and
+// requirement intake is useful before a contract exists.
 test("fresh init hides bootstrap records and points to the first meaningful choice", () => {
   const project = temporaryProject("first-status");
   initializeGitProject(project);
@@ -138,13 +141,8 @@ test("fresh init hides bootstrap records and points to the first meaningful choi
   const approvals = mustRunJson(["approval", "requests", "--root", project]);
   assert.equal(approvals.status, "clear");
   assert.deepEqual(approvals.requests, []);
-});
 
-test("requirement intake is useful before a contract exists", () => {
-  const project = temporaryProject("intake");
-  initializeGitProject(project);
-  mustRun(["init", "--root", project, "--project-name", "Novice intake"]);
-
+  // Requirement intake is useful before a contract exists.
   const decision = mustRunJson([
     "route", "decide",
     "--root", project,

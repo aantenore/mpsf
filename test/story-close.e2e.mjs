@@ -178,6 +178,8 @@ function mergedWithTraces(types, { completeSteps = true } = {}) {
   return project;
 }
 
+// Merged scenario: story close stops at skipped phases without evidence, then
+// story complete-step --backfill needs a reason and evidence of the phase.
 test("story close stops at skipped phases without evidence and names what is missing", () => {
   const project = mergedWithTraces(["decision"]);
   const closed = closeJson(project, ["--no-fetch", "--allow-unapproved-contract-output", "--evidence", `.sdlc/tests/${STORY}-merge.json`]);
@@ -185,31 +187,8 @@ test("story close stops at skipped phases without evidence and names what is mis
   assert.match(closed.json.message, /implementation \(needed: a passed git\.commit/u);
   assert.match(closed.json.message, /validation \(needed: a passed test record/u);
   assert.equal(fs.existsSync(path.join(project, ".sdlc", "stories", STORY, "steps", "design.json")), false);
-});
 
-test("story close completes skipped phases retroactively from evidence that predates release", () => {
-  const project = mergedWithTraces(["decision", "implementation", "test"]);
-  const closed = closeJson(project, ["--no-fetch", "--allow-unapproved-contract-output", "--evidence", `.sdlc/tests/${STORY}-merge.json`]);
-  const byName = Object.fromEntries(closed.json.phases.map((phase) => [phase.name, phase]));
-  assert.equal(byName.phase_backfill.status, "done", closed.result.stdout);
-  assert.deepEqual(closed.json.backfilled_phases.map((entry) => entry.phase), ["discovery", "analysis", "design", "implementation", "validation"]);
-  const steps = path.join(project, ".sdlc", "stories", STORY, "steps");
-  const release = JSON.parse(fs.readFileSync(path.join(steps, "release.json"), "utf8"));
-  let previous = 0;
-  for (const phase of ["discovery", "analysis", "design", "implementation", "validation"]) {
-    const record = JSON.parse(fs.readFileSync(path.join(steps, `${phase}.json`), "utf8"));
-    assert.equal(record.completion_mode, "backfill");
-    assert.ok(record.backfill.reason.length > 0);
-    assert.ok(record.backfill.evidence_refs.length > 0);
-    assert.ok(Date.parse(record.effective_at) >= previous, phase);
-    assert.ok(Date.parse(record.effective_at) <= Date.parse(release.completed_at), phase);
-    previous = Date.parse(record.effective_at);
-  }
-  assert.match(closed.result.stdout, /"backfilled_phases"/u);
-});
-
-test("story complete-step --backfill needs a reason and evidence of the phase", () => {
-  const project = mergedWithTraces(["decision"]);
+  // story complete-step --backfill needs a reason and evidence of the phase.
   const base = ["story", "complete-step", "--root", project, "--id", STORY, "--backfill", "--allow-unapproved-contract-output"];
   const noReason = run([...base, "--step", "design"]);
   assert.notEqual(noReason.status, 0);
@@ -224,6 +203,9 @@ test("story complete-step --backfill needs a reason and evidence of the phase", 
   assert.ok(Date.parse(record.effective_at) < Date.parse(record.completed_at));
 });
 
+// Merged scenario: story close completes release and operations itself with
+// the merge evidence, then completes the skipped phases retroactively from
+// evidence that predates release in the same run.
 test("story close completes release and operations itself with the merge evidence", () => {
   const project = mergedWithTraces(["decision", "implementation", "test"], { completeSteps: false });
   const closed = closeJson(project, ["--no-fetch", "--allow-unapproved-contract-output", "--evidence", `.sdlc/tests/${STORY}-merge.json`]);
@@ -234,6 +216,22 @@ test("story close completes release and operations itself with the merge evidenc
     const record = JSON.parse(fs.readFileSync(path.join(steps, `${step}.json`), "utf8"));
     assert.equal(record.status, "completed", step);
   }
+
+  // The skipped phases are completed retroactively from evidence that predates release.
+  assert.equal(byName.phase_backfill.status, "done", closed.result.stdout);
+  assert.deepEqual(closed.json.backfilled_phases.map((entry) => entry.phase), ["discovery", "analysis", "design", "implementation", "validation"]);
+  const release = JSON.parse(fs.readFileSync(path.join(steps, "release.json"), "utf8"));
+  let previous = 0;
+  for (const phase of ["discovery", "analysis", "design", "implementation", "validation"]) {
+    const record = JSON.parse(fs.readFileSync(path.join(steps, `${phase}.json`), "utf8"));
+    assert.equal(record.completion_mode, "backfill");
+    assert.ok(record.backfill.reason.length > 0);
+    assert.ok(record.backfill.evidence_refs.length > 0);
+    assert.ok(Date.parse(record.effective_at) >= previous, phase);
+    assert.ok(Date.parse(record.effective_at) <= Date.parse(release.completed_at), phase);
+    previous = Date.parse(record.effective_at);
+  }
+  assert.match(closed.result.stdout, /"backfilled_phases"/u);
 });
 
 test("story close reuses the passed merge receipt of the story's delivery as release evidence", () => {
@@ -253,12 +251,4 @@ test("story close reuses the passed merge receipt of the story's delivery as rel
   assert.equal(byName.release_steps.status, "done", closed.result.stdout);
   const release = JSON.parse(fs.readFileSync(path.join(project, ".sdlc", "stories", STORY, "steps", "release.json"), "utf8"));
   assert.match(JSON.stringify(release.evidence), /AUT-ACT-20990101000000000-aaaaaa|evidence\/merge\.json/u);
-});
-
-test("automatic close is opt-in", async () => {
-  const { autoCloseEnabled } = await import("../lib/engine/story-close.mjs");
-  assert.equal(autoCloseEnabled({}, {}), false);
-  assert.equal(autoCloseEnabled({}, { AGENTIC_SDLC_AUTO_CLOSE: "1" }), true);
-  assert.equal(autoCloseEnabled({ orchestration_policy: { auto_close: true } }, {}), true);
-  assert.equal(autoCloseEnabled({ orchestration_policy: { auto_close: true } }, { AGENTIC_SDLC_AUTO_CLOSE: "0" }), false);
 });

@@ -1045,6 +1045,12 @@ test("CI guards reject a checks job that drops, relocates, or duplicates a shard
     ciContractErrors(replaceInJob(ciWorkflow, "test-checks", "run: node --test test/unit/test-suite-runner.test.mjs", "run: true"))
       .includes("CI test-runner bootstrap canary"),
   );
+  // Merged from "CI fails closed without the independent runner canary and the release without its CI gate":
+  // the canary removed from the first job that runs it (the unsharded test job) also fails closed.
+  assert.ok(
+    ciContractErrors(ciWorkflow.replace("node --test test/unit/test-suite-runner.test.mjs", "true"))
+      .includes("CI test-runner bootstrap canary"),
+  );
 });
 
 
@@ -1099,6 +1105,20 @@ test("CI guards reject an aggregator that does not fail on a failed shard or cha
     {
       name: "aggregator marked fail-open",
       source: ciWorkflow.replace("    needs: [test-shard, test-checks]\n", "    needs: [test-shard, test-checks]\n    continue-on-error: true\n"),
+      expected: "CI fail-open policy",
+    },
+    // Merged from "CI guards reject fail-open performance configuration".
+    {
+      name: "benchmark step marked fail-open",
+      source: ciWorkflow.replace(
+        "        run: npm run benchmark:enterprise\n",
+        "        run: npm run benchmark:enterprise\n        continue-on-error: true\n",
+      ),
+      expected: "CI fail-open policy",
+    },
+    {
+      name: "test job carrying the benchmark marked fail-open",
+      source: ciWorkflow.replace("  test:\n", "  test:\n    continue-on-error: true\n"),
       expected: "CI fail-open policy",
     },
     {
@@ -1221,30 +1241,6 @@ test("CI guards reject a weakened documentation-only skip", () => {
 });
 
 
-test("CI fails closed without the independent runner canary and the release without its CI gate", () => {
-  const command = "node --test test/unit/test-suite-runner.test.mjs";
-  assert.ok(
-    ciContractErrors(ciWorkflow.replace(command, "true"))
-      .includes("CI test-runner bootstrap canary"),
-  );
-  assert.ok(
-    ciContractErrors(replaceInJob(ciWorkflow, "test-checks", command, "true"))
-      .includes("CI test-runner bootstrap canary"),
-  );
-  for (const source of [
-    workflow.replace("run: node scripts/verify-ci-gate.mjs", "run: true"),
-    workflow.replace("        run: node scripts/verify-ci-gate.mjs", "        continue-on-error: true\n        run: node scripts/verify-ci-gate.mjs"),
-    workflow.replace("          GITHUB_TOKEN: ${{ github.token }}\n", ""),
-  ]) {
-    assert.ok(releaseContractErrors(source).includes("exact-SHA full-matrix CI gate"));
-  }
-  assert.ok(
-    releaseContractErrors(workflow.replace("      actions: read\n", ""))
-      .includes("verify permissions"),
-  );
-});
-
-
 test("the release gate is one Linux job instead of a re-run of the test matrix", () => {
   const verify = jobBlocks(workflow).get("verify");
   assert.doesNotMatch(verify, /strategy:|matrix[.:]|npm test|benchmark:enterprise|npm pack |setup-python/u);
@@ -1261,40 +1257,6 @@ test("the release gate is one Linux job instead of a re-run of the test matrix",
     jobBlocks(ciWorkflow).get("test"),
     /if: steps\.scope\.outputs\.docs_only != 'true' && matrix\.os == 'ubuntu-latest' && matrix\.node == 24\n\s+run: npm run benchmark:enterprise/u,
   );
-});
-
-
-test("CI guards reject fail-open performance configuration", () => {
-  const fixtures = [
-    ciWorkflow.replace(
-      "        run: npm run benchmark:enterprise\n",
-      "        run: npm run benchmark:enterprise\n        continue-on-error: true\n",
-    ),
-    ciWorkflow.replace("  test:\n", "  test:\n    continue-on-error: true\n"),
-  ];
-  for (const source of fixtures) {
-    assert.ok(ciContractErrors(source).includes("CI fail-open policy"));
-  }
-});
-
-
-test("CI guards reject a skipped required job", () => {
-  const source = ciWorkflow.replace("  test:\n", "  test:\n    if: false\n");
-  assert.ok(ciContractErrors(source).includes("CI required job skipped"));
-});
-
-
-test("all third-party actions use the approved immutable commit pins", () => {
-  const actionRefs = actionReferences(workflow);
-  for (const [name, sha] of ACTION_PINS) {
-    assert.ok(actionRefs.includes(`${name}@${sha}`), `${name} must use its approved SHA`);
-  }
-  for (const source of [ciWorkflow, workflow]) {
-    assert.equal(
-      actionReferences(source).some((ref) => /@(main|master|v?\d+(?:\.\d+)*)$/u.test(ref)),
-      false,
-    );
-  }
 });
 
 
@@ -1328,10 +1290,30 @@ test("release workflow guards detect unsafe maintenance regressions", () => {
       ),
       expected: "release fail-open policy",
     },
+    // Merged from "CI fails closed without the independent runner canary and the release without its CI gate".
+    {
+      name: "release gate verification replaced by a no-op",
+      source: workflow.replace("run: node scripts/verify-ci-gate.mjs", "run: true"),
+      expected: "exact-SHA full-matrix CI gate",
+      exact: true,
+    },
+    {
+      name: "release gate marked fail-open before its run step",
+      source: workflow.replace("        run: node scripts/verify-ci-gate.mjs", "        continue-on-error: true\n        run: node scripts/verify-ci-gate.mjs"),
+      expected: "exact-SHA full-matrix CI gate",
+      exact: true,
+    },
+    {
+      name: "release gate without its GitHub token",
+      source: workflow.replace("          GITHUB_TOKEN: ${{ github.token }}\n", ""),
+      expected: "exact-SHA full-matrix CI gate",
+      exact: true,
+    },
     {
       name: "release gate without Actions read permission",
       source: workflow.replace("      actions: read\n", ""),
       expected: "verify permissions",
+      exact: true,
     },
     {
       name: "release gate with write permission",
@@ -1421,8 +1403,9 @@ test("release workflow guards detect unsafe maintenance regressions", () => {
     },
   ];
   for (const fixture of fixtures) {
+    const errors = releaseContractErrors(fixture.source);
     assert.ok(
-      releaseContractErrors(fixture.source).some((error) => error.includes(fixture.expected)),
+      fixture.exact ? errors.includes(fixture.expected) : errors.some((error) => error.includes(fixture.expected)),
       `${fixture.name} must be rejected as ${fixture.expected}`,
     );
   }

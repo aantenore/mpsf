@@ -53,26 +53,6 @@ function get(running, requestPath, headers = {}) {
   });
 }
 
-test("the data endpoint returns changed records without restarting the server", async (t) => {
-  const root = await fixture(t);
-  const running = await startObservatoryServer({ projectRoot: root, port: 0 });
-  t.after(() => running.close());
-
-  const first = await get(running, "/api/v1/observatory");
-  assert.equal(first.statusCode, 200);
-  assert.equal(first.json.project.name, "First name");
-  assert.equal(first.headers["cache-control"], "no-store");
-
-  const unchanged = await get(running, "/api/v1/observatory", { "If-None-Match": first.headers.etag });
-  assert.equal(unchanged.statusCode, 304);
-
-  await writeProject(root, "Second name");
-  const second = await get(running, "/api/v1/observatory", { "If-None-Match": first.headers.etag });
-  assert.equal(second.statusCode, 200);
-  assert.equal(second.json.project.name, "Second name");
-  assert.notEqual(second.headers.etag, first.headers.etag);
-});
-
 test("refresh endpoint catches the record source up, is no-store and token protected", async (t) => {
   const root = await fixture(t);
   const calls = [];

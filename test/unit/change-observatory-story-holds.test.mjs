@@ -19,18 +19,29 @@ test("a parked story and an expired claim get their own states, never an unknown
   for (const key of ["parked", "abandoned", "waiting", "live"]) assert.ok(keys.has(key), key);
 });
 
-test("shared claims from other computers: parked, expired claim, expired reservation", () => {
-  const stories = applySharedClaims([
-    story("ST-1", "open"), story("ST-2", "open"), story("ST-3", "idle"), story("ST-4", "open"), story("ST-5", "delivered"),
-  ], [
-    { storyId: "ST-1", state: "parked", agent: "codex", reason: "conflict", expired: false },
-    { storyId: "ST-2", state: "claimed", agent: "codex", holder: "Antonio, mac", expired: true },
-    { storyId: "ST-3", state: "reserved", agent: "codex", expired: true },
-    { storyId: "ST-4", state: "claimed", agent: "codex", expired: false },
-    { storyId: "ST-5", state: "parked", agent: "codex", expired: false },
-  ]);
-  assert.deepEqual(stories.map((entry) => entry.state), ["parked", "abandoned", "idle", "live", "delivered"]);
-  assert.equal(stories[2].holder, undefined, "an expired reservation holds nothing");
+// Merged table: the claim cases from the story-holds and scale suites go through one
+// applySharedClaims call, so every claim is also mapped to its story by storyId.
+test("shared claims from other computers: parked, expired claim, expired reservation, worked on, finished, or untouched", () => {
+  const rows = [
+    { story: story("ST-1", "open"), claim: { storyId: "ST-1", state: "parked", agent: "codex", reason: "conflict", expired: false }, expected: "parked" },
+    { story: story("ST-2", "open"), claim: { storyId: "ST-2", state: "claimed", agent: "codex", holder: "Antonio, mac", expired: true }, expected: "abandoned" },
+    { story: story("ST-3", "idle"), claim: { storyId: "ST-3", state: "reserved", agent: "codex", expired: true }, expected: "idle" },
+    { story: story("ST-4", "open"), claim: { storyId: "ST-4", state: "claimed", agent: "codex", expired: false }, expected: "live" },
+    { story: story("ST-5", "delivered"), claim: { storyId: "ST-5", state: "parked", agent: "codex", expired: false }, expected: "delivered" },
+    { story: story("ST-A", "idle"), claim: { storyId: "ST-A", state: "claimed", agent: "agent" }, expected: "live" },
+    { story: story("ST-B", "open"), claim: { storyId: "ST-B", state: "completed", completion: "closed" }, expected: "stopped" },
+    { story: story("ST-C", "delivered"), claim: { storyId: "ST-C", state: "claimed" }, expected: "delivered" },
+    { story: story("ST-D", "idle"), claim: null, expected: "idle" },
+  ];
+  const input = rows.map((row) => row.story);
+  const stories = applySharedClaims(input, rows.flatMap((row) => (row.claim ? [row.claim] : [])));
+  const byId = new Map(stories.map((entry) => [entry.id, entry]));
+  assert.deepEqual(stories.map((entry) => entry.state), rows.map((row) => row.expected));
+  assert.equal(byId.get("ST-3").holder, undefined, "an expired reservation holds nothing");
+  assert.equal(byId.get("ST-A").holder.agent, "agent");
+  assert.equal(byId.get("ST-C").state, "delivered", "a delivered story keeps its recorded state");
+  assert.equal(byId.get("ST-D"), input.at(-1));
+  assert.equal(applySharedClaims(input, []), input);
   const counts = storyStateCounts(stories);
   assert.equal(Object.values(counts).reduce((sum, value) => sum + value, 0), stories.length);
   assert.equal(counts.parked, 1);

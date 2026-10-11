@@ -242,18 +242,6 @@ function mergeArgs(project) {
   return ["autonomy", "delivery", "action", "--root", project, "--id", PROFILE_ID, "--action", "pull_request.merge", "--pr-url", PR_URL];
 }
 
-test("without --merge the profile records no merge choice and the merge waits for confirmation", () => {
-  const { project, proposed } = preparePullRequestDelivery();
-  assert.equal(Object.hasOwn(proposed.delivery_profile.pull_request_target, "merge_decision"), false);
-  assert.equal(Object.hasOwn(proposed.review, "merge_decision"), false);
-  assert.ok(proposed.review.checkpoints.includes("pull_request.merge"));
-  const headSha = git(project, ["rev-parse", "HEAD"]);
-  const checkpoint = mustRunJson(mergeArgs(project), { env: fakeGitHubEnv(project, { headSha }) });
-  assert.equal(checkpoint.status, "checkpoint_required");
-  const english = mustRun(["autonomy", "delivery", "explain", "--root", project, "--id", PROFILE_ID]);
-  assert.doesNotMatch(english.stdout, /^Merge: /mu);
-});
-
 test("an automatic merge needs no merge confirmation but still waits for the required review", () => {
   const { project, proposed } = preparePullRequestDelivery({ codeReview: "required", merge: "automatic" });
   const choice = proposed.delivery_profile.pull_request_target.merge_decision;

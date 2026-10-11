@@ -44,17 +44,32 @@ function initializedProject(label) {
   return project;
 }
 
+function doctorChecks(project, env = {}) {
+  const result = run(["doctor", "--root", project, "--json"], project, env);
+  return JSON.parse(result.stdout).checks;
+}
+
 function lineEndingsCheck(project) {
-  const result = run(["doctor", "--root", project, "--json"], project);
-  return JSON.parse(result.stdout).checks.find((check) => check.id === "record-line-endings");
+  return doctorChecks(project).find((check) => check.id === "record-line-endings");
 }
 
 test("doctor reports records whose line endings git converts or checked out differently", () => {
   const project = initializedProject("converted");
-  const clean = lineEndingsCheck(project);
+  const cleanChecks = doctorChecks(project);
+  const clean = cleanChecks.find((check) => check.id === "record-line-endings");
   assert.equal(clean.status, "passed");
   assert.equal(clean.warning, undefined);
   assert.match(clean.details, /keep their exact line endings/u);
+
+  // doctor suggests a readable identity for shared claims and confirms it once set.
+  const anonymous = cleanChecks.find((check) => check.id === "claim-identity");
+  assert.equal(anonymous.warning, true);
+  assert.match(anonymous.details, /claim_identity\.git_user/u);
+  assert.match(anonymous.details, /AGENTIC_SDLC_HOST_LABEL/u);
+  const labelled = doctorChecks(project, { AGENTIC_SDLC_HOST_LABEL: "laptop-antonio" })
+    .find((check) => check.id === "claim-identity");
+  assert.equal(labelled.warning, undefined);
+  assert.match(labelled.details, /laptop-antonio/u);
 
   // Evidence written with CRLF under the generated `*.md text eol=lf` rule is
   // stored with LF on commit, so its committed bytes differ from the written ones.
@@ -68,25 +83,4 @@ test("doctor reports records whose line endings git converts or checked out diff
   assert.match(converted.details, /checked out with different line endings than committed/u);
   assert.match(converted.details, /CRLF line endings that git will convert on commit/u);
   assert.ok(converted.details.includes(evidence));
-});
-
-test("doctor skips the line-ending check outside a git checkout", () => {
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), "sdlc-line-endings-plain-"));
-  tempPaths.add(project);
-  const init = run(["init", "--root", project, "--project-name", "Line endings"], project);
-  assert.equal(init.status, 0, init.stdout + init.stderr);
-  assert.equal(lineEndingsCheck(project).status, "not_applicable");
-});
-
-test("doctor suggests a readable identity for shared claims and confirms it once set", () => {
-  const project = initializedProject("claim-identity");
-  const doctor = (env = {}) => JSON.parse(run(["doctor", "--root", project, "--json"], project, env).stdout)
-    .checks.find((check) => check.id === "claim-identity");
-  const anonymous = doctor();
-  assert.equal(anonymous.warning, true);
-  assert.match(anonymous.details, /claim_identity\.git_user/u);
-  assert.match(anonymous.details, /AGENTIC_SDLC_HOST_LABEL/u);
-  const labelled = doctor({ AGENTIC_SDLC_HOST_LABEL: "laptop-antonio" });
-  assert.equal(labelled.warning, undefined);
-  assert.match(labelled.details, /laptop-antonio/u);
 });

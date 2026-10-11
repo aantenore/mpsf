@@ -70,14 +70,40 @@ function replaceEntry(entries, archivePath, replacement) {
 }
 
 
-test("declares installer v2 as canonical while packaging both installer protocols", () => {
+// Merged packaging contract:
+// "declares installer v2 as canonical while packaging both installer protocols" and
+// "the release surface ships and requires both host packagings" (formerly in test/novice-plugin-metadata.test.mjs).
+test("declares installer v2 as canonical while packaging both installer protocols and both host packagings", () => {
   const policy = JSON.parse(readFileSync(policyPath, "utf8"));
   const packageMetadata = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert.equal(policy.package.installer, "scripts/install-personal-marketplace-v2.py");
-  assert.ok(policy.package.required_files.includes("scripts/install-personal-marketplace.py"));
-  assert.ok(policy.package.required_files.includes("scripts/install-personal-marketplace-v2.py"));
-  assert.ok(packageMetadata.files.includes(".codex-plugin/plugin.json"));
+
+  for (const selector of [".claude-plugin/", "commands/", ".codex-plugin/plugin.json", "hooks/", "skills/"]) {
+    assert.ok(packageMetadata.files.includes(selector), `package.json files is missing: ${selector}`);
+  }
   assert.ok(!packageMetadata.files.includes(".codex-plugin/"));
+
+  for (const topLevel of [".claude-plugin", ".codex-plugin", "commands", "hooks", "skills"]) {
+    assert.ok(
+      policy.package.allowed_top_level.includes(topLevel),
+      `release policy does not allow top-level entry: ${topLevel}`,
+    );
+  }
+
+  for (const required of [
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    ".codex-plugin/plugin.json",
+    "hooks/hooks.json",
+    "hooks/agentic-sdlc-guard.mjs",
+    "scripts/install-personal-marketplace.py",
+    "scripts/install-personal-marketplace-v2.py",
+  ]) {
+    assert.ok(
+      policy.package.required_files.includes(required),
+      `release policy does not require: ${required}`,
+    );
+  }
 });
 
 
@@ -135,17 +161,11 @@ test("requires package, plugin, tag, and bin metadata to agree", () => {
     { data: `${JSON.stringify({ name: "mpsf", version: packageVersion, bin: { "agentic-sdlc": "./bin/other.mjs" } })}\n` },
   );
   withFixture(binMismatch, (artifactPath) => expectCode("BIN_CONTRACT_MISMATCH", () => verify(artifactPath)));
-
-  const windowsPackedBin = replaceEntry(
-    validReleaseFixtureEntries({ version: packageVersion }),
-    "package/bin/agentic-sdlc.mjs",
-    { mode: 0o644 },
-  );
-  withFixture(windowsPackedBin, (artifactPath) => assert.equal(verify(artifactPath).status, "passed"));
 });
 
 
 test("requires portable bin modes and a canonical Node shebang", () => {
+  // 0o644 is the bin mode a Windows-packed tarball carries.
   for (const mode of [0o644, 0o700, 0o750, 0o755]) {
     const portable = replaceEntry(
       validReleaseFixtureEntries({ version: packageVersion }),
@@ -196,29 +216,44 @@ test("rejects unsafe permission bits and duplicate JSON keys", () => {
 });
 
 
-test("resolves the standard setup-node npm CLI layout on Windows and POSIX", () => {
-  assert.deepEqual(npmCliCandidates({
-    nodeExecutable: "C:\\hostedtoolcache\\node\\24.0.0\\x64\\node.exe",
-    npmExecPath: null,
-    platform: "win32",
-  }), ["C:\\hostedtoolcache\\node\\24.0.0\\x64\\node_modules\\npm\\bin\\npm-cli.js"]);
-  assert.deepEqual(npmCliCandidates({
-    nodeExecutable: "/opt/hostedtoolcache/node/24.0.0/x64/bin/node",
-    npmExecPath: null,
-    platform: "linux",
-  }), ["/opt/hostedtoolcache/node/24.0.0/x64/lib/node_modules/npm/bin/npm-cli.js"]);
-});
-
-
-test("prefers the npm CLI supplied by npm while retaining the setup-node fallback", () => {
-  assert.deepEqual(npmCliCandidates({
-    nodeExecutable: "/opt/hostedtoolcache/node/24.0.0/x64/bin/node",
-    npmExecPath: "/opt/npm/lib/node_modules/npm/bin/npm-cli.js",
-    platform: "linux",
-  }), [
-    "/opt/npm/lib/node_modules/npm/bin/npm-cli.js",
-    "/opt/hostedtoolcache/node/24.0.0/x64/lib/node_modules/npm/bin/npm-cli.js",
-  ]);
+// Merged table of "resolves the standard setup-node npm CLI layout on Windows and POSIX" and
+// "prefers the npm CLI supplied by npm while retaining the setup-node fallback".
+test("resolves the setup-node npm CLI layout on Windows and POSIX and prefers the npm CLI supplied by npm", () => {
+  const cases = [
+    {
+      label: "Windows setup-node layout",
+      input: {
+        nodeExecutable: "C:\\hostedtoolcache\\node\\24.0.0\\x64\\node.exe",
+        npmExecPath: null,
+        platform: "win32",
+      },
+      expected: ["C:\\hostedtoolcache\\node\\24.0.0\\x64\\node_modules\\npm\\bin\\npm-cli.js"],
+    },
+    {
+      label: "POSIX setup-node layout",
+      input: {
+        nodeExecutable: "/opt/hostedtoolcache/node/24.0.0/x64/bin/node",
+        npmExecPath: null,
+        platform: "linux",
+      },
+      expected: ["/opt/hostedtoolcache/node/24.0.0/x64/lib/node_modules/npm/bin/npm-cli.js"],
+    },
+    {
+      label: "npm-supplied CLI first, setup-node fallback kept",
+      input: {
+        nodeExecutable: "/opt/hostedtoolcache/node/24.0.0/x64/bin/node",
+        npmExecPath: "/opt/npm/lib/node_modules/npm/bin/npm-cli.js",
+        platform: "linux",
+      },
+      expected: [
+        "/opt/npm/lib/node_modules/npm/bin/npm-cli.js",
+        "/opt/hostedtoolcache/node/24.0.0/x64/lib/node_modules/npm/bin/npm-cli.js",
+      ],
+    },
+  ];
+  for (const { label, input, expected } of cases) {
+    assert.deepEqual(npmCliCandidates(input), expected, label);
+  }
 });
 
 

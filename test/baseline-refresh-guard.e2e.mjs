@@ -167,6 +167,30 @@ test("a refresh on an unmerged story branch is refused and writes nothing", () =
   assert.equal(record.refresh.checkout.branch, "story/other");
   assert.equal(record.refresh.checkout.base_branch_check, "overridden");
   assert.deepEqual(record.refresh.checkout.base_branches, ["main"]);
+
+  // --- A successor recorded only on the remote is withdrawn by naming its predecessor ---
+  // BASELINE-INITIAL-R2 is now proposed on `first` and claimed on the remote; `second` never held it.
+  git(second, ["switch", "--quiet", "main"]);
+
+  // The computer on main has no copy of the proposed record.
+  mustFail([
+    "baseline", "refresh", "withdraw", "--id", "BASELINE-INITIAL-R2", "--reason", "Taken from a story branch",
+    ...humanApproval("Withdraw"),
+  ], second, /name the baseline it refreshes with --from/u);
+  mustFail([
+    "baseline", "refresh", "withdraw", "--id", "BASELINE-INITIAL-R9", "--from", "BASELINE-INITIAL", "--reason", "Wrong id",
+    ...humanApproval("Withdraw"),
+  ], second, /records no open successor BASELINE-INITIAL-R9/u);
+  const withdrawn = mustRunJson([
+    "baseline", "refresh", "withdraw", "--id", "BASELINE-INITIAL-R2", "--from", "BASELINE-INITIAL",
+    "--reason", "Taken from a story branch", ...humanApproval("Withdraw"),
+  ], second);
+  assert.equal(withdrawn.shared.recorded, true);
+  assert.equal(withdrawn.baseline_path, null);
+  assert.equal(remoteRefreshRefs(remote).includes("refs/agentic-sdlc/baseline-refresh/BASELINE-INITIAL/withdrawn"), true);
+
+  // The orphaned proposal on the story branch can no longer be approved.
+  mustFail(["baseline", "approve", "--id", "BASELINE-INITIAL-R2", ...humanApproval("Approve")], first, /BASELINE-INITIAL-R2 was withdrawn as the successor of BASELINE-INITIAL/u);
 });
 
 test("uncommitted changes in the baseline scope refuse the refresh; other files do not", () => {
@@ -302,33 +326,6 @@ test("a proposed refresh is withdrawn with a person's approval and stops blockin
     "refs/agentic-sdlc/baseline-refresh/BASELINE-INITIAL/withdrawn",
   ]);
   mustRun(["baseline", "approve", "--id", "BASELINE-INITIAL-R3", ...humanApproval("Main work recorded")], second);
-});
-
-test("a successor recorded only on the remote is withdrawn by naming its predecessor", () => {
-  const { first, second, remote } = approvedProject("withdraw-remote", { remote: true });
-  git(first, ["switch", "--quiet", "-c", "story/booking"]);
-  writeAndCommit(first, "src/booking.mjs", "export const booking = true;\n", "test: story work");
-  mustRunJson(["baseline", "refresh", "--from", "BASELINE-INITIAL", "--allow-non-base-branch"], first);
-
-  // The computer on main has no copy of the proposed record.
-  mustFail([
-    "baseline", "refresh", "withdraw", "--id", "BASELINE-INITIAL-R2", "--reason", "Taken from a story branch",
-    ...humanApproval("Withdraw"),
-  ], second, /name the baseline it refreshes with --from/u);
-  mustFail([
-    "baseline", "refresh", "withdraw", "--id", "BASELINE-INITIAL-R9", "--from", "BASELINE-INITIAL", "--reason", "Wrong id",
-    ...humanApproval("Withdraw"),
-  ], second, /records no open successor BASELINE-INITIAL-R9/u);
-  const withdrawn = mustRunJson([
-    "baseline", "refresh", "withdraw", "--id", "BASELINE-INITIAL-R2", "--from", "BASELINE-INITIAL",
-    "--reason", "Taken from a story branch", ...humanApproval("Withdraw"),
-  ], second);
-  assert.equal(withdrawn.shared.recorded, true);
-  assert.equal(withdrawn.baseline_path, null);
-  assert.equal(remoteRefreshRefs(remote).includes("refs/agentic-sdlc/baseline-refresh/BASELINE-INITIAL/withdrawn"), true);
-
-  // The orphaned proposal on the story branch can no longer be approved.
-  mustFail(["baseline", "approve", "--id", "BASELINE-INITIAL-R2", ...humanApproval("Approve")], first, /BASELINE-INITIAL-R2 was withdrawn as the successor of BASELINE-INITIAL/u);
 });
 
 function setBaselineIgnoredFiles(project, value) {

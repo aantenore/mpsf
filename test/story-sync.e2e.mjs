@@ -238,29 +238,6 @@ test("story sync keeps the base copy of a regenerated gate file instead of faili
   assert.equal(JSON.parse(fs.readFileSync(path.join(second, gate), "utf8")).source, "base");
 });
 
-test("story sync sets uncommitted code changes aside and puts them back", () => {
-  const { first, second } = twoComputers("code-stash");
-  write(second, "src/story.txt", "story work\n");
-  git(second, ["add", "src/story.txt"]);
-  git(second, ["commit", "--quiet", "-m", "Story work"]);
-  write(second, "src/shared.txt", "one\nlocal edit\n");
-  write(first, "src/base.txt", "base\n");
-  git(first, ["add", "src/base.txt"]);
-  git(first, ["commit", "--quiet", "-m", "Base work"]);
-  git(first, ["push", "--quiet"]);
-
-  const planned = mustRunJson(["story", "sync", "--root", second, "--id", STORY, "--dry-run"]);
-  assert.deepEqual(planned.blockers, []);
-  assert.deepEqual(planned.code_changes, ["src/shared.txt"]);
-  const synced = mustRunJson(["story", "sync", "--root", second, "--id", STORY]);
-  assert.equal(synced.status, "synced");
-  assert.equal(synced.code_changes_stash.status, "restored");
-  assert.equal(fs.readFileSync(path.join(second, "src/shared.txt"), "utf8"), "one\nlocal edit\n");
-  assert.equal(fs.readFileSync(path.join(second, "src/base.txt"), "utf8"), "base\n");
-  assert.equal(git(second, ["stash", "list"]).stdout.trim(), "");
-  assert.equal(git(second, ["merge-base", "--is-ancestor", "origin/main", "HEAD"], { allowFailure: true }).status, 0);
-});
-
 test("story sync keeps uncommitted code changes in the stash when they no longer apply, and leaves a clean tree", () => {
   const { first, second } = twoComputers("code-stash-conflict");
   write(second, "src/story.txt", "story work\n");
@@ -336,6 +313,9 @@ test("publish-records merges the shared history and the output registry instead 
   assert.equal(fs.existsSync(path.join(first, ".sdlc/stories/ST-SYNC-001/final.json")), true);
 });
 
+// Merged scenario on one diverged project with a tampered shared history:
+// publish-records publishes nothing, then the automatic publication does not
+// publish partially either.
 test("publish-records publishes nothing when the shared history cannot be merged", () => {
   const { second } = divergedPublication("publish-records-unmergeable");
   const tracePath = path.join(second, TRACE);
@@ -347,16 +327,13 @@ test("publish-records publishes nothing when the shared history cannot be merged
   assert.match(refused.stdout + refused.stderr, /Nothing was published/u);
   const heads = git(second, ["ls-remote", "--heads", "origin"]).stdout;
   assert.doesNotMatch(heads, /sdlc-records/u);
-});
 
-test("the automatic publication does not publish partially when the shared history cannot be merged", () => {
-  const { second } = divergedPublication("auto-unmergeable");
-  const tracePath = path.join(second, TRACE);
-  fs.writeFileSync(tracePath, fs.readFileSync(tracePath, "utf8").replace("Closing decision", "Edited decision"));
+  // The automatic publication does not publish partially when the shared history cannot be merged.
   const result = autoPublish(second);
   assert.equal(result.status, "failed");
   assert.match(result.problem, /shared history cannot be merged/u);
   assert.doesNotMatch(git(second, ["ls-remote", "origin", "refs/heads/main"]).stdout, new RegExp(git(second, ["rev-parse", "HEAD"]).stdout.trim(), "u"));
+  assert.doesNotMatch(git(second, ["ls-remote", "--heads", "origin"]).stdout, /sdlc-records/u);
 });
 
 test("records are never published into a repository that holds another project", () => {
@@ -398,6 +375,8 @@ function divergeForRebase(first, second) {
   git(first, ["push", "--quiet"]);
 }
 
+// Merged scenario: story sync sets uncommitted code changes aside and puts
+// them back, together with uncommitted tracked and staged records.
 test("story sync sets aside uncommitted tracked and staged records together with code", () => {
   const { first, second } = twoComputers("records-stash");
   divergeForRebase(first, second);
@@ -407,12 +386,18 @@ test("story sync sets aside uncommitted tracked and staged records together with
   write(second, ".sdlc/notes/new-record.md", "staged record\n");
   git(second, ["add", ".sdlc/notes/new-record.md"]);
   write(second, "src/shared.txt", "one\nlocal edit\n");
+  const planned = mustRunJson(["story", "sync", "--root", second, "--id", STORY, "--dry-run"]);
+  assert.deepEqual(planned.blockers, []);
+  assert.deepEqual(planned.code_changes, ["src/shared.txt"]);
   const synced = mustRunJson(["story", "sync", "--root", second, "--id", STORY]);
   assert.equal(synced.status, "synced");
+  assert.equal(synced.code_changes_stash.status, "restored");
   assert.equal(fs.readFileSync(path.join(second, storyFile), "utf8"), edited);
   assert.equal(fs.readFileSync(path.join(second, ".sdlc/notes/new-record.md"), "utf8"), "staged record\n");
   assert.equal(fs.readFileSync(path.join(second, "src/shared.txt"), "utf8"), "one\nlocal edit\n");
+  assert.equal(fs.readFileSync(path.join(second, "src/base.txt"), "utf8"), "base\n");
   assert.equal(git(second, ["stash", "list"]).stdout.trim(), "");
+  assert.equal(git(second, ["merge-base", "--is-ancestor", "origin/main", "HEAD"], { allowFailure: true }).status, 0);
 });
 
 test("story sync takes the base copy of a shared history the story committed, so the branch no longer carries it", () => {

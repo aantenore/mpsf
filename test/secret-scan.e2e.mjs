@@ -119,51 +119,6 @@ test("a planted credential blocks the delivery and is never shown or stored in t
   }
 });
 
-test("the gate stays silent for a project that never declared the policy", () => {
-  const project = createProject();
-  try {
-    const configPath = path.join(project, ".sdlc", "config.json");
-    const config = readJson(configPath);
-    assert.equal(config.gate_policy.secret_scan.enabled, true, "a new project is initialized with the gate on");
-    delete config.gate_policy.secret_scan;
-    writeJson(configPath, config);
-
-    const story = readJson(storyPath(project));
-    writeJson(storyPath(project), { ...story, phase: "validation", status: "validation" });
-    assert.equal(
-      gateErrors(project).filter((error) => error.toLowerCase().includes("secret scan")).length,
-      0,
-      "a project without the declared policy was blocked by a gate it never adopted",
-    );
-  } finally {
-    fs.rmSync(project, { force: true, recursive: true });
-  }
-});
-
-test("an explicit commit range scans only what that range changed", () => {
-  const project = createProject();
-  try {
-    const base = git(project, ["rev-parse", "HEAD"]);
-    const sourcePath = path.join(project, "src", "safe.js");
-    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
-    fs.writeFileSync(sourcePath, "export const safe = true;\n", "utf8");
-    git(project, ["add", "src/safe.js"]);
-    git(project, ["commit", "-m", "add safe module"]);
-
-    const scanned = run(["secret", "scan", "--root", project, "--story", STORY_ID, "--base", base, "--json"]);
-    assert.equal(scanned.status, 0, scanned.stderr || scanned.stdout);
-    const payload = JSON.parse(scanned.stdout);
-    assert.equal(payload.secret_scan.source, "git_range");
-    assert.equal(payload.secret_scan.base_sha, base);
-    assert.deepEqual(payload.secret_scan.scanned_paths, ["src/safe.js"]);
-    assert.equal(payload.secret_scan.file_count, 1);
-    assert.ok(payload.secret_scan.rule_ids.includes("github_token"));
-    assert.match(payload.secret_scan.rule_set_hash, /^[a-f0-9]{64}$/u);
-  } finally {
-    fs.rmSync(project, { force: true, recursive: true });
-  }
-});
-
 test("an uncommitted edit does not hide a credential the head commit still holds", () => {
   const project = createProject();
   try {
@@ -227,6 +182,19 @@ test("a repository without its first commit is scanned from the working tree", (
     // Editing the scanned working tree makes the clean record stale.
     fs.appendFileSync(sourcePath, "export const extra = true;\n", "utf8");
     assert.ok(gateErrors(project).some((error) => error.includes("has no secret scan for the current project state")));
+
+    // The gate stays silent for a project that never declared the policy, even
+    // in the state above where the declared gate reports a missing scan.
+    const configPath = path.join(project, ".sdlc", "config.json");
+    const config = readJson(configPath);
+    assert.equal(config.gate_policy.secret_scan.enabled, true, "a new project is initialized with the gate on");
+    delete config.gate_policy.secret_scan;
+    writeJson(configPath, config);
+    assert.equal(
+      gateErrors(project).filter((error) => error.toLowerCase().includes("secret scan")).length,
+      0,
+      "a project without the declared policy was blocked by a gate it never adopted",
+    );
   } finally {
     fs.rmSync(project, { force: true, recursive: true });
   }
@@ -273,7 +241,15 @@ test("a scan from the remote base branch satisfies the gate once the branch cont
     assert.equal(scanned.status, 0, scanned.stderr || scanned.stdout);
     const payload = JSON.parse(scanned.stdout);
     assert.equal(payload.covers_delivery_base, true);
+    // An explicit commit range scans only what that range changed: the base ref
+    // resolves to its commit and the record names the rule set it applied.
+    const remoteBase = git(project, ["rev-parse", "origin/main"]);
+    assert.equal(payload.secret_scan.source, "git_range");
+    assert.equal(payload.secret_scan.base_sha, remoteBase);
     assert.deepEqual(payload.secret_scan.scanned_paths, ["src/safe.js"]);
+    assert.equal(payload.secret_scan.file_count, 1);
+    assert.ok(payload.secret_scan.rule_ids.includes("github_token"));
+    assert.match(payload.secret_scan.rule_set_hash, /^[a-f0-9]{64}$/u);
     assert.deepEqual(secretErrors(), [], "a scan from the remote base did not satisfy the gate");
   } finally {
     fs.rmSync(project, { force: true, recursive: true });

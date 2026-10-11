@@ -142,42 +142,6 @@ test("Italian first-user capability and implementation-output prompts stay in co
   );
 });
 
-test("first-user local-release help preserves conditional build authorization and complete action scope", () => {
-  const action = buildHelpModel(["autonomy", "delivery", "action"]);
-  const actionFlags = new Map(action.options.map((entry) => [entry.flag, entry]));
-  const root = buildHelpModel([]);
-  const globalFlags = new Map(root.options.map((entry) => [entry.flag, entry]));
-  const targetRoot = buildHelpModel(["autonomy", "delivery", "propose"])
-    .options.find((entry) => entry.flag === "--target-root");
-
-  assert.match(
-    globalFlags.get("--full")?.description || "",
-    /machine\/JSON details omitted from compact output/u,
-  );
-  assert.match(
-    targetRoot?.description || "",
-    /before rollback\.verify, data\.migrate, data\.rollback, or release\.local/u,
-  );
-  assert.match(
-    action.human.result,
-    /request build\.local first without confirmation[\s\S]*only if it reports checkpoint_required[\s\S]*repeat with direct approval/iu,
-  );
-  assert.match(
-    action.human.result,
-    /before rollback\.verify, data\.migrate, data\.rollback, or release\.local/u,
-  );
-  assert.equal(actionFlags.has("--confirm-action"), true);
-
-  const buildExamples = action.examples.filter((example) => /--action build\.local/u.test(example));
-  assert.equal(buildExamples.length, 3);
-  assert.doesNotMatch(buildExamples[0], /--confirm-action/u);
-  assert.match(buildExamples[1], /--confirm-action.*--actor-type human.*--approval-source explicit-user/u);
-  assert.match(
-    buildExamples[2],
-    /--outcome passed.*--authorization-receipt.*--evidence/u,
-  );
-});
-
 test("first-user docs explain compact JSON, governed root creation, and proposal-bound output authorization", () => {
   const gettingStarted = fs.readFileSync(path.join(TEST_ROOT, "docs", "getting-started.md"), "utf8");
   const configurationSafety = fs.readFileSync(

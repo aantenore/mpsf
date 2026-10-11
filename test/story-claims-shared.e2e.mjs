@@ -242,6 +242,14 @@ test("a released story can be claimed again, and a release made offline is share
   assert.equal(held.error.code, "STORY_CLAIM_HELD_ELSEWHERE");
   assert.match(held.error.message, /alice on branch feature\/ST-1, since /u);
 
+  // Merged scenario: a story claimed on another computer cannot be cancelled
+  // from here until its claim ends; the refusal changes nothing.
+  const cancelRefused = mustRefuseJson([
+    "story", "cancel", "--root", second, "--id", "ST-1", "--reason", "Not needed", ...humanApproval("Cancel ST-1"),
+  ], second);
+  assert.match(cancelRefused.error.message, /ST-1 is held on another computer \(alice/u);
+  assert.match(cancelRefused.error.message, /story release --id ST-1 --reason/u);
+
   const released = mustRunJson(["story", "release", "--root", first, "--id", "ST-1", "--reason", "Design finished"], first);
   assert.equal(released.shared_release.status, "shared");
   const reclaimed = mustRunJson(claim(second, "ST-1", "bob"), second);
@@ -689,26 +697,23 @@ test("a reservation ends by itself when it expires and earlier with story releas
   assert.equal(remoteRecord(remote, "refs/agentic-sdlc/claims/ST-1/000001/release").reason, "the reservation expired");
   mustRun(["story", "release", "--root", second, "--id", "ST-1"], second);
 
+  // Merged scenario: reserving again from the same computer renews the reservation.
+  const firstReservation = mustRunJson(["story", "reserve", "--root", first, "--id", "ST-1", "--agent", "alice", "--expires-in", "1d"], first);
+  const renewed = mustRunJson(["story", "reserve", "--root", first, "--id", "ST-1", "--agent", "alice", "--expires-in", "3d"], first);
+  assert.equal(renewed.shared_reservation.epoch, 4);
+  assert.equal(renewed.shared_reservation.renewed_reservation.expires_at, firstReservation.expires_at);
+  assert.ok(Date.parse(renewed.expires_at) > Date.parse(firstReservation.expires_at));
+  const renewal = remoteRecord(remote, "refs/agentic-sdlc/claims/ST-1/000003/release");
+  assert.equal(renewal.status, "transferred");
+  assert.match(renewal.reason, /renewed/u);
+  assert.equal(mustRefuseJson(["story", "reserve", "--root", second, "--id", "ST-1", "--agent", "bob"], second).error.code, "STORY_CLAIM_HELD_ELSEWHERE");
+
   // Released early by its own computer; one made elsewhere needs a person and a reason.
-  mustRunJson(["story", "reserve", "--root", first, "--id", "ST-1", "--agent", "alice"], first);
   const otherRelease = run(["story", "release", "--root", second, "--id", "ST-1", "--json"], second);
   assert.notEqual(otherRelease.status, 0);
   const released = mustRunJson(["story", "release", "--root", first, "--id", "ST-1"], first);
   assert.equal(released.shared_reservation.status, "released");
   assert.equal(mustRunJson(["story", "availability", "--root", second, "--id", "ST-1"], second, { AGENTIC_SDLC_STATUS_SYNC: "off" }).verdict, "free");
-});
-
-test("reserving again from the same computer renews the reservation", () => {
-  const { first, second, remote } = sharedProject("reserve-renew", ["ST-1"]);
-  const firstReservation = mustRunJson(["story", "reserve", "--root", first, "--id", "ST-1", "--agent", "alice", "--expires-in", "1d"], first);
-  const renewed = mustRunJson(["story", "reserve", "--root", first, "--id", "ST-1", "--agent", "alice", "--expires-in", "3d"], first);
-  assert.equal(renewed.shared_reservation.epoch, 2);
-  assert.equal(renewed.shared_reservation.renewed_reservation.expires_at, firstReservation.expires_at);
-  assert.ok(Date.parse(renewed.expires_at) > Date.parse(firstReservation.expires_at));
-  const release = remoteRecord(remote, "refs/agentic-sdlc/claims/ST-1/000001/release");
-  assert.equal(release.status, "transferred");
-  assert.match(release.reason, /renewed/u);
-  assert.equal(mustRefuseJson(["story", "reserve", "--root", second, "--id", "ST-1", "--agent", "bob"], second).error.code, "STORY_CLAIM_HELD_ELSEWHERE");
 });
 
 test("a ready story nobody claimed, with a branch naming it on the remote, is reported before anyone starts it", () => {
@@ -792,16 +797,14 @@ test("a story finished on another computer is never offered again, even before i
   // Only a person decides to work on a finished story again, with a reason.
   const reopened = mustRunJson(claim(second, "ST-1", "bob", ["--force", "--reason", "The merged change must be redone", "--actor-type", "human"]), second);
   assert.equal(reopened.claim.shared_claim.epoch, 2);
-});
 
-test("a story closed by supersede or cancel on another computer is finished there too", () => {
-  const { first, second, remote } = sharedProject("closed-elsewhere", ["ST-1"]);
-  const claimed = mustRunJson(claim(first, "ST-1", "alice"), first);
-  publishFinishedRelease(remote, "ST-1", 1, claimed.claim.shared_claim.claimant_id, "closed");
-  const finished = mustRunJson(["orchestrate", "status", "--root", second], second).stories.find((story) => story.id === "ST-1");
-  assert.equal(finished.orchestration_state, "closed");
-  assert.equal(finished.shared_claim.completed.status, "closed");
-  assert.equal(mustRefuseJson(claim(second, "ST-1", "bob"), second).error.code, "STORY_COMPLETED_ON_REMOTE");
+  // A story closed by supersede or cancel on another computer is finished there too.
+  const closedClaim = mustRunJson(claim(first, "ST-2", "alice"), first);
+  publishFinishedRelease(remote, "ST-2", 1, closedClaim.claim.shared_claim.claimant_id, "closed");
+  const closed = mustRunJson(["orchestrate", "status", "--root", second], second).stories.find((story) => story.id === "ST-2");
+  assert.equal(closed.orchestration_state, "closed");
+  assert.equal(closed.shared_claim.completed.status, "closed");
+  assert.equal(mustRefuseJson(claim(second, "ST-2", "bob"), second).error.code, "STORY_COMPLETED_ON_REMOTE");
 });
 
 test("inside an agent's session a computer claims and reserves only its own work; a person can still assign more", () => {
@@ -837,16 +840,6 @@ test("inside an agent's session a computer claims and reserves only its own work
   mustRun(["story", "release", "--root", first, "--id", "ST-3"], first);
   mustRun(["story", "release", "--root", first, "--id", "ST-1"], first, session);
   mustRunJson(claim(first, "ST-2", "alice"), first, session);
-});
-
-test("a story claimed on another computer cannot be cancelled from here until its claim ends", () => {
-  const { first, second } = sharedProject("cancel-held", ["ST-1"]);
-  mustRunJson(claim(first, "ST-1", "alice"), first);
-  const refused = mustRefuseJson([
-    "story", "cancel", "--root", second, "--id", "ST-1", "--reason", "Not needed", ...humanApproval("Cancel ST-1"),
-  ], second);
-  assert.match(refused.error.message, /ST-1 is held on another computer \(alice/u);
-  assert.match(refused.error.message, /story release --id ST-1 --reason/u);
 });
 
 test("a claim made on this computer is released from another worktree and branch without --force; another host's is not", () => {

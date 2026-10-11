@@ -761,6 +761,14 @@ test("a retry is a visible no-op and writes neither event nor trace", () => {
   const started = startChangeRequest(project, instanceId);
   const files = instanceFiles(project, instanceId);
 
+  // The included preset starts the run without being copied into project storage.
+  assert.equal(started.instance.definition_ref.id, "change-request");
+  assert.equal(started.instance.initial_state, "intake");
+  assert.equal(
+    fs.existsSync(path.join(project, ".sdlc", "workflows", "definitions", "change-request", "v1.json")),
+    false,
+  );
+
   assert.equal(fs.existsSync(files.checkpoint), true);
   assert.equal(started.checkpoint.sequence, 0);
   assert.equal(started.checkpoint.current_state, "intake");
@@ -771,6 +779,7 @@ test("a retry is a visible no-op and writes neither event nor trace", () => {
   assert.equal(firstPayload.status, "transitioned");
   assert.equal(firstPayload.idempotent, false);
   assert.equal(firstPayload.current_state, "impact-review");
+  assert.equal(firstPayload.replay.current_state, "impact-review");
   const eventBytes = fs.readFileSync(files.events);
   const traceBytes = fs.readFileSync(files.trace);
   const checkpointBytes = fs.readFileSync(files.checkpoint);
@@ -909,6 +918,13 @@ test("changing audit attribution alone is detected by the checkpointed trace cha
   assert.deepEqual(fs.readFileSync(files.events), eventBytes);
   assert.deepEqual(fs.readFileSync(files.checkpoint), checkpointBytes);
   assert.deepEqual(fs.readFileSync(files.trace), traceBytes);
+
+  // repair-traces refuses a trace whose content was altered: only missing traces are rebuilt.
+  const refused = run(["workflow", "instance", "repair-traces", "--root", project, "--id", instanceId, "--json"], project);
+  assert.notEqual(refused.status, 0, refused.stdout);
+  assert.deepEqual(fs.readFileSync(files.events), eventBytes);
+  assert.deepEqual(fs.readFileSync(files.checkpoint), checkpointBytes);
+  assert.deepEqual(fs.readFileSync(files.trace), traceBytes);
 });
 
 test("a missing or corrupted durable checkpoint blocks every runtime view and transition", () => {
@@ -1017,10 +1033,15 @@ function startAndLoseTransitionTrace(label) {
 
 const statusOf = (project, instanceId) => run(["workflow", "instance", "status", "--root", project, "--id", instanceId, "--json"], project);
 
+// Also covers: a transition trace missing from the project history still fails;
+// repair-traces rebuilds the same traces from the same events; repair-traces on a healthy run changes nothing.
 test("repair-traces rebuilds the traces a run lost from its verified events, binds them, and records the repair", () => {
   const { project, instanceId, files, savedTrace } = startAndLoseTransitionTrace("repair-lost");
-  assert.equal(statusOf(project, instanceId).status, 1, "the lost trace blocks the run");
-  const eventHash = JSON.parse(fs.readFileSync(files.events, "utf8").trim().split("\n")[0]).event_hash;
+  const lost = statusOf(project, instanceId);
+  assert.equal(lost.status, 1, "the lost trace blocks the run");
+  assert.match(`${lost.stdout}${lost.stderr}`, /exactly one matching transition trace/u);
+  const eventLine = fs.readFileSync(files.events, "utf8").trim().split("\n")[0];
+  const eventHash = JSON.parse(eventLine).event_hash;
   const checkpointBefore = fs.readFileSync(files.checkpoint);
 
   const planned = mustRunJson(["workflow", "instance", "repair-traces", "--root", project, "--id", instanceId, "--dry-run"], project);
@@ -1042,26 +1063,22 @@ test("repair-traces rebuilds the traces a run lost from its verified events, bin
   assert.equal(rebuilt.action, "workflow.instance.transition");
   assert.equal(rebuilt.run.regenerated, true);
   assert.deepEqual(rebuilt.related, [instanceId, eventHash]);
+  // The rebuilt trace is derived from the event itself.
+  assert.equal(rebuilt.created_at, JSON.parse(eventLine).timestamp);
+  assert.deepEqual(rebuilt.actor, JSON.parse(eventLine).actor);
+  assert.equal(rebuilt.git.branch, null);
   const repair = traces.find((entry) => entry.action === "workflow.instance.repair-traces");
   assert.equal(repair.id, repaired.repair_trace);
   assert.deepEqual(repair.repair.events, [eventHash]);
   assert.equal(repair.repair.previous_trace_chain_hash, repaired.previous_trace_chain_hash);
   assert.ok(repair.actor);
 
+  // A healthy run changes nothing.
+  const healthyTrace = fs.readFileSync(files.trace);
   const again = mustRunJson(["workflow", "instance", "repair-traces", "--root", project, "--id", instanceId], project);
   assert.equal(again.status, "nothing_to_repair");
+  assert.deepEqual(fs.readFileSync(files.trace), healthyTrace);
   assert.equal(projectTraceEvents(project).filter((entry) => entry.action === "workflow.instance.repair-traces").length, 1);
-});
-
-test("repair-traces rebuilds the same traces from the same events", () => {
-  const first = startAndLoseTransitionTrace("repair-determinism-a");
-  const eventLine = fs.readFileSync(first.files.events, "utf8").trim().split("\n")[0];
-  const hash = JSON.parse(eventLine).event_hash;
-  mustRunJson(["workflow", "instance", "repair-traces", "--root", first.project, "--id", first.instanceId], first.project);
-  const { _trace_integrity: _a, ...one } = projectTraceEvents(first.project).find((entry) => entry.id === `TR-WF-${hash}`);
-  assert.equal(one.created_at, JSON.parse(eventLine).timestamp);
-  assert.deepEqual(one.actor, JSON.parse(eventLine).actor);
-  assert.equal(one.git.branch, null);
 });
 
 test("repair-traces refuses when the events no longer verify and writes nothing", () => {
@@ -1075,34 +1092,6 @@ test("repair-traces refuses when the events no longer verify and writes nothing"
   assert.match(`${refused.stdout}${refused.stderr}`, /traces were not repaired/u);
   assert.deepEqual(fs.readFileSync(files.trace), savedTrace);
   assert.deepEqual(fs.readFileSync(files.checkpoint), checkpointBefore);
-});
-
-test("repair-traces refuses a trace whose content was altered: only missing traces are rebuilt", () => {
-  const project = temporaryProject("repair-altered-trace");
-  const instanceId = "change-repair-altered-trace";
-  startChangeRequest(project, instanceId);
-  assert.equal(transition(project, instanceId, "altered-1", ["--json"]).status, 0);
-  const files = instanceFiles(project, instanceId);
-  const traces = projectTraceEvents(project);
-  const owned = traces.find((entry) => entry.action === "workflow.instance.transition");
-  owned.actor = { ...owned.actor, name: "Altered audit actor" };
-  fs.writeFileSync(files.trace, `${traces.map((entry) => JSON.stringify(entry)).join("\n")}\n`);
-  const traceBytes = fs.readFileSync(files.trace);
-  const refused = run(["workflow", "instance", "repair-traces", "--root", project, "--id", instanceId, "--json"], project);
-  assert.notEqual(refused.status, 0, refused.stdout);
-  assert.deepEqual(fs.readFileSync(files.trace), traceBytes);
-});
-
-test("repair-traces on a healthy run changes nothing", () => {
-  const project = temporaryProject("repair-healthy");
-  const instanceId = "change-repair-healthy";
-  startChangeRequest(project, instanceId);
-  assert.equal(transition(project, instanceId, "healthy-1", ["--json"]).status, 0);
-  const files = instanceFiles(project, instanceId);
-  const before = fs.readFileSync(files.trace);
-  const result = mustRunJson(["workflow", "instance", "repair-traces", "--root", project, "--id", instanceId], project);
-  assert.equal(result.status, "nothing_to_repair");
-  assert.deepEqual(fs.readFileSync(files.trace), before);
 });
 
 test("a transition trace present twice as the same record counts once; a different second record still fails", () => {
@@ -1120,18 +1109,13 @@ test("a transition trace present twice as the same record counts once; a differe
   assert.equal(projectTraceEvents(project).filter((entry) => entry.id === copy.id).length, 2);
   const ok = statusOf(project, instanceId);
   assert.equal(ok.status, 0, `${ok.stdout}\n${ok.stderr}`);
+  const healthyTrace = fs.readFileSync(files.trace);
   const repair = mustRunJson(["workflow", "instance", "repair-traces", "--root", project, "--id", instanceId], project);
   assert.equal(repair.status, "nothing_to_repair");
+  assert.deepEqual(fs.readFileSync(files.trace), healthyTrace, "repair-traces on a run that never broke changes nothing");
 
   // A second record with the same id but different content is a conflict, not a copy.
   sealTraceEvent({ ...integrityOptions, event: { ...copy, summary: "Different transition record" } });
-  const blocked = statusOf(project, instanceId);
-  assert.notEqual(blocked.status, 0);
-  assert.match(`${blocked.stdout}${blocked.stderr}`, /exactly one matching transition trace/u);
-});
-
-test("a transition trace missing from the project history still fails", () => {
-  const { project, instanceId } = startAndLoseTransitionTrace("missing-still-fails");
   const blocked = statusOf(project, instanceId);
   assert.notEqual(blocked.status, 0);
   assert.match(`${blocked.stdout}${blocked.stderr}`, /exactly one matching transition trace/u);

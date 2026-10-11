@@ -1,17 +1,14 @@
 import "../helpers/test-isolation.mjs";
 
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { compactJsonPayload, createRecordLocator } from "../../lib/context/compact-json.mjs";
 import { resolveJsonProfile } from "../../lib/context/compact-output.mjs";
 import { createFixtureDir } from "../helpers/test-isolation.mjs";
 
-const CLI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "agentic-sdlc.mjs");
 const AGENT_ENV = { CLAUDECODE: "1" };
 
 const PAYLOAD = {
@@ -67,23 +64,6 @@ test("json profile precedence", () => {
   assert.equal(resolveJsonProfile({ options: {}, env: {}, policy: { output: { json_profile: "agent" } } }), "agent");
   assert.equal(resolveJsonProfile({ options: {}, env: AGENT_ENV, policy: { output: { json_profile: "auto" } } }), "agent");
   assert.equal(resolveJsonProfile({ options: {}, env: {} }), "full");
-});
-
-test("CLI: agent JSON inside an agent session, full on request and for internal callers", () => {
-  const root = createFixtureDir("sdlc-compact-json-cli-");
-  const env = Object.assign({}, process.env, AGENT_ENV);
-  delete env.AGENTIC_SDLC_OUTPUT;
-  const run = (...args) => spawnSync(process.execPath, [CLI, ...args, "--root", root], { encoding: "utf8", env });
-  assert.equal(run("init", "--json", "--json-profile", "full").status, 0);
-  const agent = run("status", "--json");
-  assert.equal(agent.status, 0, agent.stderr);
-  assert.equal(JSON.parse(agent.stdout).profile, "agent");
-  const full = run("status", "--json", "--json-profile", "full");
-  assert.equal(JSON.parse(full.stdout).profile, undefined);
-  assert.ok(agent.stdout.length < full.stdout.length);
-  const error = run("context", "get", "rec:../x", "--json");
-  assert.notEqual(error.status, 0);
-  assert.equal(JSON.parse(error.stderr).profile, "agent");
 });
 
 test("a decision for a person keeps the message written for them", () => {

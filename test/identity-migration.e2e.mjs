@@ -107,6 +107,31 @@ test("migration identity CLI is dry-run-first, rebuilds derived state, and is id
   assert.ok(dryRun.source_occurrences_before > 0);
   assert.equal(fs.readFileSync(projectFile, "utf8"), before);
 
+  // The CLI requires the reviewed plan hash and rejects snapshot drift; a
+  // refused apply writes nothing, so the reviewed plan still applies afterwards.
+  const missingHash = runFailure(project,
+    "migration", "identity",
+    "--from-email", sourceEmail,
+    "--to-email", targetEmail,
+    "--to-name", "Current User",
+    "--apply",
+  );
+  assert.match(missingHash, /requires --plan-hash/u);
+  const latePath = path.join(project, ".sdlc", "late.json");
+  fs.writeFileSync(latePath, `${JSON.stringify({ actor: { email: sourceEmail } }, null, 2)}\n`);
+  const drift = runFailure(project,
+    "migration", "identity",
+    "--from-email", sourceEmail,
+    "--to-email", targetEmail,
+    "--to-name", "Current User",
+    "--apply",
+    "--plan-hash", dryRun.plan_hash,
+  );
+  assert.match(drift, /plan changed after preview/u);
+  assert.equal(JSON.parse(fs.readFileSync(latePath, "utf8")).actor.email, sourceEmail);
+  assert.equal(fs.existsSync(path.join(project, ".sdlc", "migrations")), false);
+  fs.rmSync(latePath);
+
   const applied = runJson(project,
     "migration", "identity",
     "--from-email", sourceEmail,
@@ -209,44 +234,6 @@ test("migration identity fails closed on self-hashed bootstrap journal reference
   );
   assert.equal(readTree(sdlcRoot), treeBefore);
   assert.equal(fs.existsSync(path.join(sdlcRoot, "migrations", "identity")), false);
-});
-
-test("migration identity CLI requires the reviewed plan hash and rejects snapshot drift", (t) => {
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), "identity-migration-plan-binding-"));
-  t.after(() => fs.rmSync(project, { recursive: true, force: true }));
-  git(project, "init");
-  git(project, "config", "user.name", "Former User");
-  git(project, "config", "user.email", sourceEmail);
-  run(project, "init", "--project-id", "identity-plan-binding", "--project-name", "Identity Plan Binding");
-
-  const preview = runJson(project,
-    "migration", "identity",
-    "--from-email", sourceEmail,
-    "--to-email", targetEmail,
-  );
-  assert.equal(preview.status, "ready");
-  assert.match(preview.plan_hash, /^[a-f0-9]{64}$/u);
-
-  const missingHash = runFailure(project,
-    "migration", "identity",
-    "--from-email", sourceEmail,
-    "--to-email", targetEmail,
-    "--apply",
-  );
-  assert.match(missingHash, /requires --plan-hash/u);
-
-  const latePath = path.join(project, ".sdlc", "late.json");
-  fs.writeFileSync(latePath, `${JSON.stringify({ actor: { email: sourceEmail } }, null, 2)}\n`);
-  const drift = runFailure(project,
-    "migration", "identity",
-    "--from-email", sourceEmail,
-    "--to-email", targetEmail,
-    "--apply",
-    "--plan-hash", preview.plan_hash,
-  );
-  assert.match(drift, /plan changed after preview/u);
-  assert.equal(JSON.parse(fs.readFileSync(latePath, "utf8")).actor.email, sourceEmail);
-  assert.equal(fs.existsSync(path.join(project, ".sdlc", "migrations")), false);
 });
 
 test("migration identity CLI recovers only the prepared exact physical mutation set", (t) => {

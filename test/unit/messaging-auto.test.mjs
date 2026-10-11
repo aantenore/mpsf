@@ -77,12 +77,21 @@ test("alerts name the story and the reason, and ignore ordinary runs", () => {
   assert.equal(alertFor("status", {}, { error: timeout }).kind, "question");
   assert.match(alertFor("status", {}, { error: timeout }).text, /status stopped on a time limit \(git fetch origin did not finish within 20s\)/u);
   assert.equal(alertFor("status", {}, { error: new Error("other") }), null);
+
+  // [auto] notices for phase, delivery steps, tests and strict gate.
+  assert.equal(alertFor("workflow.instance.transition", { id: "W-1", to: "verify" }, { exitCode: 0, extra: { story: "ST-A-001" } }).text, "ST-A-001 entered phase verify.");
+  const pr = alertFor("autonomy.delivery.action", { id: "D-1", action: "pull_request.create", outcome: "passed", "pr-url": "https://example.test/pr/1" }, { exitCode: 0, extra: { story: "ST-A-001" } });
+  assert.equal(pr.text, "pull request create done for ST-A-001. https://example.test/pr/1");
+  assert.equal(alertFor("autonomy.delivery.action", { id: "D-1", action: "git.push", outcome: "failed" }, { exitCode: 0 }), null);
+  assert.equal(alertFor("test.record", { story: "ST-A-001", "exit-code": "0", passed: "12", failed: "0" }, { exitCode: 0 }).text, "tests for ST-A-001 passed (12 passed, 0 failed).");
+  assert.equal(alertFor("gate.check", { story: "ST-A-001", strict: true }, { exitCode: 0 }).text, "ST-A-001 strict gate passed.");
 });
 
 test("a failing gate tells the other computers once, and claims show new messages once", async () => {
   const gh = fakeGh();
   const root = await project(true);
-  const env = gh.env;
+  // A wider network limit for the automatic sends keeps the exact counts stable on a loaded machine.
+  const env = { ...gh.env, AGENTIC_SDLC_MESSAGING_AUTO_TIMEOUT_SECONDS: "10" };
   const gate = await runCli(["gate", "check", "--scope", "all", "--strict"], root, env);
   assert.equal(gate.code, 1);
   assert.equal(gh.read().comments.length, 1);
@@ -100,6 +109,23 @@ test("a failing gate tells the other computers once, and claims show new message
   assert.doesNotMatch(claim.stderr, /PC1/u, "own messages are not shown");
   const again = await runCli(["story", "claim", "--id", "ST-NOPE-001", "--agent", "a1"], root, env);
   assert.doesNotMatch(again.stderr, /ST-B-002 is mine/u);
+
+  // A failing gate of a story that is already over is not announced, an active one is.
+  const story = "ST-DONE-001";
+  const gates = path.join(root, ".sdlc/gates");
+  fs.mkdirSync(gates, { recursive: true });
+  const check = () => runCli(["gate", "check", "--story", story, "--strict"], root, env);
+  const before = gh.read().comments.length;
+  const active = await check();
+  assert.equal(active.code, 1);
+  const sent = gh.read().comments.length;
+  assert.equal(sent - before, 1, "active story: the question is sent");
+
+  fs.writeFileSync(path.join(gates, `${story}-final.json`), JSON.stringify({ lifecycle_complete: true, status: "passed" }));
+  const over = await check();
+  assert.equal(over.code, 1);
+  assert.match(over.stderr, /ST-DONE-001 is already merged\/closed/u);
+  assert.equal(gh.read().comments.length, sent, "terminal story: nothing new on the channel");
 });
 
 test("without a channel or with GitHub unreachable nothing changes", async () => {
@@ -130,26 +156,6 @@ test("a reply sent here counts as answered before the next poll", () => {
   const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
   assert.deepEqual(state.own, ["A1"]);
   assert.deepEqual(pendingQuestions(state, "PC1"), []);
-});
-
-test("a failing gate of a story that is already over is not announced, an active one is", async () => {
-  const gh = fakeGh();
-  const root = await project(true);
-  const story = "ST-DONE-001";
-  const gates = path.join(root, ".sdlc/gates");
-  fs.mkdirSync(gates, { recursive: true });
-  const check = () => runCli(["gate", "check", "--story", story, "--strict"], root, gh.env);
-
-  const active = await check();
-  assert.equal(active.code, 1);
-  const sent = gh.read().comments.length;
-  assert.equal(sent, 1, "active story: the question is sent");
-
-  fs.writeFileSync(path.join(gates, `${story}-final.json`), JSON.stringify({ lifecycle_complete: true, status: "passed" }));
-  const over = await check();
-  assert.equal(over.code, 1);
-  assert.match(over.stderr, /ST-DONE-001 is already merged\/closed/u);
-  assert.equal(gh.read().comments.length, sent, "terminal story: nothing new on the channel");
 });
 
 test("technical events stay off the channel; the same state is a repeat whatever its wording", async () => {

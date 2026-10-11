@@ -333,75 +333,83 @@ test("pins every parent directory for the complete verification snapshot", (t) =
   );
 });
 
-test("detects modification of the immutable legacy prefix", (t) => {
-  const paths = sealedFixture(t);
-  const bytes = fs.readFileSync(paths.tracePath);
-  const marker = bytes.indexOf(Buffer.from("legacy"));
-  bytes[marker] = "L".charCodeAt(0);
-  fs.writeFileSync(paths.tracePath, bytes);
+// Each tampering case starts from its own sealed fixture, applies one mutation
+// of the trace bytes or lines, and must report every listed error code.
+const SEALED_TRACE_TAMPERING = [
+  {
+    name: "detects modification of the immutable legacy prefix",
+    mutate(paths) {
+      const bytes = fs.readFileSync(paths.tracePath);
+      const marker = bytes.indexOf(Buffer.from("legacy"));
+      bytes[marker] = "L".charCodeAt(0);
+      fs.writeFileSync(paths.tracePath, bytes);
+    },
+    codes: ["legacy_prefix_modified"],
+    extra(report) {
+      assert.equal(report.legacy_prefix.valid, false);
+    },
+  },
+  {
+    name: "detects modification of a sealed event, including exact JSONL byte drift",
+    mutate(paths) {
+      const records = jsonLines(paths.tracePath);
+      records[2].value = 99;
+      writeLines(paths.tracePath, records);
+    },
+    codes: ["event_hash_mismatch", "rolling_hash_mismatch"],
+    extra(report) {
+      assert.equal(report.new_writes.valid, false);
+    },
+  },
+  {
+    name: "detects deletion of a sealed record",
+    mutate(paths) {
+      const records = jsonLines(paths.tracePath);
+      records.splice(2, 1);
+      writeLines(paths.tracePath, records);
+    },
+    codes: ["trace_truncated", "event_deleted_or_missing"],
+  },
+  {
+    name: "detects reordered sealed records",
+    mutate(paths) {
+      const records = jsonLines(paths.tracePath);
+      [records[2], records[3]] = [records[3], records[2]];
+      writeLines(paths.tracePath, records);
+    },
+    codes: ["event_reordered", "previous_hash_mismatch"],
+  },
+  {
+    name: "detects duplicated sealed records",
+    mutate(paths) {
+      const records = jsonLines(paths.tracePath);
+      records.splice(3, 0, structuredClone(records[2]));
+      writeLines(paths.tracePath, records);
+    },
+    codes: ["duplicate_event"],
+  },
+  {
+    name: "detects trace truncation and an incomplete committed record",
+    mutate(paths) {
+      const bytes = fs.readFileSync(paths.tracePath);
+      fs.writeFileSync(paths.tracePath, bytes.subarray(0, bytes.length - 13));
+    },
+    codes: ["trace_truncated"],
+  },
+];
 
-  const report = verifyTraceIntegrity(options(paths));
-  assert.equal(report.valid, false);
-  assert.equal(report.legacy_prefix.valid, false);
-  assert.equal(errorCodes(report).has("legacy_prefix_modified"), true);
-});
+test("detects tampering with sealed trace records", async (t) => {
+  for (const { name, mutate, codes, extra } of SEALED_TRACE_TAMPERING) {
+    await t.test(name, (st) => {
+      const paths = sealedFixture(st);
+      mutate(paths);
 
-test("detects modification of a sealed event, including exact JSONL byte drift", (t) => {
-  const paths = sealedFixture(t);
-  const records = jsonLines(paths.tracePath);
-  records[2].value = 99;
-  writeLines(paths.tracePath, records);
-
-  const report = verifyTraceIntegrity(options(paths));
-  assert.equal(report.valid, false);
-  assert.equal(report.new_writes.valid, false);
-  assert.equal(errorCodes(report).has("event_hash_mismatch"), true);
-  assert.equal(errorCodes(report).has("rolling_hash_mismatch"), true);
-});
-
-test("detects deletion of a sealed record", (t) => {
-  const paths = sealedFixture(t);
-  const records = jsonLines(paths.tracePath);
-  records.splice(2, 1);
-  writeLines(paths.tracePath, records);
-
-  const report = verifyTraceIntegrity(options(paths));
-  assert.equal(report.valid, false);
-  assert.equal(errorCodes(report).has("trace_truncated"), true);
-  assert.equal(errorCodes(report).has("event_deleted_or_missing"), true);
-});
-
-test("detects reordered sealed records", (t) => {
-  const paths = sealedFixture(t);
-  const records = jsonLines(paths.tracePath);
-  [records[2], records[3]] = [records[3], records[2]];
-  writeLines(paths.tracePath, records);
-
-  const report = verifyTraceIntegrity(options(paths));
-  assert.equal(report.valid, false);
-  assert.equal(errorCodes(report).has("event_reordered"), true);
-  assert.equal(errorCodes(report).has("previous_hash_mismatch"), true);
-});
-
-test("detects duplicated sealed records", (t) => {
-  const paths = sealedFixture(t);
-  const records = jsonLines(paths.tracePath);
-  records.splice(3, 0, structuredClone(records[2]));
-  writeLines(paths.tracePath, records);
-
-  const report = verifyTraceIntegrity(options(paths));
-  assert.equal(report.valid, false);
-  assert.equal(errorCodes(report).has("duplicate_event"), true);
-});
-
-test("detects trace truncation and an incomplete committed record", (t) => {
-  const paths = sealedFixture(t);
-  const bytes = fs.readFileSync(paths.tracePath);
-  fs.writeFileSync(paths.tracePath, bytes.subarray(0, bytes.length - 13));
-
-  const report = verifyTraceIntegrity(options(paths));
-  assert.equal(report.valid, false);
-  assert.equal(errorCodes(report).has("trace_truncated"), true);
+      const report = verifyTraceIntegrity(options(paths));
+      assert.equal(report.valid, false);
+      extra?.(report);
+      for (const code of codes) assert.equal(errorCodes(report).has(code), true, code);
+    });
+  }
 });
 
 test("detects bytes appended beyond the checkpoint without silently adopting them", (t) => {

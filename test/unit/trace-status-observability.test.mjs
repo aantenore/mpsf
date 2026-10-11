@@ -201,20 +201,6 @@ test("status, doctor, and activity reports surface a tampered history prominentl
   assert.match(reportHuman.stdout, /WARNING: history changed unexpectedly/u);
 });
 
-test("an intact history is consistent for status and verified by doctor and trace verify", () => {
-  const project = initializedProject("intact");
-  appendDecision(project, "Intact decision");
-  const status = json(mustRun(["status", "--root", project, "--json"]));
-  // status runs only a quick check, so it never claims a full verification.
-  assert.equal(status.history_integrity.status, "consistent");
-  assert.equal(status.history_integrity.check, "quick");
-  assert.equal(json(mustRun(["trace", "verify", "--root", project, "--json"])).status, "verified");
-  assert.notEqual(status.next_action.kind, "repair_history");
-  const doctor = json(mustRun(["doctor", "--root", project, "--json"]));
-  assert.equal(doctor.checks.find((check) => check.id === "trace-integrity").status, "passed");
-  assert.equal(doctor.checks.find((check) => check.id === "trace-size").status, "passed");
-});
-
 function addConfiguredPiiPattern(project, pattern) {
   const configPath = path.join(project, ".sdlc", "config.json");
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -541,8 +527,13 @@ test("evidence snapshots below .sdlc/traces are not verified as sealed histories
   assert.deepEqual(verify.files.map((file) => file.path), [".sdlc/traces/project.jsonl"]);
   const status = json(mustRun(["status", "--root", project, "--json"]));
   assert.notEqual(status.next_action.kind, "repair_history");
+  // An intact sealed history is consistent for status, which runs only a quick
+  // check and so never claims a full verification.
+  assert.equal(status.history_integrity.status, "consistent");
+  assert.equal(status.history_integrity.check, "quick");
   const doctor = json(mustRun(["doctor", "--root", project, "--json"]));
   assert.equal(doctor.checks.find((check) => check.id === "trace-integrity").status, "passed");
+  assert.equal(doctor.checks.find((check) => check.id === "trace-size").status, "passed");
   const gate = JSON.parse(runCli(["gate", "check", "--root", project, "--json"]).stdout);
   assert.equal([...gate.checked, ...gate.errors].some((line) => line.includes("traces/evidence/")), false);
 });
@@ -593,7 +584,13 @@ test("a history file above the verification limit is unverifiable, not tampered"
 test("large reports and status payloads are redacted item by item instead of collapsing", () => {
   const project = initializedProject("large-presentation");
   const email = ["owner", "example.test"].join("@");
-  sealDirectly(project, Array.from({ length: 700 }, (_, index) => fixtureEvent(index, `Decision ${index} by ${email}`)));
+  // Presentation redaction does not depend on sealing, so the 700 events are
+  // written as one unsealed legacy history. The trailing newline lets the later
+  // requirement proposal seal on top of this prefix.
+  fs.writeFileSync(
+    projectTrace(project),
+    Array.from({ length: 700 }, (_, index) => `${JSON.stringify(fixtureEvent(index, `Decision ${index} by ${email}`))}\n`).join(""),
+  );
   const report = json(mustRun(["report", "activity", "--root", project, "--since", "1d", "--json"]));
   assert.equal(report.items.length, 700);
   assert.equal(report.items[699].summary, "Decision 699 by [REDACTED]");

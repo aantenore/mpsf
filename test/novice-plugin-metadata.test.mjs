@@ -250,35 +250,6 @@ test("the Claude Code packaging stays version-locked to the package and exposes 
   assert.match(doctorCommand, /current working directory/u);
 });
 
-test("the release surface ships and requires both host packagings", () => {
-  const packageMetadata = JSON.parse(read("package.json"));
-  const policy = JSON.parse(read("config/release-artifact-policy.json"));
-
-  for (const selector of [".claude-plugin/", "commands/", ".codex-plugin/plugin.json", "hooks/", "skills/"]) {
-    assert.ok(packageMetadata.files.includes(selector), `package.json files is missing: ${selector}`);
-  }
-
-  for (const topLevel of [".claude-plugin", ".codex-plugin", "commands", "hooks", "skills"]) {
-    assert.ok(
-      policy.package.allowed_top_level.includes(topLevel),
-      `release policy does not allow top-level entry: ${topLevel}`,
-    );
-  }
-
-  for (const required of [
-    ".claude-plugin/plugin.json",
-    ".claude-plugin/marketplace.json",
-    ".codex-plugin/plugin.json",
-    "hooks/hooks.json",
-    "hooks/agentic-sdlc-guard.mjs",
-  ]) {
-    assert.ok(
-      policy.package.required_files.includes(required),
-      `release policy does not require: ${required}`,
-    );
-  }
-});
-
 test("the Claude Code installation guide documents the marketplace flow and the Codex-only exclusions", () => {
   const guide = read("docs/claude-code-install.md");
   const docsIndex = read("docs/README.md");

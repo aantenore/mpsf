@@ -1,3 +1,6 @@
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -12,6 +15,7 @@ import {
   deliveryProviderOperationSubject,
   dedupeDeliveryFormatOptions,
   exactGitProjectPath,
+  expandCommitScopeOptions,
   localReleaseAttemptReceiptErrors,
   normalizeDeliveryAction,
   normalizeDeliveryFormatOptions,
@@ -422,6 +426,186 @@ test("validateResolvedLocalSmokeExecutable rejects a resolved indirect dispatche
 
 test("validateResolvedLocalSmokeExecutable accepts a direct reviewed executable", () => {
   assert.doesNotThrow(() => validateResolvedLocalSmokeExecutable({ realpath: "/usr/local/bin/node" }));
+});
+
+// ---------------------------------------------------------------------------
+// localSmokeSandboxPolicyAttestation: release.local launch boundary
+// ---------------------------------------------------------------------------
+
+test("release.local rejects resolved shells, indirect loaders, payloads outside the artifact, and nested shebang runtimes before authorization", {
+  skip: process.platform === "win32" ? "requires POSIX executables and /bin/sh" : false,
+}, async () => {
+  const { localSmokeSandboxPolicyAttestation } = await import("../../lib/engine/delivery.mjs");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "local-smoke-policy-"));
+  try {
+    const externalRoot = path.join(root, "external");
+    fs.mkdirSync(externalRoot);
+    const externalNodePayload = path.join(externalRoot, "external-smoke.mjs");
+    const externalRequirePayload = path.join(externalRoot, "external-require.cjs");
+    const disguisedShell = path.join(externalRoot, "reviewed-runner");
+    fs.writeFileSync(externalNodePayload, "process.stdout.write('external\\n');\n", "utf8");
+    fs.writeFileSync(externalRequirePayload, "module.exports = {};\n", "utf8");
+    fs.symlinkSync("/bin/sh", disguisedShell);
+
+    // A local_release profile whose released artifact holds one executable smoke entrypoint.
+    const attestRelease = (suffix, command, smokeSource = "process.stdout.write('unused\\n');\n") => {
+      const releaseRoot = path.join(root, suffix.toLowerCase());
+      const releaseOutput = path.join(releaseRoot, "app");
+      fs.mkdirSync(releaseOutput, { recursive: true });
+      const smokeFile = path.join(releaseOutput, `smoke-${suffix.toLowerCase()}.mjs`);
+      fs.writeFileSync(smokeFile, smokeSource, "utf8");
+      fs.chmodSync(smokeFile, 0o755);
+      return () => localSmokeSandboxPolicyAttestation({
+        id: `AUT-LOCAL-SMOKE-${suffix}`,
+        local_release_target: {
+          root_path: releaseRoot,
+          smoke_cwd: releaseOutput,
+          allowed_write_paths: [releaseOutput],
+          smoke_tests: [JSON.stringify(command)],
+        },
+      });
+    };
+
+    const scenarios = [
+      {
+        suffix: "EXTERNAL-NODE-PAYLOAD",
+        command: [process.execPath, externalNodePayload],
+        pattern: /payload .* resolves outside the released artifact/isu,
+      },
+      {
+        suffix: "EXTERNAL-NODE-REQUIRE",
+        command: [process.execPath, `--require=${externalRequirePayload}`, "--version"],
+        pattern: /loader option .* is not allowed/isu,
+      },
+      {
+        suffix: "RESOLVED-SHELL",
+        command: [disguisedShell, "-c", "exit 0"],
+        pattern: /resolves to shell/isu,
+      },
+    ];
+    if (fs.existsSync("/bin/dash")) {
+      scenarios.push({
+        suffix: "SHEBANG-DASH",
+        command: ["./smoke-shebang-dash.mjs"],
+        smokeSource: "#!/bin/dash\nexit 0\n",
+        pattern: /resolves to shell/isu,
+      });
+    }
+    if (spawnSync("python3", ["--version"], { encoding: "utf8", timeout: 30_000 }).status === 0) {
+      const externalPythonPayload = path.join(externalRoot, "external-smoke.py");
+      fs.writeFileSync(externalPythonPayload, "print('external')\n", "utf8");
+      scenarios.push(
+        {
+          suffix: "EXTERNAL-PYTHON-PAYLOAD",
+          command: ["python3", externalPythonPayload],
+          pattern: /payload .* resolves outside the released artifact/isu,
+        },
+        {
+          suffix: "PYTHON-MODULE-CONCATENATED",
+          command: ["python3", "-mjson.tool"],
+          pattern: /loader option .* is not allowed/isu,
+        },
+        {
+          suffix: "PYTHON-MODULE-SEPARATE",
+          command: ["python3", "-m", "json.tool"],
+          pattern: /loader option .* is not allowed/isu,
+        },
+      );
+    }
+    for (const scenario of scenarios) {
+      assert.throws(
+        attestRelease(scenario.suffix, scenario.command, scenario.smokeSource),
+        scenario.pattern,
+        scenario.suffix,
+      );
+    }
+
+    // A '#!/usr/bin/env node' entrypoint whose PATH runtime is itself a '#!/bin/sh' wrapper.
+    const runtimeBin = path.join(root, "nested-runtime-bin");
+    fs.mkdirSync(runtimeBin);
+    const nestedNode = path.join(runtimeBin, "node");
+    fs.writeFileSync(
+      nestedNode,
+      `#!/bin/sh\nexec ${JSON.stringify(fs.realpathSync.native(process.execPath))} "$@"\n`,
+      "utf8",
+    );
+    fs.chmodSync(nestedNode, 0o755);
+    const nested = attestRelease(
+      "NESTED-SHEBANG-RUNTIME",
+      ["./smoke-nested-shebang-runtime.mjs"],
+      "#!/usr/bin/env node\nprocess.stdout.write(\"must-not-run\\n\");\n",
+    );
+    const originalPath = process.env.PATH;
+    process.env.PATH = [runtimeBin, originalPath].filter(Boolean).join(path.delimiter);
+    try {
+      assert.throws(nested, /resolves to nested script interpreter.*native runtime executable/isu);
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// expandCommitScopeOptions: git.commit directory, glob and --staged scopes
+// ---------------------------------------------------------------------------
+
+test("expandCommitScopeOptions expands directories, globs and --staged to the exact candidate paths", () => {
+  const allPaths = ["src/a/one.mjs", "src/a/two.txt", "src/b/three.mjs"];
+  const staged = () => [...allPaths];
+  const expand = (options) => expandCommitScopeOptions(options, staged);
+  const rows = [
+    { name: "directory", options: { "scope-path": ["src/"] }, expected: allPaths },
+    { name: "directory without a trailing slash", options: { "scope-path": ["src/a"] }, expected: ["src/a/one.mjs", "src/a/two.txt"] },
+    { name: "glob union with an exact path", options: { "scope-path": ["src/**/*.mjs", "src/a/two.txt"] }, expected: allPaths },
+    { name: "exact paths", options: { "scope-path": [...allPaths] }, expected: allPaths },
+    { name: "--staged", options: { staged: true }, expected: allPaths },
+    { name: "--staged plus an exact path", options: { staged: true, "scope-path": ["src/a/one.mjs"] }, expected: allPaths },
+    { name: "--staged plus a directory", options: { staged: true, "scope-path": ["src/b/"] }, expected: allPaths },
+    { name: "./ prefixed directory", options: { "scope-path": ["./src/b/"] }, expected: ["src/b/three.mjs"] },
+    { name: "./ prefixed glob", options: { "scope-path": ["./src/**/*.mjs"] }, expected: ["src/a/one.mjs", "src/b/three.mjs"] },
+    { name: "backslash directory", options: { "scope-path": ["src\\a\\"] }, expected: ["src/a/one.mjs", "src/a/two.txt"] },
+    { name: "backslash glob", options: { "scope-path": ["src\\**\\*.txt"] }, expected: ["src/a/two.txt"] },
+    { name: "literal path naming a staged file", options: { "scope-path": ["src/a/one.mjs"] }, expected: ["src/a/one.mjs"] },
+    { name: "literal path naming nothing staged", options: { "scope-path": ["src/c/missing.mjs"] }, expected: ["src/c/missing.mjs"] },
+  ];
+  for (const row of rows) {
+    const expanded = expand(row.options);
+    assert.deepEqual(expanded["scope-path"], row.expected, row.name);
+    assert.equal(Object.hasOwn(expanded, "staged"), false, row.name);
+  }
+
+  // A staged file that is also a directory prefix is kept as the literal file, never expanded as a directory.
+  assert.deepEqual(
+    expandCommitScopeOptions({ "scope-path": ["tools"] }, () => ["tools", "tools/run.mjs"])["scope-path"],
+    ["tools"],
+  );
+  // Duplicate and unsorted candidates expand once, sorted.
+  assert.deepEqual(
+    expandCommitScopeOptions({ staged: true }, () => ["src/b/three.mjs", "src/a/one.mjs", "src/b/three.mjs"])["scope-path"],
+    ["src/a/one.mjs", "src/b/three.mjs"],
+  );
+  // Without a scope or --staged nothing is loaded and the options pass through untouched.
+  const untouched = { action: "git.commit" };
+  assert.equal(expandCommitScopeOptions(untouched, () => assert.fail("candidates must not be loaded")), untouched);
+});
+
+test("expandCommitScopeOptions refuses a scope that matches no candidate and an empty --staged set", () => {
+  const allPaths = ["src/a/one.mjs", "src/a/two.txt", "src/b/three.mjs"];
+  assert.throws(() => expandCommitScopeOptions({ "scope-path": ["docs/**/*.md"] }, () => allPaths), /matches no staged file/u);
+  assert.throws(() => expandCommitScopeOptions({ "scope-path": ["docs/"] }, () => allPaths), /--scope-path docs\/ matches no staged file/u);
+  assert.throws(() => expandCommitScopeOptions({ staged: true }, () => []), /--staged found no staged files/u);
+  assert.throws(() => expandCommitScopeOptions({ staged: true }, () => []), UserError);
+  // Completion re-expands against the authorized paths, and says so.
+  assert.throws(
+    () => expandCommitScopeOptions({ "scope-path": ["docs/"] }, () => allPaths, { source: "authorized" }),
+    /--scope-path docs\/ matches no authorized file/u,
+  );
+  assert.throws(
+    () => expandCommitScopeOptions({ staged: true }, () => [], { source: "authorized" }),
+    /--staged found no authorized files/u,
+  );
 });
 
 function readyForReviewProfile(overrides = {}) {

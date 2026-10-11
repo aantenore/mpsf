@@ -138,21 +138,20 @@ test("a long line of refreshes approved from delivered work still rests on its p
   }
 });
 
-test("a refresh that names a different anchor from its predecessor is refused", () => {
-  const directory = project("anchor-mismatch", 20);
-  const base = approvedBaseline(directory);
-  writeRefreshLine(directory, base, 3, { anchors: true });
-  const context = buildContext({ root: directory });
-  const tip = readBaseline(directory, "BASELINE-INITIAL-R4");
-  tip.refresh.anchor_baseline_ref = { id: "BASELINE-INITIAL-R2", approved_content_hash: "0".repeat(64) };
-  approve(tip, { ...tip.approvals[0] });
-  assert.match(deliveredWorkApprovalChainErrors(context, tip).join("\n"), /names anchor BASELINE-INITIAL-R2, but BASELINE-INITIAL-R3 rests on BASELINE-INITIAL/u);
-});
-
 test("baseline summaries come from the derived index until a record changes", () => {
   const directory = project("index", 20);
   const base = approvedBaseline(directory);
   writeRefreshLine(directory, base, 5, { anchors: true });
+
+  // --- A refresh that names a different anchor from its predecessor is refused ---
+  // The edited tip stays in memory; the chain check only reads records, so the index below is untouched.
+  const anchorContext = buildContext({ root: directory });
+  const mismatched = readBaseline(directory, "BASELINE-INITIAL-R4");
+  mismatched.refresh.anchor_baseline_ref = { id: "BASELINE-INITIAL-R2", approved_content_hash: "0".repeat(64) };
+  approve(mismatched, { ...mismatched.approvals[0] });
+  assert.match(deliveredWorkApprovalChainErrors(anchorContext, mismatched).join("\n"), /names anchor BASELINE-INITIAL-R2, but BASELINE-INITIAL-R3 rests on BASELINE-INITIAL/u);
+
+  // --- Baseline summaries come from the derived index ---
   const context = buildContext({ root: directory });
   const first = readBaselineSummaries(context);
   assert.deepEqual(first.map((item) => item.id), [

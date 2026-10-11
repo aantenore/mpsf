@@ -103,18 +103,23 @@ function trustMeteringAdapter(project, metrics) {
   return keyPair;
 }
 
-/** Initializes a project and runs one assessment proposal up to `running`. */
-function runningAssessment(name, budget, {
-  trustedMetrics = [],
-  locale = null,
-  configure = null,
-  apply = true,
-} = {}) {
+/** Initializes a project whose baseline BASELINE-1 is approved. */
+function baselineProject(name) {
   const project = tmpProject(name);
   mustRun(["init", "--root", project, "--project-name", "E2E", "--force"]);
   fs.writeFileSync(path.join(project, "README.md"), "# Fixture\n\nLocal repository evidence.\n");
   mustRun(["baseline", "propose", "--root", project, "--id", "BASELINE-1", "--source", "README.md", "--summary", "Current state"]);
   mustRun(["baseline", "approve", "--root", project, "--id", "BASELINE-1", ...humanApproval("Baseline is accurate")]);
+  return project;
+}
+
+/** Initializes a project and runs one assessment proposal up to `running`. */
+function runningAssessment(name, budget, {
+  trustedMetrics = [],
+  configure = null,
+  apply = true,
+} = {}) {
+  const project = baselineProject(name);
   if (configure) {
     const configPath = path.join(project, ".sdlc", "config.json");
     const config = readJson(configPath);
@@ -130,7 +135,6 @@ function runningAssessment(name, budget, {
     "--format", "Markdown", "--delivery", "artifact",
     "--artifact", ".sdlc/stories/ST-ASSESS-1/outputs/technical-assessment.md",
     ...(budget ? ["--budget-json", JSON.stringify(budget)] : []),
-    ...(locale ? ["--locale", locale] : []),
     "--json",
   ]).stdout);
   mustRun(["assessment", "proposal", "approve", "--root", project, "--id", "ASSESS-1", ...humanApproval("Approve the exact proposal")]);
@@ -241,17 +245,11 @@ test("manual metric flags are strict whole numbers or decimals and must belong t
     },
   });
   const record = (...flags) => ["budget", "usage", "record", "--root", project, "--proposal", "ASSESS-1", ...flags];
-  for (const [flag, value] of [["--input-tokens", "1e3"], ["--output-tokens", "0x10"], ["--input-tokens", "1.5"]]) {
-    mustFail(record(flag, value), new RegExp(`${flag} must be a whole number such as 120 \\(got '${value.replace(".", "\\.")}'\\)`, "u"));
-  }
-  mustFail(record("--cost-amount", "1e-3"), /--cost-amount must be a plain decimal amount/u);
+  // Exponents, hexadecimal, decimals, foreign metrics, and currency mismatches
+  // are pure flag parsing, checked in test/unit/budget-metric-flags.test.mjs.
+  // These two depend on how argv delivers the value.
   mustFail(record("--input-tokens", "-5"), /--input-tokens cannot be negative \(got -5\)/u);
   mustFail(record("--input-tokens", ""), /--input-tokens needs a value, for example --input-tokens 120/u);
-  mustFail(
-    record("--input-tokens", "10", "--steps", "3"),
-    /--steps: metric steps is not in this budget \(accepts: cost \(--cost-amount\), tokens \(--input-tokens \/ --output-tokens\)\)/u,
-  );
-  mustFail(record("--cost-amount", "1", "--currency", "EUR"), /--currency EUR does not match the budget currency USD/u);
   assert.deepEqual(usageFiles(project), []);
 
   const recorded = JSON.parse(mustRun(record("--input-tokens", "100", "--output-tokens", "16", "--cost-amount", "1.50", "--json")).stdout);
@@ -421,12 +419,16 @@ test("usage history recorded before the cumulative rule existed stays readable",
   );
 });
 
+// Also covers the out-of-range warning thresholds formerly checked in "project
+// budget settings take precedence over the defaults template and are validated":
+// a pinned [150] still loads, but a new budget that inherits it is refused.
 test("an older pinned configuration with custom budget values still loads and is checked only for new budgets", () => {
   const project = tmpProject("budget-legacy-config");
   mustRun(["init", "--root", project, "--project-name", "E2E", "--force"]);
   fs.writeFileSync(path.join(project, "README.md"), "# Fixture\n\nLocal repository evidence.\n");
   const configPath = path.join(project, ".sdlc", "config.json");
   const config = readJson(configPath);
+  config.budget_policy.warning_thresholds_percent = [150];
   config.budget_policy.completion_reserve_percent = 60;
   config.budget_policy.on_limit = "ask_owner";
   config.budget_policy.maxima = { cost: { amount: "20.00", currency: "USD" } };
@@ -451,15 +453,21 @@ test("an older pinned configuration with custom budget values still loads and is
   ];
   mustFail(
     prepare("ASSESS-DEFAULTS"),
-    /budget settings in \.sdlc\/config\.json cannot be used for a new budget:[\s\S]*completion_reserve_percent is 60; use a whole number from 0 to 50[\s\S]*config migrate/u,
+    /budget settings in \.sdlc\/config\.json cannot be used for a new budget:[\s\S]*budget_policy\.warning_thresholds_percent is \[150\]; use a list of whole numbers from 1 to 99[\s\S]*completion_reserve_percent is 60; use a whole number from 0 to 50[\s\S]*config migrate/u,
   );
+  // Explicit budgets set their own thresholds, so the pinned [150] is not used.
   const explicit = (soft) => ({
+    warning_thresholds_percent: [70, 90],
     completion_reserve_percent: 15,
     extensions: { on_limit: "request_extension" },
     limits: { cost: { unit: "money", currency: "USD", metering: "estimated", soft } },
   });
   mustFail(
-    prepare("ASSESS-POLICY-ON-LIMIT", { completion_reserve_percent: 15, limits: { tokens: { unit: "tokens", metering: "estimated", soft: 10 } } }),
+    prepare("ASSESS-POLICY-ON-LIMIT", {
+      warning_thresholds_percent: [70, 90],
+      completion_reserve_percent: 15,
+      limits: { tokens: { unit: "tokens", metering: "estimated", soft: 10 } },
+    }),
     /budget_policy\.on_limit is "ask_owner"; only "request_extension" has an effect/u,
   );
   mustFail(prepare("ASSESS-OVER-MAX", explicit("25.00")), /limits\.cost\.soft 25 exceeds the project maximum 20/u);
@@ -580,23 +588,9 @@ test("project budget settings take precedence over the defaults template and are
   });
   assert.deepEqual(prepared.proposal.execution_budget.warning_thresholds_percent, [50, 80]);
   assert.equal(prepared.proposal.execution_budget.completion_reserve_percent, 20);
-
-  const project = tmpProject("budget-invalid-config");
-  mustRun(["init", "--root", project, "--project-name", "E2E", "--force"]);
-  const configPath = path.join(project, ".sdlc", "config.json");
-  const config = readJson(configPath);
-  config.budget_policy.warning_thresholds_percent = [150];
-  writeJson(configPath, config);
-  // The configuration still loads (older pinned values must keep working), but
-  // a new budget cannot use the out-of-range value.
-  pinProjectConfig(project);
-  fs.writeFileSync(path.join(project, "README.md"), "# Fixture\n\nLocal repository evidence.\n");
-  mustRun(["baseline", "propose", "--root", project, "--id", "BASELINE-1", "--source", "README.md", "--summary", "Current state"]);
-  mustRun(["baseline", "approve", "--root", project, "--id", "BASELINE-1", ...humanApproval("Baseline is accurate")]);
-  mustFail([
-    "assessment", "proposal", "prepare", "--root", project, "--id", "ASSESS-1", "--baseline", "BASELINE-1",
-    "--scope-title", "Thresholds", "--scope-summary", "Out-of-range thresholds are refused.",
-  ], /budget_policy\.warning_thresholds_percent is \[150\]; use a list of whole numbers from 1 to 99/u);
+  // The validation of a pinned out-of-range value is checked by "an older
+  // pinned configuration with custom budget values still loads and is checked
+  // only for new budgets".
 
   // Without a lock, missing keys are inherited from the legacy defaults; the
   // explicit "hard": null keeps the old hard limits from coming back.
@@ -650,7 +644,19 @@ test("the budget checkpoint follows --locale, shows currency, and never offers a
       steps: { unit: "steps", metering: "exact", soft: 10, hard: 20 },
     },
   };
-  const english = runningAssessment("budget-checkpoint-en", budget, { apply: false, locale: "en" }).prepared.assistant_message;
+  // The checkpoint message depends only on the proposal, the project
+  // configuration, and --locale, so both locales are prepared in one project
+  // and neither proposal needs approval.
+  const project = baselineProject("budget-checkpoint");
+  const checkpoint = (id, locale) => JSON.parse(mustRun([
+    "assessment", "proposal", "prepare", "--root", project, "--id", id,
+    "--baseline", "BASELINE-1", "--story", `ST-${id}`, "--requirement", `REQ-${id}`,
+    "--scope-title", "Cost control", "--scope-summary", "Assess the project within a bounded budget.",
+    "--format", "Markdown", "--delivery", "artifact",
+    "--artifact", `.sdlc/stories/ST-${id}/outputs/technical-assessment.md`,
+    "--budget-json", JSON.stringify(budget), "--locale", locale, "--json",
+  ]).stdout).assistant_message;
+  const english = checkpoint("ASSESS-1", "en");
   for (const heading of ["What I am asking you", "Why it is needed", "Approved budget", "What your yes authorizes", "What it does not authorize", "Complete answer examples"]) {
     assert.match(english, new RegExp(heading, "u"));
   }
@@ -660,7 +666,7 @@ test("the budget checkpoint follows --locale, shows currency, and never offers a
   assert.doesNotMatch(english, /5 money|trusted_sources =/u);
   assert.doesNotMatch(english, /hard limit to 45 minutes/u);
 
-  const italian = runningAssessment("budget-checkpoint-it", budget, { apply: false, locale: "it" }).prepared.assistant_message;
+  const italian = checkpoint("ASSESS-IT", "it");
   assert.match(italian, /Cosa ti sto chiedendo/u);
   assert.match(italian, /Costo monetario: soglia soft USD 5\.00; nessun hard stop; misura estimated\./u);
   assert.match(italian, /Attenzione: l'hard limit su steps non può essere soddisfatto/u);

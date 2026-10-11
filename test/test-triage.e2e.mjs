@@ -47,17 +47,6 @@ function strictErrors(project, story) {
   return report.errors ?? report.report?.errors ?? [];
 }
 
-test("test record keeps the case and the failed-minor outcome in the record and in the trace", () => {
-  const project = setup();
-  const minor = record(project, "TB-PREF-012", { fail: true, minor: true });
-  assert.equal(minor.test_run.case_id, "TB-PREF-012");
-  assert.equal(minor.test_run.outcome, "failed-minor");
-  assert.equal(minor.event.outcome, "failed-minor");
-  assert.ok(minor.event.related.includes("case:TB-PREF-012"));
-  const bad = run(project, ["test", "record", "--story", "ST-QA", "--command", '["npm","test"]', "--evidence", "run.log", "--exit-code", "0", "--passed", "1", "--outcome", "failed-minor"]);
-  assert.notEqual(bad.status, 0);
-});
-
 test("failed cases without a triage decision block the strict gate and the message names the command", () => {
   const project = setup();
   record(project, "TB-1", { fail: true });
@@ -70,6 +59,17 @@ test("failed cases without a triage decision block the strict gate and the messa
 
 test("create-fix opens a free fix story on the delivered story, and it closes only after the case passed again", () => {
   const project = setup();
+
+  // test record keeps the case and the failed-minor outcome in the record and in the trace.
+  const minor = record(project, "TB-PREF-012", { fail: true, minor: true });
+  assert.equal(minor.test_run.case_id, "TB-PREF-012");
+  assert.equal(minor.test_run.outcome, "failed-minor");
+  assert.equal(minor.event.outcome, "failed-minor");
+  assert.ok(minor.event.related.includes("case:TB-PREF-012"));
+  const bad = run(project, ["test", "record", "--story", "ST-QA", "--command", '["npm","test"]', "--evidence", "run.log", "--exit-code", "0", "--passed", "1", "--outcome", "failed-minor"]);
+  assert.notEqual(bad.status, 0);
+
+  // create-fix on a failed case.
   record(project, "TB-2", { fail: true });
   const refused = run(project, ["test", "triage", "--story", "ST-QA", "--case", "TB-2", "--decision", "fixable", "--reason", "bug", "--create-fix"]);
   assert.notEqual(refused.status, 0);
@@ -87,12 +87,4 @@ test("create-fix opens a free fix story on the delivered story, and it closes on
   assert.ok(strictErrors(project, fixId).some((message) => /TB-2/u.test(message) && /cannot close/u.test(message)));
   record(project, "TB-2");
   assert.ok(!strictErrors(project, fixId).some((message) => /cannot close/u.test(message)));
-});
-
-test("a fix story is available to every computer: free stories are not kept for their creator", async () => {
-  const { isFreshForeignStory } = await import("../lib/host-hooks/keep-going.mjs");
-  const base = { audit: { run: { host: "pc-a" } } };
-  const view = { selfHost: "pc-b", windowMs: 3600_000 };
-  assert.equal(isFreshForeignStory(base, view), true);
-  assert.equal(isFreshForeignStory({ ...base, free: true }, view), false);
 });

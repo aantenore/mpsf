@@ -423,22 +423,6 @@ test("a delivery records usage, shows its lead time and cost, and keeps its hist
   assert.equal(mustRunJson(["budget", "status", "--root", project, "--delivery", delivery.profileId], project).receipts.length, 3);
 });
 
-test("a standing approval budget is refused until delivery cost can be measured", () => {
-  const project = initializeProject("refused");
-  mustFail(
-    standingArgs(project, ["--budget-per-delivery", "1.50", "--budget-total", "2", "--currency", "USD"]),
-    project,
-    /only when this project has a meter that reports delivery cost, and none is configured[\s\S]*metering_adapters\.codeburn\.enabled[\s\S]*Nothing was recorded/u,
-  );
-  mustFail(standingArgs(project, ["--currency", "USD"]), project, /--currency names the currency of a cost budget/u);
-  assert.equal(fs.existsSync(path.join(project, ".sdlc", "autonomy", "standing", "SA-COST")), false);
-  configureFakeCodeBurn(project);
-  const proposed = mustRunJson(standingArgs(project, ["--budget-per-delivery", "1.50", "--budget-total", "2", "--currency", "USD"]), project);
-  // Amounts are kept as exact decimal strings.
-  assert.deepEqual(proposed.standing_approval.budget, { currency: "USD", per_delivery_amount: "1.5", total_amount: "2" });
-  assert.match(proposed.plain_language, /The cost measured by a meter stays within USD 1\.50 per delivery and USD 2\.00 in total/u);
-});
-
 test("a standing approval budget covers a step only with a fresh metered cost inside the budget", () => {
   const project = initializeProject("budget");
   const meter = configureFakeCodeBurn(project);
@@ -640,10 +624,23 @@ test("spend between a delivery's approval and its meter start never slips past a
   });
 });
 
-test("a delivery revoked before its meter started keeps a total standing budget from covering later steps", () => {
+test("a standing approval budget is refused until delivery cost can be measured, and a delivery revoked before its meter started keeps the total budget from covering later steps", () => {
   const project = initializeProject("unmetered");
+  // A standing approval budget is refused until delivery cost can be measured.
+  mustFail(
+    standingArgs(project, ["--budget-per-delivery", "1.50", "--budget-total", "2", "--currency", "USD"]),
+    project,
+    /only when this project has a meter that reports delivery cost, and none is configured[\s\S]*metering_adapters\.codeburn\.enabled[\s\S]*Nothing was recorded/u,
+  );
+  mustFail(standingArgs(project, ["--currency", "USD"]), project, /--currency names the currency of a cost budget/u);
+  assert.equal(fs.existsSync(path.join(project, ".sdlc", "autonomy", "standing", "SA-COST")), false);
   configureFakeCodeBurn(project);
-  mustRunJson(standingArgs(project, ["--budget-per-delivery", "1", "--budget-total", "5", "--currency", "USD"]), project);
+  const proposed = mustRunJson(standingArgs(project, ["--budget-per-delivery", "1.50", "--budget-total", "2", "--currency", "USD"]), project);
+  // Amounts are kept as exact decimal strings.
+  assert.deepEqual(proposed.standing_approval.budget, { currency: "USD", per_delivery_amount: "1.5", total_amount: "2" });
+  assert.match(proposed.plain_language, /The cost measured by a meter stays within USD 1\.50 per delivery and USD 2\.00 in total/u);
+
+  // A delivery revoked before its meter started keeps the total budget from covering later steps.
   mustRunJson(["autonomy", "standing", "approve", "--root", project, "--id", "SA-COST", ...humanApproval("Approve SA-COST")], project);
   const one = prepareDelivery(project, "ONE", { standingId: "SA-COST" });
   approveDelivery(project, one, "SA-COST");

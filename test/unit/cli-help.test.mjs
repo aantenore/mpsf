@@ -89,7 +89,7 @@ test("delivery help exposes required runtime inputs rather than internal aliases
   assert.equal(flags.has("--evidence"), true);
   assert.match(
     action.human.result,
-    /new local destination.*request build\.local first without confirmation.*only if it reports checkpoint_required.*repeat with direct approval.*external builder creates the exact approved root.*completed with evidence.*rollback\.verify, data\.migrate, data\.rollback, or release\.local/iu,
+    /new local destination.*request build\.local first without confirmation.*only if it reports checkpoint_required.*repeat with direct approval.*external builder creates the exact approved root.*completed with evidence.*before rollback\.verify, data\.migrate, data\.rollback, or release\.local/iu,
   );
   assert.equal(
     action.examples.filter((example) => /--action build\.local/u.test(example))[0],
@@ -105,6 +105,37 @@ test("delivery help exposes required runtime inputs rather than internal aliases
       /--action build\.local --outcome passed.*--authorization-receipt.*--evidence/u.test(example)),
     true,
   );
+
+  // Merged from first-user-language-ux.test.mjs: "first-user local-release help preserves
+  // conditional build authorization and complete action scope".
+  const globalFlags = new Map(buildHelpModel([]).options.map((entry) => [entry.flag, entry]));
+  assert.match(
+    globalFlags.get("--full")?.description || "",
+    /machine\/JSON details omitted from compact output/u,
+  );
+  const targetRoot = buildHelpModel(["autonomy", "delivery", "propose"])
+    .options.find((entry) => entry.flag === "--target-root");
+  assert.match(
+    targetRoot?.description || "",
+    /before rollback\.verify, data\.migrate, data\.rollback, or release\.local/u,
+  );
+  assert.match(
+    action.human.result,
+    /request build\.local first without confirmation[\s\S]*only if it reports checkpoint_required[\s\S]*repeat with direct approval/iu,
+  );
+  assert.match(
+    action.human.result,
+    /before rollback\.verify, data\.migrate, data\.rollback, or release\.local/u,
+  );
+  assert.equal(flags.has("--confirm-action"), true);
+  const buildExamples = action.examples.filter((example) => /--action build\.local/u.test(example));
+  assert.equal(buildExamples.length, 3);
+  assert.doesNotMatch(buildExamples[0], /--confirm-action/u);
+  assert.match(buildExamples[1], /--confirm-action.*--actor-type human.*--approval-source explicit-user/u);
+  assert.match(
+    buildExamples[2],
+    /--outcome passed.*--authorization-receipt.*--evidence/u,
+  );
 });
 
 test("trace append help includes a runnable example and its operational flags", () => {
@@ -117,6 +148,11 @@ test("trace append help includes a runnable example and its operational flags", 
   }
   assert.equal(model.examples.length, 1);
   assert.match(model.examples[0], /^mpsf trace append --type decision --summary/u);
+});
+
+test("project archive help says the records are never deleted in both languages", () => {
+  assert.match(renderHelp(["project", "archive"], { locale: "en" }), /never deleted/u);
+  assert.match(renderHelp(["project", "archive"], { locale: "it" }), /mai eliminato/u);
 });
 
 test("requirement and contract help include safe runnable examples and exact runtime flags", () => {
@@ -139,6 +175,10 @@ test("requirement and contract help include safe runnable examples and exact run
   assert.match(revision.examples[0], /--new-id .*--write-path src .*--write-path test/u);
 
   const italianRevision = buildHelpModel(["requirement", "revise"], { locale: "it" });
+  const italianRevisionFlags = new Map(italianRevision.options.map((entry) => [entry.flag, entry]));
+  assert.equal(italianRevisionFlags.get("--id")?.required, true);
+  assert.equal(italianRevisionFlags.get("--new-id")?.required, true);
+  assert.equal(italianRevisionFlags.get("--write-path")?.repeatable, true);
   assert.match(italianRevision.human.result, /vengono ereditate.*elenco sostitutivo/iu);
   assert.match(
     italianRevision.options.find((entry) => entry.flag === "--write-path")?.description,
@@ -505,6 +545,17 @@ test("unsupported locale fails before rendering", () => {
 });
 
 test("trace help lists valid types, reads naturally, and does not claim the group only reads", () => {
+  // Merged: "trace append help includes a runnable example and its operational flags".
+  const model = buildHelpModel(["trace", "append"]);
+  const flags = new Map(model.options.map((entry) => [entry.flag, entry]));
+  assert.equal(flags.get("--type")?.required, true);
+  assert.equal(flags.get("--summary")?.required, true);
+  for (const flag of ["--evidence", "--outcome", "--action", "--related", "--actor-type"]) {
+    assert.equal(flags.has(flag), true, flag);
+  }
+  assert.equal(model.examples.length, 1);
+  assert.match(model.examples[0], /^mpsf trace append --type decision --summary/u);
+
   const append = renderHelp(["trace", "append"]);
   assert.match(append, /--type <assumption\|claim\|decision\|gate\|handoff\|implementation\|lock\|release\|risk\|sync\|test> \(required\)/u);
   assert.match(append, /--explanation-kind <[^>]+> \(required with --explanation\)/u);

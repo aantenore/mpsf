@@ -151,6 +151,11 @@ test("merge recorded after the base advanced past the proven merge: accepted by 
   const check = (baseSha, opts = options) => validatePullRequestMergeRuntimeTransition(f.context, authorization, runtime(baseSha), proof, opts);
 
   assert.deepEqual(check(merged), { valid: true, mode: "squash", errors: [] });
+  // A fast-forward: the proven merge result is the authorized head itself.
+  assert.deepEqual(
+    validatePullRequestMergeRuntimeTransition(f.context, authorization, runtime(source), { merge_commit_sha: source, base_sha: f.base0 }),
+    { valid: true, mode: "fast-forward", errors: [] },
+  );
   const recordsOnly = check(records);
   assert.equal(recordsOnly.valid, true);
   assert.equal(recordsOnly.base_advance.reason, "base_advanced_after_merge_ancestry");

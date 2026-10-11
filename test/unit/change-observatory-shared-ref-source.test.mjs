@@ -57,6 +57,12 @@ test("records are read from the shared base branch, not the local files", async 
   const { base, publisher, viewer } = fixture();
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
 
+  // An explicit ref is shown and a missing one is refused (read-only, no fetch).
+  const explicit = resolveObservatoryRef(viewer, { ref: "story" });
+  assert.equal(explicit.ref, "story");
+  assert.equal(explicit.remote, null);
+  assert.equal(resolveObservatoryRef(viewer, { ref: "no-such-ref" }), null);
+
   const resolved = resolveObservatoryRef(viewer);
   assert.equal(resolved.ref, "origin/main");
   assert.equal(resolved.remote, "origin");
@@ -81,15 +87,6 @@ test("records are read from the shared base branch, not the local files", async 
   assert.ok(!fs.existsSync(path.join(snapshotRoot, ".sdlc/stories/ST-1")));
   assert.ok(source.info().fetchedAt);
   assert.equal(await source.refresh(), false);
-});
-
-test("an explicit ref is shown and a missing one is refused", (t) => {
-  const { base, viewer } = fixture();
-  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
-  const resolved = resolveObservatoryRef(viewer, { ref: "story" });
-  assert.equal(resolved.ref, "story");
-  assert.equal(resolved.remote, null);
-  assert.equal(resolveObservatoryRef(viewer, { ref: "no-such-ref" }), null);
 });
 
 test("the fetch interval comes from the environment", () => {

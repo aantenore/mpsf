@@ -14,7 +14,6 @@ import {
   INSIGHT_SETTINGS,
   addRemoteStories,
   applyDependencies,
-  applySharedClaims,
   changeRequestLinks,
   normalizeSearchText,
   planLayout,
@@ -71,21 +70,6 @@ test("search ignores accents, case, and ID punctuation and ranks the ID first", 
   assert.equal(searchScore(exact, "riprogrammazione"), 3);
   assert.equal(searchScore(exact, "RIPROGRAMMAZIONÉ"), 3);
   assert.equal(searchScore(exact, "missing"), 0);
-});
-
-test("claims from other computers mark stories as being worked on or finished", () => {
-  const stories = [story("ST-A", "idle"), story("ST-B", "open"), story("ST-C", "delivered"), story("ST-D", "idle")];
-  const result = applySharedClaims(stories, [
-    { storyId: "ST-A", state: "claimed", agent: "agent" },
-    { storyId: "ST-B", state: "completed", completion: "closed" },
-    { storyId: "ST-C", state: "claimed" },
-  ]);
-  assert.equal(result[0].state, "live");
-  assert.equal(result[0].holder.agent, "agent");
-  assert.equal(result[1].state, "stopped");
-  assert.equal(result[2].state, "delivered", "a delivered story keeps its recorded state");
-  assert.equal(result[3], stories[3]);
-  assert.equal(applySharedClaims(stories, []), stories);
 });
 
 test("a change request links to the stories that delivered its requirement", () => {

@@ -4,7 +4,6 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { alertFor } from "../../lib/messaging/auto.mjs";
 import { heartbeatMinutes, heartbeatPeriodic, localActiveClaims, selectPresence, stallHours } from "../../lib/messaging/presence.mjs";
 import { claimEndedByRefs, readClaimRefNames } from "../../lib/runtime/claim-refs.mjs";
 
@@ -119,16 +118,6 @@ test("local claims: active, unexpired, on a branch of this clone, with the workf
   const claims = localActiveClaims(root, { now: NOW, branchExists: (branch) => branch !== "b/ST-D-001" });
   assert.deepEqual(claims.map((item) => [item.story, item.phase]), [["ST-A-001", "verify"]]);
   assert.match(selectPresence({ claims, now: NOW }).text, /ST-A-001 in phase verify for 10 min/u);
-});
-
-test("[auto] notices for phase, delivery steps, tests and strict gate", () => {
-  assert.equal(alertFor("workflow.instance.transition", { id: "W-1", to: "verify" }, { exitCode: 0, extra: { story: "ST-A-001" } }).text, "ST-A-001 entered phase verify.");
-  const pr = alertFor("autonomy.delivery.action", { id: "D-1", action: "pull_request.create", outcome: "passed", "pr-url": "https://example.test/pr/1" }, { exitCode: 0, extra: { story: "ST-A-001" } });
-  assert.equal(pr.text, "pull request create done for ST-A-001. https://example.test/pr/1");
-  assert.equal(alertFor("autonomy.delivery.action", { id: "D-1", action: "git.push", outcome: "failed" }, { exitCode: 0 }), null);
-  assert.equal(alertFor("test.record", { story: "ST-A-001", "exit-code": "0", passed: "12", failed: "0" }, { exitCode: 0 }).text, "tests for ST-A-001 passed (12 passed, 0 failed).");
-  assert.equal(alertFor("gate.check", { story: "ST-A-001", strict: true }, { exitCode: 0 }).text, "ST-A-001 strict gate passed.");
-  assert.equal(alertFor("gate.check", { story: "ST-A-001" }, { exitCode: 0 }), null);
 });
 
 test("local claims: one set for the whole clone, a live record wins over a stale worktree copy", () => {

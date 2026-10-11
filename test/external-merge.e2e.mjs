@@ -299,21 +299,11 @@ test("a person acknowledges a merge made on GitHub and the story counts as merge
   ], /./u);
 });
 
-test("a merge whose head carries commits the plugin never covered is refused", () => {
-  const project = prepareDelivery();
-  commitFile(project, "src/late.txt", "pushed straight to the PR\n", "feat: an unverified follow-up");
-  const mergedHead = git(project, ["rev-parse", "HEAD"]);
-  const refused = mustRefuse(reconcileArgs(project), /is not the head .* covered by the plugin's receipts/u, {
-    env: mergedOnGitHub(project, { headSha: mergedHead }),
-  });
-  assert.match(refused.stderr, /commits no plugin receipt covers/u);
-  assert.deepEqual(executionFiles(project), ["start.json"], "nothing is recorded");
-  assert.match(dependencyBlockers(project).join("\n"), /requires merged/u);
-});
-
-test("a merge into another base branch or before the plugin's last action is refused", () => {
+test("a refused merge acknowledgement records nothing: another base, too early, wrong or open pull request, an agent, or an uncovered head", () => {
   const project = prepareDelivery();
   const headSha = git(project, ["rev-parse", "HEAD"]);
+
+  // A merge into another base branch or before the plugin's last action is refused.
   mustRefuse(reconcileArgs(project), /merged into release, not the approved main/u, {
     env: mergedOnGitHub(project, { headSha, base: "release" }),
   });
@@ -326,11 +316,8 @@ test("a merge into another base branch or before the plugin's last action is ref
     { env: mergedOnGitHub(project, { headSha }) },
   );
   assert.deepEqual(executionFiles(project), ["start.json"]);
-});
 
-test("a pull request that is not merged yet cannot be acknowledged", () => {
-  const project = prepareDelivery();
-  const headSha = git(project, ["rev-parse", "HEAD"]);
+  // A pull request that is not merged yet cannot be acknowledged.
   mustRefuse(reconcileArgs(project), /is not merged on GitHub \(state OPEN\)/u, {
     env: mergedOnGitHub(project, { headSha, state: "OPEN" }),
   });
@@ -338,6 +325,28 @@ test("a pull request that is not merged yet cannot be acknowledged", () => {
     env: mergedOnGitHub(project, { headSha, state: "OPEN" }),
   });
   assert.deepEqual(executionFiles(project), ["start.json"]);
+
+  // An agent cannot acknowledge a merge.
+  const agentRefused = mustRefuse(reconcileArgs(project), /cannot run inside an agent session/u, {
+    env: { ...mergedOnGitHub(project, { headSha }), CLAUDECODE: "1" },
+  });
+  assert.match(agentRefused.stderr, /autonomy delivery reconcile --id AUT-EXTERNAL/u);
+  mustRefuse(
+    ["autonomy", "delivery", "reconcile", "--root", project, "--id", PROFILE_ID, "--pr-url", PR_URL, "--actor-type", "agent", "--summary", "I saw it merged"],
+    /needs --actor-type human or ci|formal approval|human/u,
+    { env: mergedOnGitHub(project, { headSha }) },
+  );
+  assert.deepEqual(executionFiles(project), ["start.json"]);
+
+  // A merge whose head carries commits the plugin never covered is refused.
+  commitFile(project, "src/late.txt", "pushed straight to the PR\n", "feat: an unverified follow-up");
+  const mergedHead = git(project, ["rev-parse", "HEAD"]);
+  const refused = mustRefuse(reconcileArgs(project), /is not the head .* covered by the plugin's receipts/u, {
+    env: mergedOnGitHub(project, { headSha: mergedHead }),
+  });
+  assert.match(refused.stderr, /commits no plugin receipt covers/u);
+  assert.deepEqual(executionFiles(project), ["start.json"], "nothing is recorded");
+  assert.match(dependencyBlockers(project).join("\n"), /requires merged/u);
 });
 
 test("a required code review applies to the merged head as it would to a governed merge", () => {
@@ -366,22 +375,6 @@ test("a required code review applies to the merged head as it would to a governe
   const recorded = mustRunJson(reconcileArgs(project), { env: mergedOnGitHub(project, { headSha }) });
   assert.equal(recorded.terminal_status, "merged_externally");
   assert.equal(recorded.external_merge.code_review.required, true);
-});
-
-test("an agent cannot acknowledge a merge", () => {
-  const project = prepareDelivery();
-  const headSha = git(project, ["rev-parse", "HEAD"]);
-  const refused = mustRefuse(reconcileArgs(project), /cannot run inside an agent session/u, {
-    env: { ...mergedOnGitHub(project, { headSha }), CLAUDECODE: "1" },
-  });
-  assert.match(refused.stderr, /autonomy delivery reconcile --id AUT-EXTERNAL/u);
-  mustRefuse(
-    ["autonomy", "delivery", "reconcile", "--root", project, "--id", PROFILE_ID, "--pr-url", PR_URL, "--actor-type", "agent", "--summary", "I saw it merged"],
-    /needs --actor-type human or ci|formal approval|human/u,
-    { env: mergedOnGitHub(project, { headSha }) },
-  );
-  assert.deepEqual(executionFiles(project), ["start.json"]);
-
 });
 
 test("a delivery closed as ready for review keeps its close and gains the acknowledgement", () => {

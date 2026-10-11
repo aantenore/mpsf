@@ -106,23 +106,50 @@ test("status and doctor warn before publishing when the project history forked, 
   const check = doctor.checks.find((entry) => entry.id === "project-history-divergence");
   assert.equal(check.warning, true);
   assert.match(check.details, /2 event\(s\) only here, 1 only on origin\/main/u);
+
+  // trace rebase without a reachable base names the fetch to run and changes nothing.
+  const before = fs.readFileSync(path.join(second, TRACE));
+  const result = run(["trace", "rebase", "--root", second, "--onto", "origin/absent", "--apply"]);
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}${result.stderr}`, /origin\/absent is not a commit in this clone; fetch it first/u);
+  assert.ok(fs.readFileSync(path.join(second, TRACE)).equals(before));
 });
 
 test("two computers merge their forked project history with one command and both verify it", () => {
   const { first, second } = twoComputers("merge");
+  // trace rebase also merges the output registry by entry id: each computer
+  // commits its own decision entry, so the registry conflicts in the merge too.
+  const REGISTRY = ".sdlc/output-contracts/registry.json";
+  const addDecision = (project, id) => {
+    const file = path.join(project, REGISTRY);
+    const registry = JSON.parse(fs.readFileSync(file, "utf8"));
+    registry.decisions = [...(registry.decisions || []), { id, type: "fixture", status: "recorded" }];
+    registry.updated_at = new Date().toISOString();
+    fs.writeFileSync(file, `${JSON.stringify(registry, null, 2)}\n`);
+    git(project, ["commit", "--quiet", "-am", `Record ${id}`]);
+  };
+  addDecision(first, "DEC-FIRST");
+  git(first, ["push", "--quiet"]);
+  addDecision(second, "DEC-SECOND");
+  git(second, ["fetch", "--quiet"]);
   // The usual flow: merge the base branch, which conflicts on the history,
   // then rebase this computer's events onto it and finish the merge.
   git(second, ["merge", "--no-edit", "origin/main"], { allowFailure: true });
   const planned = mustRunJson(["trace", "rebase", "--root", second, "--onto", "origin/main"]);
   assert.equal(planned.applied, false);
   assert.equal(planned.moved_events, 2);
+  assert.equal(planned.output_registry.applied, false);
   const applied = mustRunJson(["trace", "rebase", "--root", second, "--onto", "origin/main", "--apply"]);
   assert.equal(applied.applied, true);
   assert.equal(applied.base_events, 2);
   assert.equal(applied.moved_events, 2);
   assert.equal(applied.already_present, 1);
+  assert.equal(applied.output_registry.file, REGISTRY);
+  assert.equal(applied.output_registry.applied, true);
+  const mergedRegistry = JSON.parse(fs.readFileSync(path.join(second, REGISTRY), "utf8"));
+  assert.deepEqual(mergedRegistry.decisions.map((entry) => entry.id).filter((id) => id.startsWith("DEC-")).slice(-2), ["DEC-FIRST", "DEC-SECOND"]);
   assert.equal(verified(second), true);
-  git(second, ["add", ".sdlc/traces"]);
+  git(second, ["add", ".sdlc/traces", REGISTRY]);
   git(second, ["commit", "--quiet", "--no-edit", "-m", "Merge origin/main"], { allowFailure: true });
   assert.equal(git(second, ["status", "--porcelain"]).stdout.trim(), "");
   const moved = fs.readFileSync(path.join(second, TRACE), "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
@@ -141,38 +168,4 @@ test("two computers merge their forked project history with one command and both
   const again = mustRunJson(["trace", "rebase", "--root", second, "--onto", "origin/main", "--apply"]);
   assert.equal(again.changed, false);
   assert.equal(again.moved_events, 0);
-});
-
-test("trace rebase without a reachable base names the fetch to run and changes nothing", () => {
-  const { second } = twoComputers("missing-base");
-  const before = fs.readFileSync(path.join(second, TRACE));
-  const result = run(["trace", "rebase", "--root", second, "--onto", "origin/absent", "--apply"]);
-  assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}${result.stderr}`, /origin\/absent is not a commit in this clone; fetch it first/u);
-  assert.ok(fs.readFileSync(path.join(second, TRACE)).equals(before));
-});
-
-test("trace rebase also merges the output registry by entry id", () => {
-  const { first, second } = twoComputers("registry");
-  const REGISTRY = ".sdlc/output-contracts/registry.json";
-  const addDecision = (project, id) => {
-    const file = path.join(project, REGISTRY);
-    const registry = JSON.parse(fs.readFileSync(file, "utf8"));
-    registry.decisions = [...(registry.decisions || []), { id, type: "fixture", status: "recorded" }];
-    registry.updated_at = new Date().toISOString();
-    fs.writeFileSync(file, `${JSON.stringify(registry, null, 2)}\n`);
-    git(project, ["commit", "--quiet", "-am", `Record ${id}`]);
-  };
-  git(first, ["pull", "--quiet", "--no-rebase"], { allowFailure: true });
-  addDecision(first, "DEC-FIRST");
-  git(first, ["push", "--quiet"]);
-  addDecision(second, "DEC-SECOND");
-  git(second, ["fetch", "--quiet"]);
-  git(second, ["merge", "--no-edit", "origin/main"], { allowFailure: true });
-  const applied = mustRunJson(["trace", "rebase", "--root", second, "--onto", "origin/main", "--apply"]);
-  assert.equal(applied.output_registry.file, REGISTRY);
-  assert.equal(applied.output_registry.applied, true);
-  const merged = JSON.parse(fs.readFileSync(path.join(second, REGISTRY), "utf8"));
-  assert.deepEqual(merged.decisions.map((entry) => entry.id).filter((id) => id.startsWith("DEC-")).slice(-2), ["DEC-FIRST", "DEC-SECOND"]);
-  assert.equal(verified(second), true);
 });

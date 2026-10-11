@@ -7297,31 +7297,6 @@ test("template overlays require configuration before project initialization writ
   assert.equal(fs.existsSync(path.join(project, ".sdlc")), false);
 });
 
-test("custom template symlinks fail before project initialization writes", (t) => {
-  if (!requireSymlinkSupport(t, "file")) return;
-  const project = tmpProject("symlink-template-overlay");
-  const templateDir = tmpProject("symlink-template");
-  fs.copyFileSync(
-    path.join(repoRoot, "templates", "sdlc-config.json"),
-    path.join(templateDir, "sdlc-config.json"),
-  );
-  fs.symlinkSync(
-    path.join(repoRoot, "templates", "kb-readme.md"),
-    path.join(templateDir, "kb-readme.md"),
-  );
-  fs.writeFileSync(path.join(project, "README.md"), "# Existing local project\n");
-
-  mustFail([
-    "onboard",
-    "existing-project",
-    "--root",
-    project,
-    "--template-dir",
-    templateDir,
-  ], /Custom template overlay asset must be a readable regular file/);
-  assert.equal(fs.existsSync(path.join(project, ".sdlc")), false);
-});
-
 test("symlink context escapes are blocked", (t) => {
   if (!requireSymlinkSupport(t, "file")) return;
   const project = tmpProject("safe-paths-symlink");
@@ -8665,6 +8640,7 @@ test("capability profiles and recommendations can be approved and applied to con
     recommendation,
     "--json",
   ]).stdout);
+  assert.equal(proposedRecommendation.recommendation.profile_id, "CAP-PROFILE-ST-001");
   assert.match(proposedRecommendation.assistant_message, /Allowed tools for this work/);
   assert.doesNotMatch(proposedRecommendation.assistant_message, /capability recommendation/i);
   assert.equal(proposedRecommendation.approval_request.type, "capability_recommendation_approval");
@@ -8702,6 +8678,17 @@ test("capability profiles and recommendations can be approved and applied to con
   assert.equal(contract.capability_bindings.some((binding) => binding.name === "repo"), true);
   assert.equal(contract.execution_policy.reasoning.level, "high");
   assert.equal(contract.capability_recommendation_refs[0].id, "CAP-REC-ST-001");
+
+  // Merged from cli-self-service.e2e.mjs: "capability commands use --profile while delivery selection
+  // remains separate". The capability selector is --profile; --delivery-profile is refused by the engine.
+  const wrongSelector = run([
+    "capability", "recommend",
+    "--root", project,
+    "--id", "CAP-REC-WRONG",
+    "--delivery-profile", "CAP-PROFILE-ST-001",
+  ], { cwd: project });
+  assert.equal(wrongSelector.status, 1);
+  assert.match(wrongSelector.stderr, /Missing required option --profile/u);
 });
 
 test("default capability recommendations use the reviewed available inventory", () => {
@@ -9696,12 +9683,23 @@ test("orchestration hashes dependency artifacts outside .sdlc without using a sh
   assert.ok(changedDownstream.blockers.some((blocker) => blocker.includes("requires revalidation")));
 });
 
-test("route decide returns init_project when canonical intent arrives before KB initialization", () => {
+// Table of "route decide returns init_project when canonical intent arrives before KB initialization" and
+// "route decide does not inherit risky action confirmation before KB initialization". route decide writes
+// nothing, so both rows run on the same uninitialized directory.
+test("route decide returns init_project before KB initialization without inheriting risky action confirmation", () => {
   const project = tmpProject("route-no-kb");
-  const decision = routeDecision(project);
-  assert.equal(decision.route, "init_project");
-  assert.equal(decision.requires_confirmation, false);
-  assert.ok(decision.next_commands.some((command) => command.includes("mpsf init")));
+  for (const [label, overrides] of [
+    ["canonical intent before KB initialization", {}],
+    ["risky implement_story before KB initialization", {
+      requested_action: "implement_story",
+      referenced_entities: [{ type: "story", id: "ST-001" }],
+    }],
+  ]) {
+    const decision = routeDecision(project, overrides);
+    assert.equal(decision.route, "init_project", label);
+    assert.equal(decision.requires_confirmation, false, label);
+    assert.ok(decision.next_commands.some((command) => command.includes("mpsf init")), label);
+  }
 });
 
 test("route decide returns onboarding when canonical intent targets an existing project", () => {
@@ -9722,26 +9720,54 @@ test("route decide returns onboarding when canonical intent targets an existing 
   assert.ok(initializedDecision.next_commands.some((command) => command.includes("baseline propose")));
 });
 
-test("route decide does not inherit risky action confirmation before KB initialization", () => {
-  const project = tmpProject("route-no-kb-implement");
-  const decision = routeDecision(project, {
-    requested_action: "implement_story",
-    referenced_entities: [{ type: "story", id: "ST-001" }],
-  });
-  assert.equal(decision.route, "init_project");
-  assert.equal(decision.requires_confirmation, false);
-  assert.ok(decision.next_commands.some((command) => command.includes("mpsf init")));
-});
-
-test("route alias with raw text only asks for canonical normalization", () => {
-  const project = tmpProject("route-raw-text");
+// Merged: "route alias with raw text only asks for canonical normalization", "route decide asks to create a
+// missing story before implementation", "route decide confirms phase skip for functional analysis" and
+// "route decide asks when canonical confidence is low". route and route decide only plan and write nothing,
+// so the four decisions share one initialized project. ST-404 must stay unseeded here.
+test("route decisions ask, confirm, or normalize on one initialized project", async (t) => {
+  const project = tmpProject("route-decisions");
   initProject(project);
-  const result = mustRun(["route", "--root", project, "--json", "--text", "Implement ST-001"]);
-  const decision = JSON.parse(result.stdout);
-  assert.equal(decision.route, "ask_clarification");
-  assert.equal(decision.status, "needs_normalization");
-  assert.ok(decision.blocking_reasons.includes("needs_normalization"));
-  assert.equal(decision.deterministic_checks.some((check) => check.check === "raw_text" && check.status === "ignored"), true);
+
+  await t.test("route alias with raw text only asks for canonical normalization", () => {
+    const result = mustRun(["route", "--root", project, "--json", "--text", "Implement ST-001"]);
+    const decision = JSON.parse(result.stdout);
+    assert.equal(decision.route, "ask_clarification");
+    assert.equal(decision.status, "needs_normalization");
+    assert.ok(decision.blocking_reasons.includes("needs_normalization"));
+    assert.equal(decision.deterministic_checks.some((check) => check.check === "raw_text" && check.status === "ignored"), true);
+  });
+
+  await t.test("route decide asks to create a missing story before implementation", () => {
+    const decision = routeDecision(project, {
+      requested_action: "implement_story",
+      referenced_entities: [{ type: "story", id: "ST-404" }],
+    });
+    assert.equal(decision.route, "ask_clarification");
+    assert.ok(decision.blocking_reasons.includes("story_not_found"));
+    assert.ok(decision.next_commands.some((command) => command.includes("story create --id ST-404")));
+  });
+
+  await t.test("route decide confirms phase skip for functional analysis", () => {
+    const decision = routeDecision(project, {
+      requested_action: "functional_analysis",
+      proposed_phase: "analysis",
+      artifact_type: "functional-analysis",
+      skip_phases: ["discovery"],
+    });
+    assert.equal(decision.route, "confirm_phase_skip");
+    assert.equal(decision.requires_confirmation, true);
+    assert.ok(decision.next_commands.some((command) => command.includes("Approved phase skip: discovery")));
+  });
+
+  await t.test("route decide asks when canonical confidence is low", () => {
+    const decision = routeDecision(project, {
+      requested_action: "intake_requirement",
+      confidence: 0.2,
+    });
+    assert.equal(decision.route, "ask_clarification");
+    assert.equal(decision.status, "low_confidence");
+    assert.ok(decision.blocking_reasons.includes("low_confidence"));
+  });
 });
 
 test("task start is the SDLC front door before phase work", () => {
@@ -10225,18 +10251,6 @@ test("route and orchestration do not advertise a claim before governed task star
   assert.match(claimCandidate.suggested_claim, /story claim --id ST-CLAIM-START/u);
 });
 
-test("route decide asks to create a missing story before implementation", () => {
-  const project = tmpProject("route-missing-story");
-  initProject(project);
-  const decision = routeDecision(project, {
-    requested_action: "implement_story",
-    referenced_entities: [{ type: "story", id: "ST-404" }],
-  });
-  assert.equal(decision.route, "ask_clarification");
-  assert.ok(decision.blocking_reasons.includes("story_not_found"));
-  assert.ok(decision.next_commands.some((command) => command.includes("story create --id ST-404")));
-});
-
 test("route decide gives the additive recovery command for a legacy story without acceptance", () => {
   const project = tmpProject("route-missing-story-acceptance");
   initProject(project);
@@ -10302,32 +10316,6 @@ test("route decide does not propose an impossible contract before story acceptan
     ) || []).length,
     1,
   );
-});
-
-test("route decide confirms phase skip for functional analysis", () => {
-  const project = tmpProject("route-skip");
-  initProject(project);
-  const decision = routeDecision(project, {
-    requested_action: "functional_analysis",
-    proposed_phase: "analysis",
-    artifact_type: "functional-analysis",
-    skip_phases: ["discovery"],
-  });
-  assert.equal(decision.route, "confirm_phase_skip");
-  assert.equal(decision.requires_confirmation, true);
-  assert.ok(decision.next_commands.some((command) => command.includes("Approved phase skip: discovery")));
-});
-
-test("route decide asks when canonical confidence is low", () => {
-  const project = tmpProject("route-low-confidence");
-  initProject(project);
-  const decision = routeDecision(project, {
-    requested_action: "intake_requirement",
-    confidence: 0.2,
-  });
-  assert.equal(decision.route, "ask_clarification");
-  assert.equal(decision.status, "low_confidence");
-  assert.ok(decision.blocking_reasons.includes("low_confidence"));
 });
 
 test("story step completion requires linked outputs and prepares releasable handoff packages", () => {

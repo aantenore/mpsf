@@ -87,6 +87,9 @@ test("runner discovers an explicit, non-empty, stable test-file list", () => {
   assert.ok(files.every((file) => path.isAbsolute(file)));
   assert.ok(files.every((file) => file.startsWith(path.join(PROJECT_ROOT, "test"))));
   assert.ok(files.includes(fileURLToPath(import.meta.url)));
+  // Fixtures and helpers are support code, never test files of their own.
+  const support = ["fixtures", "helpers"].map((name) => path.join(PROJECT_ROOT, "test", name) + path.sep);
+  assert.ok(files.every((file) => support.every((prefix) => !file.startsWith(prefix))));
 });
 
 test("runner returns a nonzero status for test failures and stream errors", async () => {

@@ -486,58 +486,70 @@ test("adversarial configurable patterns are rejected within a child-process dead
   }
 });
 
-test("the default bounded email detector completes on maximum-size non-email input", () => {
-  const moduleUrl = new URL("../../lib/observability/redaction.mjs", import.meta.url).href;
-  const script = [
-    `import { createOperationalRedactionPolicy, redactText } from ${JSON.stringify(moduleUrl)};`,
-    "const policy = createOperationalRedactionPolicy();",
-    "redactText('a'.repeat(262_144), policy);",
-    "process.stdout.write('completed');",
-  ].join("\n");
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
-    encoding: "utf8",
+// Maximum-size detector deadlines: each row runs in its own child process with
+// its own policy factory, exact inputs and deadline, so a slow detector is named.
+const MAXIMUM_SIZE_DETECTOR_CASES = [
+  {
+    name: "the default bounded email detector completes on maximum-size non-email input",
+    factory: "createOperationalRedactionPolicy",
+    inputs: [
+      "redactText('a'.repeat(262_144), policy);",
+    ],
     timeout: 2_000,
-  });
-  assert.equal(result.error, undefined, "default email detection exceeded the safety deadline");
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, "completed");
-});
+    label: "default email detection exceeded the safety deadline",
+  },
+  {
+    name: "the exact legacy email engine is linear on adversarial maximum-size input",
+    factory: "createLegacyEvidenceV1RedactionPolicy",
+    inputs: [
+      "redactText('a.'.repeat(131_000), policy);",
+      "redactText(`${'a'.repeat(80_000)}@${'b'.repeat(80_000)}.${'c'.repeat(80_000)}`, policy);",
+    ],
+    timeout: 2_000,
+    label: "legacy email compatibility exceeded the safety deadline",
+  },
+  {
+    name: "the bounded URL userinfo detector completes on maximum-size ambiguous input",
+    factory: "createOperationalRedactionPolicy",
+    inputs: [
+      "redactText(`https://user:${'a'.repeat(262_100)}/path`, policy);",
+      "redactText(`https://user:${'a@'.repeat(120_000)}host.test/path`, policy);",
+    ],
+    timeout: 2_000,
+    label: "default URL userinfo detection exceeded the safety deadline",
+  },
+  {
+    name: "extended detectors complete on maximum-size adversarial input",
+    factory: "createOperationalRedactionPolicy",
+    inputs: [
+      "redactText(' --password'.repeat(23_000), policy);",
+      "redactText(' -u '.repeat(60_000), policy);",
+      "redactText('\"auth\": \"'.repeat(25_000), policy);",
+      "redactText('SG.' + 'a'.repeat(262_000), policy);",
+    ],
+    timeout: 4_000,
+    label: "extended detection exceeded the safety deadline",
+  },
+];
 
-test("the exact legacy email engine is linear on adversarial maximum-size input", () => {
-  const moduleUrl = new URL("../../lib/observability/redaction.mjs", import.meta.url).href;
-  const script = [
-    `import { createLegacyEvidenceV1RedactionPolicy, redactText } from ${JSON.stringify(moduleUrl)};`,
-    "const policy = createLegacyEvidenceV1RedactionPolicy();",
-    "redactText('a.'.repeat(131_000), policy);",
-    "redactText(`${'a'.repeat(80_000)}@${'b'.repeat(80_000)}.${'c'.repeat(80_000)}`, policy);",
-    "process.stdout.write('completed');",
-  ].join("\n");
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
-    encoding: "utf8",
-    timeout: 2_000,
+for (const { name, factory, inputs, timeout, label } of MAXIMUM_SIZE_DETECTOR_CASES) {
+  test(name, () => {
+    const moduleUrl = new URL("../../lib/observability/redaction.mjs", import.meta.url).href;
+    const script = [
+      `import { ${factory}, redactText } from ${JSON.stringify(moduleUrl)};`,
+      `const policy = ${factory}();`,
+      ...inputs,
+      "process.stdout.write('completed');",
+    ].join("\n");
+    const result = spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
+      encoding: "utf8",
+      timeout,
+    });
+    assert.equal(result.error, undefined, label);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "completed");
   });
-  assert.equal(result.error, undefined, "legacy email compatibility exceeded the safety deadline");
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, "completed");
-});
-
-test("the bounded URL userinfo detector completes on maximum-size ambiguous input", () => {
-  const moduleUrl = new URL("../../lib/observability/redaction.mjs", import.meta.url).href;
-  const script = [
-    `import { createOperationalRedactionPolicy, redactText } from ${JSON.stringify(moduleUrl)};`,
-    "const policy = createOperationalRedactionPolicy();",
-    "redactText(`https://user:${'a'.repeat(262_100)}/path`, policy);",
-    "redactText(`https://user:${'a@'.repeat(120_000)}host.test/path`, policy);",
-    "process.stdout.write('completed');",
-  ].join("\n");
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
-    encoding: "utf8",
-    timeout: 2_000,
-  });
-  assert.equal(result.error, undefined, "default URL userinfo detection exceeded the safety deadline");
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, "completed");
-});
+}
 
 test("operational policy redacts extended vendor tokens and command-line credentials", () => {
   const policy = createOperationalRedactionPolicy();
@@ -694,24 +706,4 @@ test("previously written operational_v2 policy sources stay verifiable after det
   assert.equal(current.detectors.length > stored.detectors.length, true);
   const historical = describeRedactionPolicy(createHistoricalOperationalEvidenceV1RedactionPolicy());
   assert.deepEqual(historical.detectors, stored.detectors);
-});
-
-test("extended detectors complete on maximum-size adversarial input", () => {
-  const moduleUrl = new URL("../../lib/observability/redaction.mjs", import.meta.url).href;
-  const script = [
-    `import { createOperationalRedactionPolicy, redactText } from ${JSON.stringify(moduleUrl)};`,
-    "const policy = createOperationalRedactionPolicy();",
-    "redactText(' --password'.repeat(23_000), policy);",
-    "redactText(' -u '.repeat(60_000), policy);",
-    "redactText('\"auth\": \"'.repeat(25_000), policy);",
-    "redactText('SG.' + 'a'.repeat(262_000), policy);",
-    "process.stdout.write('completed');",
-  ].join("\n");
-  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", script], {
-    encoding: "utf8",
-    timeout: 4_000,
-  });
-  assert.equal(result.error, undefined, "extended detection exceeded the safety deadline");
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, "completed");
 });

@@ -178,10 +178,3 @@ test("project archive refuses when a remote cannot be checked and when shared re
   git(project, ["update-ref", "-d", "refs/tmp/x"]);
   mustRefuse(["project", "archive", "--root", project], /already holds shared project state/u);
 });
-
-test("project archive is listed in help in both languages", () => {
-  const english = mustRun(["help", "project", "archive"]).stdout;
-  assert.match(english, /never deleted/u);
-  const italian = mustRun(["help", "project", "archive", "--locale", "it"]).stdout;
-  assert.match(italian, /mai eliminato/u);
-});

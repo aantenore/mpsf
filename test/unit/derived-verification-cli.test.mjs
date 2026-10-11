@@ -47,34 +47,30 @@ const ruleIds = (record) => record.derived_acceptance.map((item) => item.rule_id
 const storyFile = (root, id) => path.join(root, ".sdlc", "stories", id, "story.json");
 const readStory = (root, id) => JSON.parse(fs.readFileSync(storyFile(root, id), "utf8"));
 
-test("requirement propose derives secondary criteria and keeps explicit acceptance unchanged", () => {
-  const root = project("propose");
-  const proposed = proposeRequirement(root, "REQ-DV-001");
+test("requirement propose derives secondary criteria or records the opt-out, and revise recomputes and inherits it", () => {
+  const root = project("revise");
+
+  // requirement propose derives secondary criteria and keeps explicit acceptance unchanged.
+  const proposed = proposeRequirement(root, "REQ-DV-003");
   assert.deepEqual(proposed.requirement.acceptance_criteria, ["A paid order shows a confirmation."]);
   assert.deepEqual(ruleIds(proposed.requirement), ["unit-tests", "ui-e2e", "ui-accessibility"]);
   assert.deepEqual(proposed.derived_acceptance, proposed.requirement.derived_acceptance);
   assert.equal(proposed.requirement.derived_acceptance[0].priority, "secondary");
   assert.equal(proposed.requirement.derived_verification.enforce, "block");
   assert.match(proposed.assistant_message, /DV-ui-e2e/u);
-});
 
-test("--no-derived-verification is recorded and skips derivation", () => {
-  const root = project("optout");
-  const proposed = proposeRequirement(root, "REQ-DV-002", ["--no-derived-verification"]);
-  assert.deepEqual(proposed.requirement.derived_acceptance, []);
-  assert.equal(proposed.requirement.derived_verification.disabled, true);
-  assert.equal(proposed.requirement.derived_verification.reason, "--no-derived-verification");
-});
-
-test("requirement revise recomputes from its new scope and inherits the opt-out", () => {
-  const root = project("revise");
-  proposeRequirement(root, "REQ-DV-003");
+  // requirement revise recomputes from its new scope.
   const revised = mustRunJson([
     "requirement", "revise", "--root", root, "--id", "REQ-DV-003", "--new-id", "REQ-DV-004",
     "--write-path", "src",
   ]);
   assert.deepEqual(ruleIds(revised.requirement), ["unit-tests"]);
-  proposeRequirement(root, "REQ-DV-005", ["--no-derived-verification"]);
+
+  // --no-derived-verification is recorded and skips derivation; revise inherits the opt-out.
+  const optedOut = proposeRequirement(root, "REQ-DV-005", ["--no-derived-verification"]);
+  assert.deepEqual(optedOut.requirement.derived_acceptance, []);
+  assert.equal(optedOut.requirement.derived_verification.disabled, true);
+  assert.equal(optedOut.requirement.derived_verification.reason, "--no-derived-verification");
   const inherited = mustRunJson(["requirement", "revise", "--root", root, "--id", "REQ-DV-005", "--new-id", "REQ-DV-006"]);
   assert.equal(inherited.requirement.derived_verification.disabled, true);
 });

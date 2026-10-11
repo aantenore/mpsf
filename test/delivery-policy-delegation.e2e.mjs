@@ -159,7 +159,8 @@ function prepareCheckpointedCeilingProject() {
   return project;
 }
 
-test("a delivery.policy delegation answers code review and merge for a new pull request", () => {
+test("a delivery.policy delegation answers code review and merge for a new pull request, and only a delivery.approve delegation lets the agent approve it", async () => {
+  const { sealDelegationRecord } = await import("../lib/approval-delegation.mjs");
   const project = prepareCheckpointedCeilingProject();
   const profilePath = path.join(project, ".sdlc", "autonomy", "deliveries", `${PROFILE_ID}.json`);
 
@@ -193,19 +194,8 @@ test("a delivery.policy delegation answers code review and merge for a new pull 
   const uses = fs.readdirSync(path.join(project, ".sdlc/autonomy/delegations/DLG-POLICY/uses"));
   assert.equal(uses.length, 1);
 
-  // The approved profile keeps the delegated answers.
-  const approved = mustRunJson([
-    "autonomy", "delivery", "approve", "--root", project, "--id", PROFILE_ID, "--phase", "implementation",
-    ...humanApproval("Approve the delivery"),
-  ]);
-  assert.equal(approved.delivery_profile.pull_request_target.code_review.source, "delegation");
-});
-
-test("a delivery.approve delegation lets the agent approve a pull-request delivery; none or an expired one is refused", async () => {
-  const { sealDelegationRecord } = await import("../lib/approval-delegation.mjs");
-  const project = prepareCheckpointedCeilingProject();
-  mustRun(grant(project, "DLG-POLICY", "delivery.policy", ["--delivery-policy", "code-review=not-required,merge=automatic"]));
-  mustRunJson(proposeArgs(project, delegated("DLG-POLICY")));
+  // A delivery.approve delegation lets the agent approve the pull-request delivery; none or an
+  // expired one is refused.
   const approve = (extra) => [
     "autonomy", "delivery", "approve", "--root", project, "--id", PROFILE_ID, "--phase", "implementation", ...extra, "--summary", "Approve the delivery",
   ];
@@ -224,4 +214,6 @@ test("a delivery.approve delegation lets the agent approve a pull-request delive
   const approved = mustRunJson(approve(delegated("DLG-APPROVE")));
   assert.equal(approved.delivery_profile.status, "active");
   assert.equal(fs.readdirSync(path.join(project, ".sdlc/autonomy/delegations/DLG-APPROVE/uses")).length, 1);
+  // The approved profile keeps the delegated answers.
+  assert.equal(approved.delivery_profile.pull_request_target.code_review.source, "delegation");
 });

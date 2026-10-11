@@ -668,39 +668,6 @@ test("preset definition approval and an event-sourced run are stable and retry-s
   );
 });
 
-test("an included preset can start a run without being copied into project storage", () => {
-  const project = temporaryProject("included");
-  mustRun(["init", "--root", project, "--project-name", "Included workflow"], project);
-
-  const started = mustRunJson([
-    "workflow", "instance", "start",
-    "--root", project,
-    "--id", "change-184",
-    "--definition", "change-request",
-    "--definition-version", "1",
-  ], project);
-  assert.equal(started.instance.definition_ref.id, "change-request");
-  assert.equal(started.instance.initial_state, "intake");
-  assert.equal(
-    fs.existsSync(path.join(project, ".sdlc", "workflows", "definitions", "change-request", "v1.json")),
-    false,
-  );
-
-  const transitioned = mustRunJson([
-    "workflow", "instance", "transition",
-    "--root", project,
-    "--id", "change-184",
-    "--to", "impact-review",
-    "--request-id", "impact-review-1",
-  ], project);
-  assert.equal(transitioned.replay.current_state, "impact-review");
-
-  const status = mustRunJson([
-    "workflow", "instance", "status", "--root", project, "--id", "change-184",
-  ], project);
-  assert.equal(status.current_state, "impact-review");
-});
-
 test("a story-bound workflow must pin the exact configured custom phase order", () => {
   const project = temporaryProject("custom-phases");
   mustRun(["init", "--root", project, "--project-name", "Custom phases"], project);

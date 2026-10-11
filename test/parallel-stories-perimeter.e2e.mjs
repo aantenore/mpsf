@@ -274,30 +274,18 @@ function authorizeCommit(project, scopePaths) {
   ]);
 }
 
+// Merged scenario: a branch fast-forwarded onto a merged story keeps only its
+// own commits in its perimeter, and a path touched outside the scope and then
+// restored is not charged while one left changed is.
 test("a branch fast-forwarded onto a merged story keeps only its own commits in its perimeter", () => {
   const { project, aHead } = storyAMergedWhileBInProgress();
   git(project, ["merge", "--ff-only", "-q", "origin/main"]);
   assert.equal(git(project, ["rev-parse", "HEAD"]), aHead);
 
-  // Story B also changes the shared export file: that change is its own.
-  commitFiles(project, {
-    "src/b/feature.ts": "export const b = 2;\n",
-    "src/index.ts": "export * from \"./a/feature\";\nexport * from \"./b/feature\";\n",
-  }, "feat: story B");
+  commitFiles(project, { "src/b/feature.ts": "export const b = 2;\n" }, "feat: story B");
   assert.deepEqual(scopeErrors(project, "ST-B"), [], "story A's files are not charged to story B");
 
-  // A change story B itself makes outside its scope still counts, even in a
-  // file story A delivered.
-  commitFiles(project, { "src/a/feature.ts": "export const a = 3;\n" }, "fix: story B edits story A's file");
-  const errors = scopeErrors(project, "ST-B");
-  assert.equal(errors.length, 1, errors.join("\n"));
-  assert.match(errors[0], /approved requirement write paths: src\/a\/feature\.ts /u);
-});
-
-test("a path touched outside the scope and then restored is not charged, one left changed is", () => {
-  const { project } = storyAMergedWhileBInProgress();
-  git(project, ["merge", "--ff-only", "-q", "origin/main"]);
-  commitFiles(project, { "src/b/feature.ts": "export const b = 2;\n" }, "feat: story B");
+  // A path touched outside the scope and then restored is not charged, one left changed is.
   const original = fs.readFileSync(path.join(project, "src/index.ts"), "utf8");
   commitFiles(project, { ".gitattributes": "* text=auto\n", "package.json": "{}\n", "src/b/one.ts": "export const one = 1;\n" }, "chore: touch files outside the scope");
   assert.equal(scopeErrors(project, "ST-B").length, 1, "touched and left changed is charged");
@@ -309,15 +297,19 @@ test("a path touched outside the scope and then restored is not charged, one lef
   git(project, ["commit", "-q", "-m", "chore: put them back"]);
   assert.equal(fs.readFileSync(path.join(project, "src/index.ts"), "utf8"), original);
   assert.deepEqual(scopeErrors(project, "ST-B"), [], "touched and restored is not charged");
-});
 
-test("git.commit accepts a branch that only picked up merged deliveries", () => {
-  const { project } = storyAMergedWhileBInProgress();
-  git(project, ["merge", "--ff-only", "-q", "origin/main"]);
-  writeFile(project, "src/b/feature.ts", "export const b = 2;\n");
-  const authorized = authorizeCommit(project, ["src/b/feature.ts"]);
-  assert.equal(authorized.status, 0, `${authorized.stdout}\n${authorized.stderr}`);
-  assert.equal(JSON.parse(authorized.stdout).status, "authorized");
+  // Story B also changes the shared export file: that change is its own.
+  commitFiles(project, {
+    "src/index.ts": "export * from \"./a/feature\";\nexport * from \"./b/feature\";\n",
+  }, "feat: story B shared export");
+  assert.deepEqual(scopeErrors(project, "ST-B"), [], "story A's files are not charged to story B");
+
+  // A change story B itself makes outside its scope still counts, even in a
+  // file story A delivered.
+  commitFiles(project, { "src/a/feature.ts": "export const a = 3;\n" }, "fix: story B edits story A's file");
+  const errors = scopeErrors(project, "ST-B");
+  assert.equal(errors.length, 1, errors.join("\n"));
+  assert.match(errors[0], /approved requirement write paths: src\/a\/feature\.ts /u);
 });
 
 test("git.commit refuses commits on the branch that no merged delivery accounts for", () => {
@@ -343,6 +335,7 @@ test("git.commit refuses commits on the branch that no merged delivery accounts 
   git(project, ["reset", "-q", "--keep", aHead]);
   const authorized = authorizeCommit(project, ["src/b/feature.ts"]);
   assert.equal(authorized.status, 0, `${authorized.stdout}\n${authorized.stderr}`);
+  assert.equal(JSON.parse(authorized.stdout).status, "authorized");
 });
 
 test("a story started on an earlier main starts a replacement delivery after the context was refreshed with a merged story", () => {
@@ -484,8 +477,29 @@ function mergeBaseIntoStoryB() {
   return fixture;
 }
 
+// Merged scenario on one pending merge of the base: story scope check does not
+// charge the story with files the merge brought in, git.commit still refuses
+// the story's own files outside the scope, and git.commit charges only what
+// differs from the base.
 test("git.commit of a merge from the base branch charges only what differs from the base", () => {
   const { project } = mergeBaseIntoStoryB();
+  const clear = JSON.parse(mustRun(["story", "scope", "check", "--root", project, "--id", "ST-B", "--json"]).stdout);
+  assert.deepEqual(clear.out_of_scope, []);
+  assert.ok(clear.merge_from_base.excluded_paths.includes("src/a/feature.ts"));
+  writeFile(project, "src/other/leak.ts", "export const leak = 1;\n");
+  const result = run(["story", "scope", "check", "--root", project, "--id", "ST-B", "--json"]);
+  const leak = JSON.parse(result.stdout);
+  assert.deepEqual(leak.out_of_scope.map((item) => item.path), ["src/other/leak.ts"]);
+
+  // git.commit still refuses the story's own files outside the scope.
+  const refused = authorizeCommit(project, ["src/a/feature.ts", "src/index.ts", "src/other/leak.ts"]);
+  const combined = `${refused.stdout}\n${refused.stderr}`;
+  assert.equal(refused.status, 1, combined);
+  assert.match(combined, /outside the approved write scope: src\/other\/leak\.ts\./u);
+  assert.doesNotMatch(combined, /scope: [^.]*src\/a\/feature\.ts/u);
+  git(project, ["rm", "-q", "--cached", "--", "src/other/leak.ts"]);
+  fs.rmSync(path.join(project, "src", "other"), { recursive: true, force: true });
+
   writeFile(project, "src/b/more.ts", "export const more = 1;\n");
   const scope = ["src/a/feature.ts", "src/index.ts", "src/b/more.ts"];
   const authorized = authorizeCommit(project, scope);
@@ -506,16 +520,6 @@ test("git.commit of a merge from the base branch charges only what differs from 
   assert.equal(JSON.parse(completed.stdout).status, "completed");
 });
 
-test("git.commit of a merge from the base branch still refuses the story's own files outside the scope", () => {
-  const { project } = mergeBaseIntoStoryB();
-  writeFile(project, "src/other/leak.ts", "export const leak = 1;\n");
-  const refused = authorizeCommit(project, ["src/a/feature.ts", "src/index.ts", "src/other/leak.ts"]);
-  const combined = `${refused.stdout}\n${refused.stderr}`;
-  assert.equal(refused.status, 1, combined);
-  assert.match(combined, /outside the approved write scope: src\/other\/leak\.ts\./u);
-  assert.doesNotMatch(combined, /scope: [^.]*src\/a\/feature\.ts/u);
-});
-
 test("git.commit of a merge from a branch that is not the base keeps the usual scope check", () => {
   const { project, start } = storyAMergedWhileBInProgress();
   commitFiles(project, { "src/b/feature.ts": "export const b = 2;\n" }, "feat: story B");
@@ -529,15 +533,4 @@ test("git.commit of a merge from a branch that is not the base keeps the usual s
   const combined = `${refused.stdout}\n${refused.stderr}`;
   assert.equal(refused.status, 1, combined);
   assert.match(combined, /outside the approved write scope: src\/a\/feature\.ts\./u);
-});
-
-test("story scope check does not charge the story with files a merge of the base brought in", () => {
-  const { project } = mergeBaseIntoStoryB();
-  const clear = JSON.parse(mustRun(["story", "scope", "check", "--root", project, "--id", "ST-B", "--json"]).stdout);
-  assert.deepEqual(clear.out_of_scope, []);
-  assert.ok(clear.merge_from_base.excluded_paths.includes("src/a/feature.ts"));
-  writeFile(project, "src/other/leak.ts", "export const leak = 1;\n");
-  const result = run(["story", "scope", "check", "--root", project, "--id", "ST-B", "--json"]);
-  const leak = JSON.parse(result.stdout);
-  assert.deepEqual(leak.out_of_scope.map((item) => item.path), ["src/other/leak.ts"]);
 });

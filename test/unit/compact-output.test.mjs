@@ -99,11 +99,19 @@ test("deterministic and passthrough", () => {
   assert.deepEqual(compactGuidanceLines(plain), plain);
 });
 
-test("cli: --compact shortens text output; --json-profile full keeps the complete payload", () => {
+// Merged CLI smoke: "cli: --compact shortens text output; --json-profile full keeps the complete payload" and
+// "CLI: agent JSON inside an agent session, full on request and for internal callers" (from compact-json.test.mjs)
+// share one init. Env A keeps the isolation default AGENTIC_SDLC_OUTPUT=full; env B is an agent session
+// (AGENT_ENV) with AGENTIC_SDLC_OUTPUT unset.
+test("cli: --compact shortens text output; --json-profile full keeps the complete payload; agent sessions get agent JSON", () => {
   const root = createFixtureDir("sdlc-compact-");
-  const env = { ...process.env, AGENTIC_SDLC_OUTPUT: "full" };
-  const run = (...args) => spawnSync(process.execPath, [CLI, ...args, "--root", root], { encoding: "utf8", env });
-  assert.equal(run("init").status, 0);
+  const spawnWith = (env) => (...args) => spawnSync(process.execPath, [CLI, ...args, "--root", root], { encoding: "utf8", env });
+  const run = spawnWith({ ...process.env, AGENTIC_SDLC_OUTPUT: "full" });
+  const agentEnv = Object.assign({}, process.env, AGENT_ENV);
+  delete agentEnv.AGENTIC_SDLC_OUTPUT;
+  const runAgent = spawnWith(agentEnv);
+  assert.equal(runAgent("init", "--json", "--json-profile", "full").status, 0);
+
   const full = run("status", "--sync", "off");
   const compact = run("status", "--sync", "off", "--compact");
   assert.equal(full.status, 0);
@@ -118,4 +126,14 @@ test("cli: --compact shortens text output; --json-profile full keeps the complet
   };
   assert.deepEqual(json(run("status", "--sync", "off", "--json", "--compact", "--json-profile", "full")), json(run("status", "--sync", "off", "--json")));
   assert.equal(json(run("status", "--sync", "off", "--json", "--compact")).profile, "agent");
+
+  const agent = runAgent("status", "--json");
+  assert.equal(agent.status, 0, agent.stderr);
+  assert.equal(JSON.parse(agent.stdout).profile, "agent");
+  const agentFull = runAgent("status", "--json", "--json-profile", "full");
+  assert.equal(JSON.parse(agentFull.stdout).profile, undefined);
+  assert.ok(agent.stdout.length < agentFull.stdout.length);
+  const error = runAgent("context", "get", "rec:../x", "--json");
+  assert.notEqual(error.status, 0);
+  assert.equal(JSON.parse(error.stderr).profile, "agent");
 });

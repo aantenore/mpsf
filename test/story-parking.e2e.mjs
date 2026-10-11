@@ -9,10 +9,12 @@ import test, { after } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { AGENT_HOSTS, AGENT_HOST_OVERRIDE_ENV } from "../lib/agent-host.mjs";
+import { computeStableHash } from "../lib/canonical.mjs";
 
 const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(REPOSITORY_ROOT, "bin", "agentic-sdlc.mjs");
 const TEMPORARY = new Set();
+const PAST = "2020-01-01T00:00:00.000Z";
 const SESSION_MARKERS = AGENT_HOSTS.flatMap((host) => host.markers);
 const ISOLATED_ENVIRONMENT_KEYS = [
   "CI",
@@ -77,6 +79,13 @@ function mustRun(args, project, env = {}) {
 
 function mustRunJson(args, project, env = {}) {
   return JSON.parse(mustRun([...args, "--json"], project, env).stdout);
+}
+
+function mustRefuse(args, project) {
+  const result = run([...args, "--json"], project);
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0, `${args.join(" ")} unexpectedly passed\n${result.stdout}`);
+  return `${result.stdout}\n${result.stderr}`;
 }
 
 /** Runs a command that must be refused and returns its JSON error. */
@@ -196,6 +205,10 @@ function claim(project, storyId, agent, extra = []) {
   return ["story", "claim", "--root", project, "--id", storyId, "--agent", agent, "--branch", `feature/${storyId}`, ...extra];
 }
 
+function storyOf(project, storyId) {
+  return mustRunJson(["orchestrate", "status", "--root", project], project).stories.find((story) => story.id === storyId);
+}
+
 function localProject(storyIds) {
   const project = temporaryDirectory("local");
   mustRun(["init", "--root", project, "--project-name", "Local parking"], project);
@@ -257,17 +270,41 @@ test("a person parks a stuck story: its claim is released, every computer skips 
   assert.equal(mustRunJson(["story", "resume", "--root", first, "--id", "ST-1", "--reason", "Records catch up", ...PERSON], first).status, "resumed");
 });
 
+// Merged scenario: on a project without a shared remote the park is kept in
+// the project records, and story park --review-at lists the parked story to
+// review once that time passes.
 test("on a project without a shared remote the park is kept in the project records", () => {
   const project = localProject(["ST-1", "ST-2"]);
   mustRunJson(claim(project, "ST-1", "alice"), project);
-  const parked = mustRunJson(["story", "park", "--root", project, "--id", "ST-1", "--reason", "Blocked by an outage", ...PERSON], project);
+  assert.match(mustRefuse(["story", "park", "--root", project, "--id", "ST-1", "--reason", "x", "--review-at", PAST, ...PERSON], project), /review-at must be in the future/u);
+  const parked = mustRunJson(["story", "park", "--root", project, "--id", "ST-1", "--reason", "Blocked by an outage", "--review-at", "3d", ...PERSON], project);
   assert.equal(parked.shared_parking.status, "local");
+  assert.ok(parked.parking.review_at);
   assert.equal(claimFile(project, "ST-1").status, "released");
   assert.equal(mustRefuseJson(claim(project, "ST-1", "alice"), project).error.code, "STORY_PARKED");
   assert.equal(mustRunJson(["orchestrate", "status", "--root", project], project).stories.find((item) => item.id === "ST-1").orchestration_state, "parked");
   assert.ok(fs.existsSync(path.join(project, ".sdlc", "compatibility")), "older plugins are asked to update");
   const trace = fs.readFileSync(path.join(project, ".sdlc", "traces", "ST-1.jsonl"), "utf8");
   assert.match(trace, /"action":"story.park"/u);
+
+  // story park --review-at lists the parked story to review once that time passes.
+  let story = storyOf(project, "ST-1");
+  assert.equal(story.orchestration_state, "parked");
+  assert.equal(story.parked.to_review, false);
+  assert.equal(mustRunJson(["status", "--root", project], project, { AGENTIC_SDLC_STATUS_SYNC: "off" }).parked_to_review, undefined);
+
+  // The review time passed (rewritten and resealed here to stand in for three days).
+  const record = JSON.parse(fs.readFileSync(parked.parking_path, "utf8"));
+  const { record_hash: _hash, ...content } = record;
+  const rewritten = { ...content, review_at: PAST };
+  fs.writeFileSync(parked.parking_path, `${JSON.stringify({ ...rewritten, record_hash: computeStableHash(rewritten) }, null, 2)}\n`, "utf8");
+  story = storyOf(project, "ST-1");
+  assert.equal(story.parked.to_review, true);
+  const status = mustRunJson(["status", "--root", project], project, { AGENTIC_SDLC_STATUS_SYNC: "off" });
+  assert.equal(status.parked_to_review[0].story_id, "ST-1");
+  assert.match(status.parked_to_review[0].command, /story resume --id ST-1/u);
+  assert.match(mustRun(["orchestrate", "status", "--root", project], project).stdout, /To review: ST-1, parked since /u);
+
   mustRunJson(["story", "resume", "--root", project, "--id", "ST-1", "--reason", "Outage over", ...PERSON], project);
   assert.equal(mustRunJson(["orchestrate", "status", "--root", project], project).stories.find((item) => item.id === "ST-1").orchestration_state, "available");
   mustRunJson(claim(project, "ST-1", "alice"), project);

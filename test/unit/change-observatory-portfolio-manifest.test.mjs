@@ -304,46 +304,54 @@ test("rejects a portfolio root reached through a symlinked parent component", as
   );
 });
 
-test("detects a manifest replacement after loading", async (t) => {
-  const root = await fixture(t, "manifest-boundary");
-  await writeManifest(root, manifest([{ id: "alpha", path: "projects/alpha" }]));
-  const loaded = await loadPortfolioManifest(root, "portfolio.json");
-  await fs.rename(path.join(root, "portfolio.json"), path.join(root, "portfolio.original.json"));
-  await writeManifest(root, manifest([{ id: "alpha", path: "projects/alpha" }]));
+// Table of boundary replacements after loading: each row gets a fresh fixture and its
+// own test, and assertPortfolioManifestBoundaries must reject with that row's code.
+const BOUNDARY_REPLACEMENTS = [
+  {
+    name: "detects a manifest replacement after loading",
+    fixtureName: "manifest-boundary",
+    code: "portfolio_manifest_changed",
+    // Same bytes under a new inode.
+    async mutate(_t, root) {
+      await fs.rename(path.join(root, "portfolio.json"), path.join(root, "portfolio.original.json"));
+      await writeManifest(root, manifest([{ id: "alpha", path: "projects/alpha" }]));
+    },
+  },
+  {
+    name: "detects a portfolio-root replacement after loading",
+    fixtureName: "root-boundary",
+    code: "portfolio_root_changed",
+    async mutate(t, root) {
+      const original = `${root}-original`;
+      t.after(() => fs.rm(original, { recursive: true, force: true }));
+      await fs.rename(root, original);
+      await fs.mkdir(root);
+    },
+  },
+  {
+    name: "detects a project-root swap after loading",
+    fixtureName: "boundaries",
+    code: "portfolio_project_root_changed",
+    async mutate(_t, root) {
+      await fs.rename(path.join(root, "projects", "alpha"), path.join(root, "projects", "original"));
+      await fs.mkdir(path.join(root, "projects", "alpha"));
+    },
+  },
+];
 
-  await assert.rejects(
-    () => assertPortfolioManifestBoundaries(loaded),
-    (error) => error.code === "portfolio_manifest_changed" && error.statusCode === 409,
-  );
-});
+for (const replacement of BOUNDARY_REPLACEMENTS) {
+  test(replacement.name, async (t) => {
+    const root = await fixture(t, replacement.fixtureName);
+    await writeManifest(root, manifest([{ id: "alpha", path: "projects/alpha" }]));
+    const loaded = await loadPortfolioManifest(root, "portfolio.json");
+    await replacement.mutate(t, root);
 
-test("detects a portfolio-root replacement after loading", async (t) => {
-  const root = await fixture(t, "root-boundary");
-  await writeManifest(root, manifest([{ id: "alpha", path: "projects/alpha" }]));
-  const loaded = await loadPortfolioManifest(root, "portfolio.json");
-  const original = `${root}-original`;
-  t.after(() => fs.rm(original, { recursive: true, force: true }));
-  await fs.rename(root, original);
-  await fs.mkdir(root);
-
-  await assert.rejects(
-    () => assertPortfolioManifestBoundaries(loaded),
-    (error) => error.code === "portfolio_root_changed" && error.statusCode === 409,
-  );
-});
-
-test("detects manifest and project-root swaps after loading", async (t) => {
-  const root = await fixture(t, "boundaries");
-  await writeManifest(root, manifest([{ id: "alpha", path: "projects/alpha" }]));
-  const loaded = await loadPortfolioManifest(root, "portfolio.json");
-  await fs.rename(path.join(root, "projects", "alpha"), path.join(root, "projects", "original"));
-  await fs.mkdir(path.join(root, "projects", "alpha"));
-
-  await assert.rejects(
-    () => assertPortfolioManifestBoundaries(loaded),
-    (error) => error.code === "portfolio_project_root_changed" && error.statusCode === 409,
-  );
-});
+    await assert.rejects(
+      () => assertPortfolioManifestBoundaries(loaded),
+      (error) => error.code === replacement.code && error.statusCode === 409,
+    );
+  });
+}
 
 test("fails closed when a project directory swaps between resolution and identity capture", async (t) => {
   const root = await fixture(t, "resolution-race");

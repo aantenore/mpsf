@@ -269,6 +269,42 @@ test("pull_request.merge requires an approved review of the exact head by a non-
   );
   const headSha = () => git(project, ["rev-parse", "HEAD"]);
 
+  // Merged scenario: review record refuses an approval with a blocking finding and a non pull-request delivery.
+  // Each refusal fails before any write, so no review record exists yet.
+  mustRefuse([
+    "review", "record", "--root", project,
+    "--delivery", PROFILE_ID,
+    "--verdict", "approved",
+    "--finding", JSON.stringify({ severity: "blocking", summary: "Breaks the contract" }),
+  ], /cannot carry a blocking finding/u);
+  mustRefuse(["review", "record", "--root", project, "--delivery", PROFILE_ID, "--verdict", "lgtm"], /--verdict must be one of/u);
+  mustRefuse(["review", "record", "--root", project, "--delivery", "AUT-MISSING", "--verdict", "approved"], /does not exist/u);
+  const reviews = path.join(project, ".sdlc", "reviews");
+  assert.equal(fs.existsSync(reviews) ? fs.readdirSync(reviews).length : 0, 0, "a refused review writes no record");
+
+  // Merged scenario: editing the approved choice in the delivery profile is never silent.
+  // Runs before any review exists; the original profile bytes are restored before step 1.
+  const profilePath = path.join(project, ".sdlc", "autonomy", "deliveries", `${PROFILE_ID}.json`);
+  const located = fs.existsSync(profilePath)
+    ? profilePath
+    : spawnSync("git", ["-C", project, "ls-files", "--others", "--cached", "--", `*${PROFILE_ID}.json`], { encoding: "utf8" }).stdout.split("\n").filter(Boolean).map((item) => path.join(project, item))[0];
+  const approvedProfile = fs.readFileSync(located, "utf8");
+  const editedProfile = JSON.parse(approvedProfile);
+  editedProfile.pull_request_target.code_review.decision = "not-required";
+  fs.writeFileSync(located, `${JSON.stringify(editedProfile, null, 2)}\n`, "utf8");
+  const editedRefused = run(mergeArgs(project), { env: fakeGitHubEnv(project, { headSha: headSha() }) });
+  assert.equal(editedRefused.status, 1, `${editedRefused.stdout}\n${editedRefused.stderr}`);
+  assert.doesNotMatch(editedRefused.stdout, /checkpoint_required/u);
+  fs.writeFileSync(located, approvedProfile, "utf8");
+
+  // Merged scenario: a required review blocks only the merge and is counted in explain and status.
+  // The strict lifecycle gate does not ask for the review, and explain counts 0 of 0 before any review is recorded.
+  const gate = run(["gate", "check", "--root", project, "--story", STORY_ID, "--strict", "--json"]);
+  assert.doesNotMatch(`${gate.stdout}${gate.stderr}`, /code review|code_review_required|revisione del codice/iu);
+  const explainedRequired = mustRun(["autonomy", "delivery", "explain", "--root", project, "--id", PROFILE_ID]);
+  assert.match(explainedRequired.stdout, /Code review before merge: required \(chosen by the user for this story\)/u);
+  assert.match(explainedRequired.stdout, /Valid reviews of the current head \([0-9a-f]{12}\): 0 of 0/u);
+
   // 1. No review at all.
   const refused = mustRefuse(mergeArgs(project), /no approved code review exists for head/u, {
     env: fakeGitHubEnv(project, { headSha: headSha() }),
@@ -316,6 +352,12 @@ test("pull_request.merge requires an approved review of the exact head by a non-
   ], { env: gitIdentityEnv(REVIEWER) });
   assert.equal(independent.independent, true);
   assert.equal(independent.code_review.reviewer.git_email, REVIEWER.email);
+  // Status counts only independent approvals of the current head, before the head moves in step 4.
+  const reviewStatus = mustRunJson(["status", "--root", project]);
+  assert.equal(reviewStatus.code_review_before_merge[0].required, true);
+  assert.equal(reviewStatus.code_review_before_merge[0].valid_reviews, 1);
+  const italianStatus = mustRun(["status", "--root", project, "--locale", "it"]);
+  assert.match(italianStatus.stdout, /Revisione prima del merge per PR-REVIEW \(storia ST-REVIEW \(Implement the reviewed change\)\): richiesta/u);
   const checkpoint = mustRunJson(mergeArgs(project), { env: fakeGitHubEnv(project, { headSha: headSha() }) });
   assert.equal(checkpoint.status, "checkpoint_required");
 
@@ -348,20 +390,6 @@ test("pull_request.merge requires an approved review of the exact head by a non-
     "--finding", JSON.stringify({ severity: "blocking", summary: "The follow-up drops validation" }),
   ], { env: gitIdentityEnv(REVIEWER) });
   mustRefuse(mergeArgs(project), /requested changes/u, { env: fakeGitHubEnv(project, { headSha: headSha() }) });
-});
-
-test("review record refuses an approval with a blocking finding and a non pull-request delivery", () => {
-  const project = preparePullRequestDelivery();
-  mustRefuse([
-    "review", "record", "--root", project,
-    "--delivery", PROFILE_ID,
-    "--verdict", "approved",
-    "--finding", JSON.stringify({ severity: "blocking", summary: "Breaks the contract" }),
-  ], /cannot carry a blocking finding/u);
-  mustRefuse(["review", "record", "--root", project, "--delivery", PROFILE_ID, "--verdict", "lgtm"], /--verdict must be one of/u);
-  mustRefuse(["review", "record", "--root", project, "--delivery", "AUT-MISSING", "--verdict", "approved"], /does not exist/u);
-  const reviews = path.join(project, ".sdlc", "reviews");
-  assert.equal(fs.existsSync(reviews) ? fs.readdirSync(reviews).length : 0, 0, "a refused review writes no record");
 });
 
 test("a project whose configuration never declared the merge review gate keeps merging as before", () => {
@@ -430,9 +458,11 @@ test("a new pull-request delivery needs the user's own answer on code review", (
   );
 });
 
-test("without a required review the merge proceeds in full automation and explain says why", () => {
+test("a review can be added after approval; only the user, outside the agent session, can drop it", () => {
   const project = preparePullRequestDelivery({ codeReview: "not-required" });
   const headSha = git(project, ["rev-parse", "HEAD"]);
+  // Merged scenario: without a required review the merge proceeds in full automation and explain says why.
+  // These hold only before "review require" below flips the requirement.
   const checkpoint = mustRunJson(mergeArgs(project), { env: fakeGitHubEnv(project, { headSha }) });
   assert.equal(checkpoint.status, "checkpoint_required");
   const explained = mustRunJson(["autonomy", "delivery", "explain", "--root", project, "--id", PROFILE_ID]);
@@ -444,30 +474,7 @@ test("without a required review the merge proceeds in full automation and explai
   assert.match(english.stdout, /Code review before merge: not required \(chosen by the user for this story\)/u);
   const status = mustRunJson(["status", "--root", project]);
   assert.equal(status.code_review_before_merge[0].required, false);
-});
 
-test("a required review blocks only the merge and is counted in explain and status", () => {
-  const project = preparePullRequestDelivery({ codeReview: "required" });
-  const headSha = git(project, ["rev-parse", "HEAD"]);
-  // The strict lifecycle gate does not ask for the review.
-  const gate = run(["gate", "check", "--root", project, "--story", STORY_ID, "--strict", "--json"]);
-  assert.doesNotMatch(`${gate.stdout}${gate.stderr}`, /code review|code_review_required|revisione del codice/iu);
-  mustRefuse(mergeArgs(project), /no approved code review exists for head/u, { env: fakeGitHubEnv(project, { headSha }) });
-  const english = mustRun(["autonomy", "delivery", "explain", "--root", project, "--id", PROFILE_ID]);
-  assert.match(english.stdout, /Code review before merge: required \(chosen by the user for this story\)/u);
-  assert.match(english.stdout, /Valid reviews of the current head \([0-9a-f]{12}\): 0 of 0/u);
-  mustRunJson(["review", "record", "--root", project, "--delivery", PROFILE_ID, "--verdict", "approved", "--actor", REVIEWER.actor, "--actor-type", "human"], { env: gitIdentityEnv(REVIEWER) });
-  const status = mustRunJson(["status", "--root", project]);
-  assert.equal(status.code_review_before_merge[0].required, true);
-  assert.equal(status.code_review_before_merge[0].valid_reviews, 1);
-  const italian = mustRun(["status", "--root", project, "--locale", "it"]);
-  assert.match(italian.stdout, /Revisione prima del merge per PR-REVIEW \(storia ST-REVIEW \(Implement the reviewed change\)\): richiesta/u);
-  assert.equal(mustRunJson(mergeArgs(project), { env: fakeGitHubEnv(project, { headSha }) }).status, "checkpoint_required");
-});
-
-test("a review can be added after approval; only the user, outside the agent session, can drop it", () => {
-  const project = preparePullRequestDelivery({ codeReview: "not-required" });
-  const headSha = git(project, ["rev-parse", "HEAD"]);
   const added = mustRunJson(["review", "require", "--root", project, "--delivery", PROFILE_ID, "--summary", "The user wants a review after all"]);
   assert.equal(added.code_review_requirement.required, true);
   assert.equal(added.code_review_requirement.source, "change");
@@ -499,21 +506,6 @@ test("a project that requires reviews for every pull request is a floor no story
   );
   const explained = mustRunJson(["autonomy", "delivery", "explain", "--root", project, "--id", PROFILE_ID]);
   assert.equal(explained.code_review.requirement.source, "project_policy");
-});
-
-test("editing the approved choice in the delivery profile is never silent", () => {
-  const project = preparePullRequestDelivery({ codeReview: "required" });
-  const headSha = git(project, ["rev-parse", "HEAD"]);
-  const profilePath = path.join(project, ".sdlc", "autonomy", "deliveries", `${PROFILE_ID}.json`);
-  const located = fs.existsSync(profilePath)
-    ? profilePath
-    : spawnSync("git", ["-C", project, "ls-files", "--others", "--cached", "--", `*${PROFILE_ID}.json`], { encoding: "utf8" }).stdout.split("\n").filter(Boolean).map((item) => path.join(project, item))[0];
-  const profile = JSON.parse(fs.readFileSync(located, "utf8"));
-  profile.pull_request_target.code_review.decision = "not-required";
-  fs.writeFileSync(located, `${JSON.stringify(profile, null, 2)}\n`, "utf8");
-  const refused = run(mergeArgs(project), { env: fakeGitHubEnv(project, { headSha }) });
-  assert.equal(refused.status, 1, `${refused.stdout}\n${refused.stderr}`);
-  assert.doesNotMatch(refused.stdout, /checkpoint_required/u);
 });
 
 test("an agent committing under its own identity lets the guiding person review on the same machine", () => {

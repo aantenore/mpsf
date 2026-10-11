@@ -643,27 +643,33 @@ function sleep(milliseconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
 
+// Merged scenarios: a change outside the allowed paths, a change larger than the limits, and a deleted
+// tracked file outside the allowed paths. Every reason is built independently, so one fallback carries all four.
 test("a change outside the standing approval paths falls back to a direct confirmation", () => {
-  const { project, delivery } = startedDelivery("paths", { writePaths: ["src/flags", "docs"] });
-  writeProjectFile(project, "src/other.mjs", "export const other = 1;\n");
-  const fallback = expectFallback(project, delivery.profileId, "build.local", /files outside the allowed paths changed: src\/other\.mjs/u);
+  const { project, delivery } = startedDelivery("paths", { writePaths: ["src/flags", "docs"], maxFiles: 1, maxLines: 3 });
+  writeProjectFile(project, "src/other.mjs", Array.from({ length: 10 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n");
+  writeProjectFile(project, "docs/notes.md", "notes\n");
+  fs.rmSync(path.join(project, "src", "index.mjs"));
+  const fallback = expectFallback(
+    project,
+    delivery.profileId,
+    "build.local",
+    /tracked files outside the allowed paths were deleted: src\/index\.mjs[\s\S]*files outside the allowed paths changed: src\/other\.mjs[\s\S]*3 files changed, above the limit of 1[\s\S]*12 lines changed, above the limit of 3/u,
+  );
+  const reasons = fallback.standing_approval.reasons;
+  // The deleted file stays out of the changed list; in-path files, deleted files, and deleted lines count toward the limits.
+  for (const expected of [
+    "tracked files outside the allowed paths were deleted: src/index.mjs",
+    "files outside the allowed paths changed: src/other.mjs",
+    "3 files changed, above the limit of 1",
+    "12 lines changed, above the limit of 3",
+  ]) {
+    assert.ok(reasons.includes(expected), `missing reason "${expected}" in ${JSON.stringify(reasons)}`);
+  }
   assert.match(fallback.standing_approval.explanation, /Fall back to the normal confirmation/u);
   const trace = confirmationsRequested(project, delivery.storyId);
   assert.ok(trace.some((event) => event.action === "autonomy.standing.fallback"));
   confirmDirectly(project, delivery.profileId, "build.local");
-});
-
-test("a change larger than the standing approval limits falls back", () => {
-  const { project, delivery } = startedDelivery("size", { maxLines: 3, maxFiles: 1 });
-  writeProjectFile(project, "src/flag.mjs", Array.from({ length: 10 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n");
-  writeProjectFile(project, "docs/notes.md", "notes\n");
-  expectFallback(project, delivery.profileId, "build.local", /2 files changed, above the limit of 1[\s\S]*11 lines changed, above the limit of 3/u);
-});
-
-test("a deleted tracked file outside the standing approval paths falls back", () => {
-  const { project, delivery } = startedDelivery("deletion", { writePaths: ["src/flags", "docs"] });
-  fs.rmSync(path.join(project, "src", "index.mjs"));
-  expectFallback(project, delivery.profileId, "build.local", /tracked files outside the allowed paths were deleted: src\/index\.mjs/u);
 });
 
 test("a delivery to a destination the standing approval does not cover is refused", () => {
@@ -696,10 +702,45 @@ test("a delivery to a destination the standing approval does not cover is refuse
   ], project, /covers only pull request deliveries[\s\S]*Fall back to the normal confirmation/u);
 });
 
-test("an expired standing approval covers nothing", () => {
-  const project = initializeProject("expiry");
-  const standingId = grantStanding(project, { expiresAt: isoAfter(4_000) });
-  sleep(5_000);
+// Merged scenarios: an expired standing approval, a tampered standing approval record, and a configuration
+// change after approval. One project, one standing approval each. Order matters: the tamper part and the
+// expiry checks both finish before the configuration change.
+test("an expired, tampered, or configuration-suspended standing approval covers nothing", () => {
+  const project = initializeProject("inactive");
+  const expiresAtMs = Date.now() + 4_000;
+  const expiredId = grantStanding(project, { id: "SA-EXP", expiresAt: new Date(expiresAtMs).toISOString() });
+  const tamperedId = grantStanding(project, { id: "SA-TAMPER" });
+
+  // A tampered standing approval record covers nothing.
+  const proposalPath = path.join(project, ".sdlc", "autonomy", "standing", tamperedId, "proposal.json");
+  const original = fs.readFileSync(proposalPath, "utf8");
+  const widened = JSON.parse(original);
+  widened.max_deliveries = 20;
+  widened.allowed_write_paths = ["docs", "src", "tools"];
+  fs.writeFileSync(proposalPath, `${JSON.stringify(widened, null, 2)}\n`);
+  const tamperedStatus = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", tamperedId], project);
+  assert.equal(tamperedStatus.standing_approvals[0].status, "invalid");
+  assert.match(tamperedStatus.standing_approvals[0].reasons.join("\n"), /changed after it was proposed/u);
+  mustRun([
+    "story", "create", "--no-derived-verification", "--root", project, "--id", "ST-TAMPER", "--title", "Tamper", "--phase", "implementation",
+    "--status", "ready", "--requirement", "REQ-TOIL", "--acceptance", "Observable.",
+  ], project);
+  mustRun([
+    "contract", "create", "--root", project, "--id", "CONTRACT-TAMPER", "--story", "ST-TAMPER", "--phase", "implementation",
+    "--delivery-profile", "AUT-TAMPER", "--level", "checkpointed", "--context-summary", "Tamper check.",
+    "--qa", "Who confirms?|The standing approval", "--tool", "node",
+    "--output-ref", "implementation-summary:implementation-summary-v1:new",
+  ], project);
+  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-TAMPER", "--standing-approval", tamperedId], project, /it is invalid/u);
+  // A record whose hash was recomputed still fails: the approval binds the original content.
+  fs.writeFileSync(proposalPath, `${JSON.stringify({ ...widened, record_hash: standingRecordHash(widened) }, null, 2)}\n`);
+  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-TAMPER", "--standing-approval", tamperedId], project, /it is invalid/u);
+  fs.writeFileSync(proposalPath, original);
+  const approved = mustRunJson(["contract", "approve", "--root", project, "--id", "CONTRACT-TAMPER", "--standing-approval", tamperedId], project);
+  assert.equal(approved.approval.approval_source, "standing-approval");
+
+  // An expired standing approval covers nothing. Wait out whatever is left of its validity, plus a 1s margin.
+  sleep(Math.max(0, expiresAtMs + 1_000 - Date.now()));
   const result = run([
     "story", "create", "--no-derived-verification", "--root", project, "--id", "ST-EXP", "--title", "Expiry", "--phase", "implementation",
     "--status", "ready", "--requirement", "REQ-TOIL", "--acceptance", "Observable.",
@@ -711,19 +752,31 @@ test("an expired standing approval covers nothing", () => {
     "--qa", "Who confirms?|The standing approval", "--tool", "node",
     "--output-ref", "implementation-summary:implementation-summary-v1:new",
   ], project);
-  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-EXP", "--standing-approval", standingId], project, /it is expired/u);
-  const status = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", standingId], project);
+  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-EXP", "--standing-approval", expiredId], project, /it is expired/u);
+  const status = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", expiredId], project);
   assert.equal(status.standing_approvals[0].status, "expired");
-});
 
-test("an expiry beyond the configured maximum is refused at proposal", () => {
-  const project = initializeProject("max-expiry");
-  mustFail([
-    "autonomy", "standing", "propose", "--root", project, "--id", "SA-LONG", "--recipe", "dependency-bump",
-    "--description", "Too long", "--requirement", "REQ-TOIL", "--write-path", "src", "--max-changed-files", "1",
-    "--max-changed-lines", "1", "--destination", "local_release", "--max-deliveries", "1",
-    "--expires-at", isoAfter(90 * DAY),
-  ], project, /within 30 days/u);
+  // A configuration change after approval suspends the standing approval.
+  const configId = grantStanding(project, { id: "SA-CFG" });
+  const preview = mustRunJson(["config", "migrate", "--root", project, "--autonomy-mode", "observe"], project);
+  mustRunJson([
+    "config", "migrate", "--root", project, "--autonomy-mode", "observe", "--apply",
+    "--plan-hash", preview.plan.plan_hash, "--actor-type", "human",
+  ], project);
+  const configStatus = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", configId], project);
+  assert.equal(configStatus.standing_approvals[0].status, "stale");
+  assert.match(configStatus.standing_approvals[0].reasons.join("\n"), /configuration changed/u);
+  mustRun([
+    "story", "create", "--no-derived-verification", "--root", project, "--id", "ST-CFG", "--title", "Config", "--phase", "implementation",
+    "--status", "ready", "--requirement", "REQ-TOIL", "--acceptance", "Observable.",
+  ], project);
+  mustRun([
+    "contract", "create", "--root", project, "--id", "CONTRACT-CFG", "--story", "ST-CFG", "--phase", "implementation",
+    "--delivery-profile", "AUT-CFG", "--level", "checkpointed", "--context-summary", "Config check.",
+    "--qa", "Who confirms?|The standing approval", "--tool", "node",
+    "--output-ref", "implementation-summary:implementation-summary-v1:new",
+  ], project);
+  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-CFG", "--standing-approval", configId], project, /it is stale/u);
 });
 
 test("the delivery count is enforced and exhaustion falls back", () => {
@@ -752,7 +805,7 @@ test("the delivery count is enforced and exhaustion falls back", () => {
   assert.equal(build.action_receipt.approval.approval_source, "standing-approval");
 });
 
-test("a standing approval with a cost budget is refused while no meter reports delivery cost", () => {
+test("a standing approval with a cost budget is refused while no meter reports delivery cost, and an expiry beyond the configured maximum is refused at proposal", () => {
   const project = initializeProject("budget");
   for (const extra of [
     ["--budget-per-delivery", "5", "--budget-total", "20", "--currency", "EUR"],
@@ -770,33 +823,16 @@ test("a standing approval with a cost budget is refused while no meter reports d
     assert.match(`${result.stdout}\n${result.stderr}`, /only when this project has a meter that reports delivery cost[\s\S]*would never cover anything[\s\S]*Nothing was recorded/u);
   }
   assert.equal(fs.existsSync(path.join(project, ".sdlc", "autonomy", "standing", "SA-BUDGET")), false);
+  // Merged scenario: an expiry beyond the configured maximum (30 days) is refused at proposal.
+  mustFail([
+    "autonomy", "standing", "propose", "--root", project, "--id", "SA-LONG", "--recipe", "dependency-bump",
+    "--description", "Too long", "--requirement", "REQ-TOIL", "--write-path", "src", "--max-changed-files", "1",
+    "--max-changed-lines", "1", "--destination", "local_release", "--max-deliveries", "1",
+    "--expires-at", isoAfter(90 * DAY),
+  ], project, /within 30 days/u);
   // Without the budget options the same bounds are accepted.
   assert.equal(proposeStanding(project, { id: "SA-BUDGET" }).standing_approval.budget, null);
   assert.equal(fs.existsSync(path.join(project, ".sdlc", "autonomy", "standing", "SA-BUDGET")), true);
-});
-
-test("a configuration change after approval suspends the standing approval", () => {
-  const project = initializeProject("config");
-  const standingId = grantStanding(project);
-  const preview = mustRunJson(["config", "migrate", "--root", project, "--autonomy-mode", "observe"], project);
-  mustRunJson([
-    "config", "migrate", "--root", project, "--autonomy-mode", "observe", "--apply",
-    "--plan-hash", preview.plan.plan_hash, "--actor-type", "human",
-  ], project);
-  const status = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", standingId], project);
-  assert.equal(status.standing_approvals[0].status, "stale");
-  assert.match(status.standing_approvals[0].reasons.join("\n"), /configuration changed/u);
-  mustRun([
-    "story", "create", "--no-derived-verification", "--root", project, "--id", "ST-CFG", "--title", "Config", "--phase", "implementation",
-    "--status", "ready", "--requirement", "REQ-TOIL", "--acceptance", "Observable.",
-  ], project);
-  mustRun([
-    "contract", "create", "--root", project, "--id", "CONTRACT-CFG", "--story", "ST-CFG", "--phase", "implementation",
-    "--delivery-profile", "AUT-CFG", "--level", "checkpointed", "--context-summary", "Config check.",
-    "--qa", "Who confirms?|The standing approval", "--tool", "node",
-    "--output-ref", "implementation-summary:implementation-summary-v1:new",
-  ], project);
-  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-CFG", "--standing-approval", standingId], project, /it is stale/u);
 });
 
 test("revoking a standing approval mid-delivery falls back at the next step", {
@@ -951,12 +987,11 @@ test("a delegated pull request never pushes outside its repository and branch pr
   assert.equal(covered.delivery_profile.pull_request_target.code_review.source, "standing-approval");
   assert.equal(covered.delivery_profile.pull_request_target.code_review.decision, "not-required");
   assert.equal(covered.delivery_profile.pull_request_target.code_review.standing_approval_id, standingId);
-});
 
-test("a pull-request standing approval records the user's code review choice", () => {
-  const project = initializeProject("review-bound");
-  mustFail(standingProposeArgs(project, { destination: "pull_request", codeReview: null }), project, /--code-review must be required or not-required/u);
-  const proposed = mustRunJson(standingProposeArgs(project, { destination: "pull_request", codeReview: "required" }), project);
+  // Merged scenario: a pull-request standing approval records the user's code review choice.
+  // Distinct ids, after the covered-delivery checks, so the pending proposals never touch SA-FLAGS.
+  mustFail(standingProposeArgs(project, { id: "SA-NOREVIEW", destination: "pull_request", codeReview: null }), project, /--code-review must be required or not-required/u);
+  const proposed = mustRunJson(standingProposeArgs(project, { id: "SA-REVIEWREQ", destination: "pull_request", codeReview: "required" }), project);
   assert.equal(proposed.standing_approval.destination.code_review, "required");
   assert.match(mustRun([...standingProposeArgs(project, { id: "SA-IT", destination: "pull_request", codeReview: "not-required" }), "--locale", "it"], project).stdout, /non serve una revisione del codice prima del merge/u);
 });
@@ -1049,6 +1084,16 @@ test("a remote that refuses the shared records is reported as not shared, never 
   assert.match(synced.actions.join("\n"), /revocation not shared/u);
   assert.equal(synced.shared_state.revoked, false);
   assert.deepEqual(sharedRefs(remote), []);
+  // Merged scenario: sync reports attention when the revocation could not be shared, and git's language does not matter.
+  assert.equal(synced.status, "attention");
+  const human = mustRun(["autonomy", "standing", "sync", "--root", project, "--id", standingId], project);
+  assert.match(human.stdout, /NOT up to date/u);
+  // Without a remote, a non-English git still means "no remote": the state stays local.
+  const local = initializeProject("locale");
+  const localStatus = spawnSync(process.execPath, [CLI, "autonomy", "standing", "status", "--root", local, "--json"], {
+    cwd: local, encoding: "utf8", env: { ...cliEnvironment(), LANG: "it_IT.UTF-8", LC_ALL: "it_IT.UTF-8", LANGUAGE: "it" },
+  });
+  assert.equal(localStatus.status, 0, localStatus.stderr);
 });
 
 test("a standing approval covers nothing once its shared remote is renamed, replaced, or loses records", () => {
@@ -1113,27 +1158,6 @@ test("a separate push address, a cleaned revocation file, or a removed remote ne
     project,
     /revoked on this computer|no longer configured/u,
   );
-});
-
-test("sync reports attention when the revocation could not be shared, and git's language does not matter", () => {
-  const project = initializeProject("sync-attention");
-  const { remote } = sharedRemote(project, "sync-attention");
-  const standingId = grantStanding(project, { id: "SA-ATTN" });
-  refuseSharedRecords(remote);
-  mustRunJson([
-    "autonomy", "standing", "revoke", "--root", project, "--id", standingId,
-    "--reason", "Pause delegated work", ...humanApproval("Stop the standing approval"),
-  ], project);
-  const synced = mustRunJson(["autonomy", "standing", "sync", "--root", project, "--id", standingId], project);
-  assert.equal(synced.status, "attention");
-  const human = mustRun(["autonomy", "standing", "sync", "--root", project, "--id", standingId], project);
-  assert.match(human.stdout, /NOT up to date/u);
-  // Without a remote, a non-English git still means "no remote": the state stays local.
-  const local = initializeProject("locale");
-  const status = spawnSync(process.execPath, [CLI, "autonomy", "standing", "status", "--root", local, "--json"], {
-    cwd: local, encoding: "utf8", env: { ...cliEnvironment(), LANG: "it_IT.UTF-8", LC_ALL: "it_IT.UTF-8", LANGUAGE: "it" },
-  });
-  assert.equal(status.status, 0, status.stderr);
 });
 
 test("a project without git still uses its standing approvals on this computer", () => {
@@ -1254,27 +1278,6 @@ test("a second profile for an already used delivery is refused and consumes no s
   assert.equal(status.standing_approvals[0].remaining, 1);
 });
 
-test("the same profile id with different content cannot reuse the recorded slot", () => {
-  const project = initializeProject("changed-profile");
-  const standingId = grantStanding(project, { maxDeliveries: 2 });
-  const delivery = prepareDelivery(project, "ONE", standingId);
-  const profilePath = path.join(project, ".sdlc", "autonomy", "deliveries", `${delivery.profileId}.json`);
-  const proposedContent = fs.readFileSync(profilePath, "utf8");
-  approveDelivery(project, delivery, standingId);
-  // The profile returns to proposed with other content under the same id.
-  const changed = buildDeliveryExecutionProfileV2({
-    ...JSON.parse(proposedContent),
-    extensions: { ...JSON.parse(proposedContent).extensions, note: "changed after the slot was recorded" },
-  });
-  fs.writeFileSync(profilePath, `${JSON.stringify(changed, null, 2)}\n`);
-  assert.notEqual(changed.profile_hash, JSON.parse(proposedContent).profile_hash);
-  mustFail([
-    "autonomy", "delivery", "approve", "--root", project, "--id", delivery.profileId,
-    "--phase", "implementation", "--standing-approval", standingId,
-  ], project, /different content/u);
-  assert.deepEqual(standingUseFiles(project, standingId), ["0001.json"]);
-});
-
 test("an exact retry of the same approval is idempotent and consumes no extra slot", () => {
   const project = initializeProject("retry");
   const standingId = grantStanding(project, { maxDeliveries: 2 });
@@ -1294,37 +1297,20 @@ test("an exact retry of the same approval is idempotent and consumes no extra sl
   );
   const status = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", standingId], project);
   assert.equal(status.standing_approvals[0].remaining, 1);
-});
 
-test("a tampered standing approval record covers nothing", () => {
-  const project = initializeProject("tamper");
-  const standingId = grantStanding(project);
-  const proposalPath = path.join(project, ".sdlc", "autonomy", "standing", standingId, "proposal.json");
-  const original = fs.readFileSync(proposalPath, "utf8");
-  const widened = JSON.parse(original);
-  widened.max_deliveries = 20;
-  widened.allowed_write_paths = ["docs", "src", "tools"];
-  fs.writeFileSync(proposalPath, `${JSON.stringify(widened, null, 2)}\n`);
-  const status = mustRunJson(["autonomy", "standing", "status", "--root", project, "--id", standingId], project);
-  assert.equal(status.standing_approvals[0].status, "invalid");
-  assert.match(status.standing_approvals[0].reasons.join("\n"), /changed after it was proposed/u);
-  mustRun([
-    "story", "create", "--no-derived-verification", "--root", project, "--id", "ST-TAMPER", "--title", "Tamper", "--phase", "implementation",
-    "--status", "ready", "--requirement", "REQ-TOIL", "--acceptance", "Observable.",
-  ], project);
-  mustRun([
-    "contract", "create", "--root", project, "--id", "CONTRACT-TAMPER", "--story", "ST-TAMPER", "--phase", "implementation",
-    "--delivery-profile", "AUT-TAMPER", "--level", "checkpointed", "--context-summary", "Tamper check.",
-    "--qa", "Who confirms?|The standing approval", "--tool", "node",
-    "--output-ref", "implementation-summary:implementation-summary-v1:new",
-  ], project);
-  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-TAMPER", "--standing-approval", standingId], project, /it is invalid/u);
-  // A record whose hash was recomputed still fails: the approval binds the original content.
-  fs.writeFileSync(proposalPath, `${JSON.stringify({ ...widened, record_hash: standingRecordHash(widened) }, null, 2)}\n`);
-  mustFail(["contract", "approve", "--root", project, "--id", "CONTRACT-TAMPER", "--standing-approval", standingId], project, /it is invalid/u);
-  fs.writeFileSync(proposalPath, original);
-  const approved = mustRunJson(["contract", "approve", "--root", project, "--id", "CONTRACT-TAMPER", "--standing-approval", standingId], project);
-  assert.equal(approved.approval.approval_source, "standing-approval");
+  // Merged scenario: the same profile id with different content cannot reuse the recorded slot.
+  // The profile returns to proposed with other content under the same id.
+  const changed = buildDeliveryExecutionProfileV2({
+    ...JSON.parse(proposedContent),
+    extensions: { ...JSON.parse(proposedContent).extensions, note: "changed after the slot was recorded" },
+  });
+  fs.writeFileSync(profilePath, `${JSON.stringify(changed, null, 2)}\n`);
+  assert.notEqual(changed.profile_hash, JSON.parse(proposedContent).profile_hash);
+  mustFail([
+    "autonomy", "delivery", "approve", "--root", project, "--id", delivery.profileId,
+    "--phase", "implementation", "--standing-approval", standingId,
+  ], project, /different content/u);
+  assert.deepEqual(standingUseFiles(project, standingId), ["0001.json"]);
 });
 
 /** Edits the configuration the way a person would: change it, then re-pin it. */

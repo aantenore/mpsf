@@ -83,8 +83,17 @@ function writeEvidence(project, name, content) {
   return `.sdlc/tests/${name}`;
 }
 
+// The three `test record` cases below share one validation project: none of
+// them checks the gate, counts records, or reads another case's evidence file,
+// and the refusals write nothing.
+let sharedRecordProject;
+function recordProject() {
+  sharedRecordProject ??= validationProject("record");
+  return sharedRecordProject;
+}
+
 test("test record writes a schema-valid run record and a matching trace event", () => {
-  const { project, storyId } = validationProject("record");
+  const { project, storyId } = recordProject();
   const evidencePath = writeEvidence(project, "ST-001-run.log", "ok 1 booking\nok 2 payment\n");
 
   const recorded = mustRunJson([
@@ -123,7 +132,7 @@ test("test record writes a schema-valid run record and a matching trace event", 
 });
 
 test("the recorded outcome is derived from the exit status and counts, never asserted", () => {
-  const { project, storyId } = validationProject("derived");
+  const { project, storyId } = recordProject();
   const failureEvidence = writeEvidence(project, "ST-001-failure.log", "not ok 1 booking\n");
 
   const failed = mustRunJson([
@@ -156,8 +165,8 @@ test("the recorded outcome is derived from the exit status and counts, never ass
 });
 
 test("test record refuses a run without output, an unknown story, and a shell string command", () => {
-  const { project, storyId } = validationProject("refusals");
-  const evidencePath = writeEvidence(project, "ST-001-run.log", "ok 1 booking\n");
+  const { project, storyId } = recordProject();
+  const evidencePath = writeEvidence(project, "ST-001-refusals.log", "ok 1 booking\n");
   const base = ["test", "record", "--root", project, "--story", storyId];
 
   const withoutEvidence = run([...base, "--command", '["npm","test"]', "--exit-code", "0", "--passed", "1"]);
@@ -188,10 +197,11 @@ test("test record refuses a run without output, an unknown story, and a shell st
   }
 });
 
-test("a project with no test run record passes its validation gate exactly as before", () => {
-  const { project, storyId } = validationProject("backward-compatible");
-  const report = gate(project, storyId);
+test("the validation gate reports a recorded run and fails when its evidence no longer matches", () => {
+  const { project, storyId } = validationProject("gate-evidence");
 
+  // A project with no test run record passes its validation gate exactly as before.
+  const report = gate(project, storyId);
   assert.equal(report.status, "passed");
   assert.deepEqual(report.errors, []);
   assert.equal(report.checked.includes(`validation test evidence for story ${storyId}`), true);
@@ -200,10 +210,8 @@ test("a project with no test run record passes its validation gate exactly as be
     true,
     "the missing record is reported as guidance, not as a failure",
   );
-});
 
-test("the validation gate reports a recorded run and fails when its evidence no longer matches", () => {
-  const { project, storyId } = validationProject("gate-evidence");
+  // Recording a run replaces that guidance; tampering with its evidence fails the gate.
   const evidencePath = writeEvidence(project, "ST-001-run.log", "ok 1 booking\n");
   const recorded = mustRunJson([
     "test", "record",

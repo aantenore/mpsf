@@ -454,8 +454,22 @@ test("a tampered closure or a story changed after closure fails closed", () => {
   assert.equal(story.lifecycle_source, "invalid_story_closure");
 });
 
+// Merged scenario: story abandon refuses a story with delivered work, then
+// closes a started story that delivered nothing and releases its claim.
 test("story abandon closes a started story that delivered nothing and releases its claim", () => {
   const project = createTrialProject("closure-abandon");
+  const registryFile = path.join(project, ".sdlc", "output-contracts", "registry.json");
+  const originalRegistry = fs.readFileSync(registryFile, "utf8");
+  const registry = readJson(registryFile);
+  registry.links = [{ story_id: "ST-005", path: "out.txt" }];
+  writeJson(registryFile, registry);
+  mustFail([
+    "story", "abandon", "--root", project, "--id", "ST-005", "--reason", "Nope",
+    ...humanApproval("Abandon"),
+  ], /ST-005 delivered work and cannot be abandoned: it has linked outputs/u);
+  assert.equal(fs.existsSync(storyPath(project, "ST-005", "closure.json")), false);
+  fs.writeFileSync(registryFile, originalRegistry);
+
   writeJson(storyPath(project, "ST-005", "claim.json"), {
     story_id: "ST-005",
     agent: "fixture-agent",
@@ -475,19 +489,6 @@ test("story abandon closes a started story that delivered nothing and releases i
   assert.equal(readJson(storyPath(project, "ST-005", "claim.json")).status, "released");
   const trace = fs.readFileSync(path.join(project, ".sdlc", "traces", "ST-005.jsonl"), "utf8");
   assert.match(trace, /workflow\.cancel/u);
-});
-
-test("story abandon refuses a story with delivered work", () => {
-  const project = createTrialProject("closure-abandon-refused");
-  const registryFile = path.join(project, ".sdlc", "output-contracts", "registry.json");
-  const registry = readJson(registryFile);
-  registry.links = [{ story_id: "ST-005", path: "out.txt" }];
-  writeJson(registryFile, registry);
-  mustFail([
-    "story", "abandon", "--root", project, "--id", "ST-005", "--reason", "Nope",
-    ...humanApproval("Abandon"),
-  ], /ST-005 delivered work and cannot be abandoned: it has linked outputs/u);
-  assert.equal(fs.existsSync(storyPath(project, "ST-005", "closure.json")), false);
 });
 
 test("story retire closes a never-started container story as superseded by its closed children", () => {
