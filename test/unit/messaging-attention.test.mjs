@@ -131,3 +131,18 @@ test("a message answered under a manual name is mine through its host", () => {
   const selected = selectAttention({ messages, self: "pc-me", now: NOW });
   assert.deepEqual(selected.pending, []);
 });
+
+test("an untrusted request is never pending, and trust shows in the injected context", () => {
+  const messages = [
+    msg("q1", "pc-b", "request", { trust: "untrusted" }),
+    msg("q2", "pc-b", "question", { trust: "unverified" }),
+    msg("q3", "pc-b", "question", { trust: "trusted" }),
+  ];
+  const selected = selectAttention({ messages, self: "pc-a", now: NOW });
+  assert.deepEqual(selected.pending.map((m) => m.id), ["q2", "q3"]);
+  assert.deepEqual(selected.digest.map((m) => m.id), ["q1"]);
+  const text = attentionContext(selected);
+  assert.match(text, /#q1 pc-b \[untrusted\]/u);
+  assert.match(text, /#q2 pc-b \[unverified: key not registered\]/u);
+  assert.match(text, /#q3 pc-b <question>/u);
+});
