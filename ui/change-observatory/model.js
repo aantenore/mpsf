@@ -604,6 +604,8 @@ function normalizeIteration(value, index, dossier = null) {
     closure: normalizeClosure(value?.closure),
     brief: normalizeBrief(value?.brief),
     ...normalizeFixLinks(value),
+    // Older servers send no priority; the field is then absent.
+    ...(["P1", "P2", "P3"].includes(value?.priority) ? { priority: value.priority } : {}),
     dossier,
   };
 }

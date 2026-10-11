@@ -339,6 +339,7 @@ const ITALIAN = Object.freeze({
   "Shown as recorded; the command line checks the usage history again before relying on a cost.": "Mostrato come registrato; la riga di comando ricontrolla la cronologia dell’utilizzo prima di basarsi su un costo.",
   "In Progress": "In corso",
   "Progress": "Avanzamento",
+  "Priority": "Priorità",
   "Passed": "Superato",
   "Failed": "Non superato",
   "Pending": "In attesa",

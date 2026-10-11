@@ -3832,6 +3832,15 @@ button.kpi-tile:hover {
   letter-spacing: 0.02em;
 }
 
+.story-priority {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
 .story-links {
   display: flex;
   flex-wrap: wrap;

@@ -46,13 +46,17 @@ test("a fix story records its link, inherits requirements, starts in design and 
   }
 
   fs.mkdirSync(path.join(project, ".sdlc/operations"), { recursive: true });
-  fs.writeFileSync(path.join(project, ".sdlc/operations/INC-1.json"), JSON.stringify({ kind: "incident", id: "INC-1", story_id: "ST-A" }));
+  fs.writeFileSync(path.join(project, ".sdlc/operations/INC-1.json"), JSON.stringify({ kind: "incident", id: "INC-1", story_id: "ST-A", severity: "sev1" }));
   const fromIncident = JSON.parse(mustRun(project, ["story", "create", "--id", "ST-A-FIX-2", "--title", "Fix A again", "--incident", "INC-1", "--full-cycle", "--json"]));
   assert.deepEqual(fromIncident.story.fixes, { story_id: "ST-A", incident_id: "INC-1" });
   assert.equal(fromIncident.fix_short_cycle, undefined);
+  assert.equal(fromIncident.story.priority, "P1", "a fix from a sev1 incident is P1");
+  assert.equal(created.story.priority, undefined);
 
   const iterations = findIterations(await buildObservatoryViewModel(project));
   const byId = new Map(iterations.map((iteration) => [iteration.id, iteration]));
   assert.deepEqual(byId.get("ST-A").fixedBy, ["ST-A-FIX", "ST-A-FIX-2"]);
   assert.deepEqual(byId.get("ST-A-FIX-2").fixes, { storyId: "ST-A", incidentId: "INC-1" });
+  assert.equal(byId.get("ST-A-FIX-2").priority, "P1");
+  assert.equal(byId.get("ST-A-FIX").priority, undefined);
 });

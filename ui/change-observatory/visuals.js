@@ -798,6 +798,7 @@ function sortSelect(value) {
     ["recent", "Latest activity"],
     ["state", "Status"],
     ["progress", "Progress"],
+    ["priority", "Priority"],
     ["title", "Title"],
   ]) {
     const option = node("option", { text: label, i18n: true, attrs: { value: key } });
@@ -846,6 +847,9 @@ function storyRow(story, state, insight) {
           ? storyNextText(story, insight.storiesById)
           : relativeTime(story.lastActivity) }),
         highlighted(story.id, exploreState.query, "story-id"),
+        story.iteration?.priority
+          ? node("span", { className: "story-priority", text: story.iteration.priority, attrs: { title: t("Priority") } })
+          : null,
       ]),
     ]),
     phaseTrack(story),

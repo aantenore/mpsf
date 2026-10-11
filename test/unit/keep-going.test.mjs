@@ -329,9 +329,26 @@ test("stories created by another computer are never proposed, however old, unles
   write("ST-FREE2", "alice-pc", hoursAgo(50), { free: true });
   write("ST-ANCIENT", "alice-pc", hoursAgo(500));
   const work = collectWork(dir, { now, selfHost: "my-pc" });
-  assert.deepEqual(work.available, ["ST-FREE", "ST-FREE2", "ST-MINE", "ST-NOHOST"]);
-  assert.deepEqual(collectWork(dir, { now, selfHost: "my-pc", env: { AGENTIC_SDLC_KEEP_GOING_FOREIGN_HOURS: "0" } }).available, ["ST-ANCIENT", "ST-FREE", "ST-FREE2", "ST-MINE", "ST-NOHOST", "ST-OLD", "ST-OTHER"]);
+  // Oldest first, then id.
+  assert.deepEqual(work.available, ["ST-FREE2", "ST-FREE", "ST-MINE", "ST-NOHOST"]);
+  assert.deepEqual(collectWork(dir, { now, selfHost: "my-pc", env: { AGENTIC_SDLC_KEEP_GOING_FOREIGN_HOURS: "0" } }).available, ["ST-ANCIENT", "ST-FREE2", "ST-OLD", "ST-FREE", "ST-MINE", "ST-NOHOST", "ST-OTHER"]);
   assert.equal(collectWork(dir, { now }).available.includes("ST-OTHER"), true, "no own identity: current behavior");
+});
+
+test("available and ready stories follow P1 > P2 > P3 > no priority, then the oldest", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "keep-going-priority-"));
+  const write = (id, createdAt, extra = {}) => {
+    fs.mkdirSync(path.join(dir, ".sdlc", "stories", id), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".sdlc", "stories", id, "story.json"), JSON.stringify({ id, created_at: createdAt, ...extra }));
+  };
+  write("ST-A", "2026-01-01T00:00:00Z");
+  write("ST-B", "2026-01-03T00:00:00Z", { priority: "P1" });
+  write("ST-C", "2026-01-02T00:00:00Z", { priority: "P1" });
+  write("ST-D", "2026-01-01T00:00:00Z", { priority: "P3" });
+  write("ST-E", "2026-01-05T00:00:00Z", { priority: "P2" });
+  const work = collectWork(dir, { now: Date.parse("2026-02-01T00:00:00Z") });
+  assert.deepEqual(work.available, ["ST-C", "ST-B", "ST-E", "ST-D", "ST-A"]);
+  assert.deepEqual(work.ready, work.available);
 });
 
 test("foreign check falls back to the git author e-mail, else current behavior", () => {

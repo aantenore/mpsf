@@ -483,6 +483,12 @@ export function sortStories(stories, order = "recent") {
     storyTitleText(left.iteration).localeCompare(storyTitleText(right.iteration));
   const stateRank = new Map(STORY_STATES.map((state, index) => [state.key, index]));
   if (order === "title") return list.sort(byTitle);
+  if (order === "priority") {
+    // P1 > P2 > P3 > no priority, then by id (story ids grow with age).
+    const rank = (story) => ({ P1: 0, P2: 1, P3: 2 })[story.iteration?.priority] ?? 3;
+    return list.sort((left, right) => rank(left) - rank(right)
+      || String(left.id).localeCompare(String(right.id), undefined, { numeric: true }));
+  }
   if (order === "progress") {
     return list.sort((left, right) => right.completed - left.completed || byTitle(left, right));
   }
