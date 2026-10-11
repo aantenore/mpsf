@@ -53,6 +53,8 @@ test("offer when the computer becomes free, then at most every 12 hours", () => 
   // Just released its last story: offer right away (after the minimum gap).
   assert.ok(selectPresence({ claims: [], presence: { last_offer: NOW - 2 * 3600_000, last_set: "ST-A-001:release" }, now: NOW }));
   assert.equal(selectPresence({ claims: [], presence: { last_offer: NOW - 5 * 60_000, last_set: "ST-A-001:release" }, now: NOW }), null);
+  // An explicit heartbeat keeps the old hourly offer.
+  assert.ok(selectPresence({ claims: [], presence: { last_offer: NOW - 2 * 3600_000, last_set: "" }, now: NOW, periodic: true }));
   assert.equal(heartbeatMinutes({}), 15);
   assert.equal(heartbeatMinutes({ AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES: "0" }), 0);
 });
