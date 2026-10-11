@@ -275,12 +275,10 @@ test("keep-going: at most 3 wait suggestions with a counter, and the same set bl
   assert.equal(changed.block, true);
 });
 
-test("plugin update requests go only to computers seen on the channel recently", () => {
+test("an outdated computer is listed as information only: no update request is sent", () => {
   const recent = { id: "plugin:pc2", source: "derived", waiter: { host: "*" }, blocker: { type: "plugin_version", ref: "pc2", version: "0.140.0", newest: "0.148.2" }, since: at(30), state: "open" };
-  const off = { ...recent, id: "plugin:pc3", blocker: { ...recent.blocker, ref: "pc3" }, since: at(180) };
-  const { messages, memory } = planWaitActions([recent, off], { now: NOW, policy, memory: {} });
-  assert.deepEqual(messages.map((item) => item.to), ["pc2"]);
-  assert.equal(memory.update_requests.pc3, undefined);
-  // Not again within the interval.
-  assert.equal(planWaitActions([recent], { now: NOW + 60_000, policy, memory }).messages.length, 0);
+  const { messages, suggestions, memory } = planWaitActions([recent], { now: NOW, policy, memory: {} });
+  assert.deepEqual(messages, []);
+  assert.deepEqual(suggestions, []);
+  assert.equal(memory.update_requests, undefined);
 });

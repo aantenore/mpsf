@@ -6,7 +6,6 @@
     { "role": "coordinator", "command": ["coordinator", "settle-waits"], "every_minutes": 15, "auto": true },
     { "role": "coordinator", "command": ["coordinator", "check-records"], "every_minutes": 60, "auto": true },
     { "role": "coordinator", "command": ["coordinator", "digest"], "every_minutes": 15, "auto": false },
-    { "role": "coordinator", "command": ["coordinator", "update-requests"], "every_minutes": 30, "auto": false },
     { "role": "coordinator", "command": ["coordinator", "main-green"], "every_minutes": 30, "auto": true, "publish": "base" },
     { "role": "coordinator", "command": ["coordinator", "merge"], "every_minutes": 10, "auto": false },
     { "role": "knowledge", "command": ["knowledge", "distill"], "every_minutes": 60, "auto": true, "publish": "base" }

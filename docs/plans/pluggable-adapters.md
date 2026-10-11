@@ -58,7 +58,7 @@ What can move: every record kind under `.sdlc/` (stories, contracts, steps, gate
 | Explicit waits (`wait add/resolve/list`) | wait-registry shared state through the record store | phase 1: routed through `RecordStore.sharedState`; tested with messaging off and on `local-fs` |
 | Derived **question** waits (`deriveQuestionWaits` from the channel window) | a question that must be answered becomes an explicit wait record (`wait add --on question:<id>`); the message only points at it | phase 2 |
 | **Freezes** (`--kind freeze` messages, `deriveFreezeWaits`) | freeze becomes an explicit wait-registry record (`on: freeze`), the message only announces it | phase 2 |
-| **Plugin update requests** (`derivePluginWaits` from versions seen in messages) | plugin version per host recorded in a presence/lease record of the shared state; release announcement is a record, notice optional | phase 2 |
+| **Outdated plugins** (`derivePluginWaits` from versions seen in messages; information only since 0.153.6, no request is sent) | plugin version per host recorded in a presence/lease record of the shared state; release announcement is a record, notice optional | phase 2 |
 | Delegations, approvals | records + refs; escalation notice optional | already independent |
 | Gate failure "need help" question | notice only; the gate result is the record | already independent |
 | `story prepare` announcement | best effort; fixed in phase 1 so a refused message can no longer reject unhandled | done |
@@ -220,7 +220,7 @@ Phase 1 ships the schema, validation and the pure resolver (`lib/coordination-ro
 
 ### Phase 2: independence and roles
 
-- Questions, freezes and plugin-update requests as explicit wait-registry records; derived waits from the channel become optional hints.
+- Questions and freezes as explicit wait-registry records; derived waits from the channel become optional hints.
 - Neutral host identity module; messaging and store use it.
 - Remaining shared namespaces registered with the store: `claims`, `waits`, `reviews`, `standing`, `commits`, `baseline-refresh`.
 - Coordinator lease records, `role status` command, enforcement of reserved actions, hand-over flow, serialized merge queue on the coordinator.

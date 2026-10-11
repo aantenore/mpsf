@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.6
+
+- No computer sends update requests to the others any more (`[auto] aggiorna il plugin` on the issue or the git channel). Each computer checks its own version against what the project needs (`config/plugin-compatibility.json`, the records' minimum version) and the newest version announced on the channel, and warns its own person in the session, with the update command.
+- An outdated computer still appears in `wait list` and `message who` as information only. The `coordinator update-requests` duty and the `request_plugin_updates` coordinator task are gone; `plugin_update_request_every_minutes` in `host_policy.waits` is still accepted and ignored.
+- Compatibility: older plugins keep sending update requests until they update; this version reads them as information (never unanswered, no reply, no block).
+- Change Observatory: no change needed; it never showed update requests.
+
 ## 0.153.5
 
 - `coordinator main-green` (every 30 minutes) and `knowledge distill` (every 60) now start by themselves on the computer holding the role. They run in the dedicated worktree on the base branch and push only the `.sdlc` records they wrote, with `[skip ci]`, never forced. `coordinator digest`, `update-requests` and `merge` stay manual. `AGENTIC_SDLC_ROLE_DUTIES=off` stops every duty on a computer.
