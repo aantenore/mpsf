@@ -168,3 +168,27 @@ test("local claims: one set for the whole clone, a live record wins over a stale
     assert.deepEqual(localActiveClaims(from, args).map((item) => [item.story, item.phase]), [["ST-1", null], ["ST-2", "implementation"]]);
   }
 });
+
+test("local claims: a claim past its recorded expiry stays live while its work shows activity within the time to live", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sdlc-presence-ttl-"));
+  fs.mkdirSync(path.join(root, ".sdlc"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ claim_policy: { default_ttl_seconds: 7200 } }));
+  const claim = (id) => {
+    fs.mkdirSync(path.join(root, ".sdlc", "stories", id), { recursive: true });
+    fs.writeFileSync(path.join(root, ".sdlc", "stories", id, "claim.json"), JSON.stringify({
+      story_id: id, status: "active", branch: `b/${id}`, claimed_at: new Date(NOW - 5 * 3600_000).toISOString(),
+      expires_at: new Date(NOW - 3 * 3600_000).toISOString(),
+    }));
+  };
+  claim("ST-A-001");
+  claim("ST-B-001");
+  const worked = { "ST-A-001": NOW - 30 * 60_000, "ST-B-001": NOW - 3 * 3600_000 };
+  const args = { now: NOW, branchExists: () => true, activity: (item) => worked[item.story_id] };
+  const claims = localActiveClaims(root, args);
+  assert.deepEqual(claims.map((item) => [item.story, item.active_at]), [["ST-A-001", NOW - 30 * 60_000]]);
+  // Activity in the future of `now` says nothing about `now`.
+  assert.deepEqual(localActiveClaims(root, { ...args, activity: () => NOW + 3600_000 }), []);
+  // Claims that never expire are not affected.
+  fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ claim_policy: { default_ttl_seconds: null } }));
+  assert.deepEqual(localActiveClaims(root, args), []);
+});
