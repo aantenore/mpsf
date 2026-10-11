@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.4
+
+- Two clones of the same project on one computer no longer overwrite each other's presence: the computer's presence ref keeps one entry per clone (`clones`), and its stories and activity cover them all, so the claims of both stay renewed.
+- The roles stay with the clone that wrote their lease; the other clone neither renews them nor runs their duties. When a session ends in one clone while another clone of the computer is working, nothing is handed back and the computer stays alive.
+- Change Observatory: no change needed. Compatibility: older plugins read the top-level stories and activity as before.
+
 ## 0.159.3
 
 - When the computer holding a role runs a plugin too old for one of its automatic duties (`since` in `config/role-duties.json`), one live computer with a recent plugin, chosen by rendezvous hashing, runs that duty in its place. The holder keeps the role and everything it already does; a pinned role never gets a stand-in.
