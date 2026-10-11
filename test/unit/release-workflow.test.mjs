@@ -1437,7 +1437,7 @@ test("the exact inline seal and publish validators accept a valid fixture and re
     mkdirSync(path.join(temporary, "config"));
     mkdirSync(path.join(temporary, "lib", "release"), { recursive: true });
     mkdirSync(path.join(temporary, "lib", "runtime"), { recursive: true });
-    for (const module of [["release", "workflow-guard.mjs"], ["runtime", "host.mjs"]]) {
+    for (const module of [["release", "workflow-guard.mjs"], ["runtime", "host.mjs"], ["runtime", "bounded-child-process.mjs"]]) {
       copyFileSync(path.join(repoRoot, "lib", ...module), path.join(temporary, "lib", ...module));
     }
     writeFileSync(
