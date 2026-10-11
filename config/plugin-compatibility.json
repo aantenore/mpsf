@@ -45,6 +45,11 @@
       "since": "0.147.0",
       "summary": "Messaging and record store adapters, and the coordinator role",
       "config_keys": ["host_policy.adapters", "host_policy.roles"]
+    },
+    "context-module": {
+      "since": "0.148.0",
+      "summary": "Story context packs, short agent output and budgeted hook text",
+      "config_keys": ["host_policy.context"]
     }
   }
 }
