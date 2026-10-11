@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.7
+
+- The plugin repository no longer carries its own `.sdlc` folder: the plugin is not used on itself for now. Templates and the code that creates `.sdlc` in projects are unchanged.
+- Change Observatory: no change needed.
+- Compatibility: nothing changes for older plugins.
+
 ## 0.153.6
 
 - No computer sends update requests to the others any more (`[auto] aggiorna il plugin` on the issue or the git channel). Each computer checks its own version against what the project needs (`config/plugin-compatibility.json`, the records' minimum version) and the newest version announced on the channel, and warns its own person in the session, with the update command.
