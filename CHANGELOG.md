@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.156.0
+
+- Every record has a format version: `schema_version` (`<kind>:v<N>`). Records without it, and the story/contract records stamped with the project config version, read as format 1. Claims now carry `claim:v1`.
+- The highest format the plugin knows comes from its bundled schemas. `coordinator check-records` warns (`newer_record_format`) when a story or claim was written by a newer plugin.
+- Change Observatory: a record written by a newer plugin shows a `schema_version_newer` warning and is still read.
+- Compatibility: older plugins accept the new field (the claim schema allows extra keys); no config key added.
+
 ## 0.155.0
 
 - The plugin is now **mpsf** (My Personal Software Factory): plugin `mpsf@aantenore`, slash commands `/mpsf:...`, package `mpsf`, product name MPSF in the docs, the CLI messages, the Codex plugin and the Change Observatory.

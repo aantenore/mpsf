@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF 0.155.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF 0.156.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.156.0** — records name their format in `schema_version`; records without it read as format 1, and records from a newer plugin raise a warning instead of an error.
 - **0.155.0** — renamed to **mpsf** (My Personal Software Factory): plugin `mpsf@aantenore`, `/mpsf:...` commands; the old `agentic-sdlc` entry is a bridge that installs mpsf on the next session. Records, refs and config unchanged.
 - **0.154.0** — operational records off the base branch: `state migrate` moves action receipts, executions and gate reports (not the final receipts) to an orphan `sdlc-state` branch of the same remote; the hooks sync them in the background (throttled, fast-forward only, `[skip ci]`); the Change Observatory shows them; older plugins are asked to update.
 - **0.153.7** — the repository no longer carries its own `.sdlc` folder; nothing changes for projects using the plugin.
