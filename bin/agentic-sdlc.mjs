@@ -1412,7 +1412,8 @@ function buildCliRuntimeHandlerRegistry() {
         proposeDelivery: proposeDeliveryAutonomy,
         startTask,
         claimStory,
-        announce: ({ story, kind, text }) => messageSend({ root: context.root, story, kind, text }),
+        // Notification only: a refused or failed message never fails the preparation.
+        announce: ({ story, kind, text }) => messageSend({ root: context.root, story, kind, text }).catch(() => null),
       });
     }),
     "story.working": bootstrap(({ options }) => storyWorking(options)),
