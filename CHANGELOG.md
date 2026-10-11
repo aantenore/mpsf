@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.11
+
+- Security: `known-error apply` no longer follows symlinks (a `remove_path` through a link is refused, so nothing outside the project is removed) and treats a path Git cannot classify as tracked. An `accepted` event now counts only when a person or CI wrote it, it names exactly the record's fix actions (and its record hash, stored by new acceptances), and the record's own hash holds; `known-error accept` refuses inside an agent session. Change Observatory: the known-error view shows "accepted safe fix" only for acceptances that hold. Compatibility: acceptances written by older plugins with `known-error accept` still count; hand-written or agent ones no longer do.
+
 ## 0.159.10
 
 - Guard: delivery action receipts (`.sdlc/autonomy/actions/`) and story claims (`.sdlc/stories/<id>/claim.json`), which authorize `gh pr merge` and `git push`, can no longer be written by the agent with file tools or the shell; deleting `.sdlc`, `.sdlc/autonomy`, the stories folder or one story is refused under any path prefix and through a glob. Change Observatory: no change. Compatibility: nothing changes for older plugins; these files are written only by the CLI.
