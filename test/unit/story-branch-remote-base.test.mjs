@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { storyOwnCommitRange } from "../../lib/engine/story-branch-commits.mjs";
+import { pathsTouchedByCommits, storyOwnCommitRange } from "../../lib/engine/story-branch-commits.mjs";
 
 const git = (cwd, ...args) => execFileSync("git", ["-C", cwd, "-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { encoding: "utf8" }).trim();
 
@@ -51,6 +51,51 @@ test("a commit not on the remote base branch stays the story's", () => {
     const own = commitFile(root, "story.txt", "s", "story work");
     const range = storyOwnCommitRange(context, { storyId: "ST-X", baseSha: start, headSha: own });
     assert.deepEqual(range.commits, [foreign, own]);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a long story range costs a fixed number of Git processes", () => {
+  const { dir, root, start, context } = setup();
+  const trace = path.join(dir, "git-trace.log");
+  try {
+    const records = commitFile(root, ".sdlc/stories/x.json", "{}", "records only");
+    const own = [];
+    for (let index = 0; index < 12; index += 1) own.push(commitFile(root, `src/f${index}.txt`, String(index), `work ${index}`));
+    git(root, "checkout", "-q", "-b", "side", start);
+    const side = commitFile(root, "side.txt", "s", "side work");
+    git(root, "checkout", "-q", "feature/story");
+    git(root, "merge", "-q", "--no-edit", side);
+    const merge = git(root, "rev-parse", "HEAD");
+    process.env.GIT_TRACE = trace;
+    let range;
+    try {
+      range = storyOwnCommitRange(context, { storyId: "ST-X", baseSha: start, headSha: merge });
+    } finally {
+      delete process.env.GIT_TRACE;
+    }
+    assert.deepEqual(range.commits, [...own, side, merge]);
+    assert.ok(range.set_aside.some((item) => item.sha === records && item.kind === "records"));
+    const spawned = fs.readFileSync(trace, "utf8").split("\n").filter((line) => /trace: (?:built-in|exec): git /u.test(line)).length;
+    // Before batching: one ancestry check, one diff-tree and one rev-parse per commit (over 60 here).
+    assert.ok(spawned <= 10, `expected a fixed number of Git processes, got ${spawned}`);
+    assert.deepEqual(pathsTouchedByCommits(context, [...own, side, merge]), [...own.map((_, index) => `src/f${index}.txt`), "side.txt"].sort());
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a commit and its exact revert are set aside with batched diffs", () => {
+  const { dir, root, start, context } = setup();
+  try {
+    const original = commitFile(root, "src/a.txt", "one\n", "add");
+    git(root, "revert", "--no-edit", original);
+    const revert = git(root, "rev-parse", "HEAD");
+    const own = commitFile(root, "src/b.txt", "two\n", "keep");
+    const range = storyOwnCommitRange(context, { storyId: "ST-X", baseSha: start, headSha: own });
+    assert.deepEqual(range.commits, [own]);
+    assert.deepEqual(range.set_aside.filter((item) => item.kind === "reverted").map((item) => item.sha).sort(), [original, revert].sort());
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
