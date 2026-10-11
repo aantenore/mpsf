@@ -5,28 +5,92 @@ import path from "node:path";
 import test from "node:test";
 
 import { alertFor } from "../../lib/messaging/auto.mjs";
-import { heartbeatMinutes, localActiveClaims, selectPresence } from "../../lib/messaging/presence.mjs";
+import { heartbeatMinutes, heartbeatPeriodic, localActiveClaims, selectPresence, stallHours } from "../../lib/messaging/presence.mjs";
+import { claimEndedByRefs, readClaimRefNames } from "../../lib/runtime/claim-refs.mjs";
 
 const NOW = Date.parse("2026-10-10T12:00:00Z");
 
-test("status while claims are active, at most once per heartbeat", () => {
+test("status when the stories or phases change, never more than once per heartbeat gap", () => {
   const claims = [{ story: "ST-A-001", phase: "implement", phaseSince: NOW - 20 * 60_000 }];
   const status = selectPresence({ claims, now: NOW });
   assert.equal(status.kind, "info");
   assert.equal(status.text, "[auto] stato: ST-A-001 in fase implement da 20 min");
+  assert.equal(status.set, "ST-A-001:implement");
   assert.equal(selectPresence({ claims, presence: { last_status: NOW - 5 * 60_000 }, now: NOW }), null);
-  assert.ok(selectPresence({ claims, presence: { last_status: NOW - 16 * 60_000 }, now: NOW }));
+  // Same stories and phases: nothing new to say until the 12-hour refresh.
+  assert.equal(selectPresence({ claims, presence: { last_status: NOW - 16 * 60_000, last_set: status.set }, now: NOW }), null);
+  assert.ok(selectPresence({ claims, presence: { last_status: NOW - 13 * 3600_000, last_set: status.set }, now: NOW }));
+  // A new phase is news.
+  const moved = [{ ...claims[0], phase: "verify" }];
+  assert.match(selectPresence({ claims: moved, presence: { last_status: NOW - 16 * 60_000, last_set: status.set }, now: NOW }).text, /in fase verify/u);
+  // The heartbeat set explicitly keeps the old periodic status; 0 turns it off.
+  assert.ok(selectPresence({ claims, presence: { last_status: NOW - 16 * 60_000, last_set: status.set }, now: NOW, periodic: true }));
   assert.equal(selectPresence({ claims, now: NOW, heartbeatMs: 0 }), null);
+  assert.equal(heartbeatPeriodic({}), false);
+  assert.equal(heartbeatPeriodic({ AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES: "15" }), true);
 });
 
-test("offer when free, at most once an hour", () => {
+test("one stall notice per story and phase", () => {
+  const claims = [{ story: "ST-A-001", phase: "discovery", phaseSince: NOW - 5 * 3600_000 }];
+  const presence = { last_status: NOW - 16 * 60_000, last_set: "ST-A-001:discovery" };
+  const stall = selectPresence({ claims, presence, now: NOW });
+  assert.equal(stall.text, "[auto] stato: ST-A-001 ferma in fase discovery da 5 h");
+  assert.equal(stall.stalled, "ST-A-001:discovery");
+  assert.equal(selectPresence({ claims, presence: { ...presence, stalled: ["ST-A-001:discovery"] }, now: NOW }), null);
+  assert.equal(selectPresence({ claims, presence, now: NOW, stallMs: 0 }), null);
+  assert.equal(stallHours({}), 4);
+  assert.equal(stallHours({ AGENTIC_SDLC_MESSAGING_STALL_HOURS: "0" }), 0);
+});
+
+test("offer when the computer becomes free, then at most every 12 hours", () => {
   const offer = selectPresence({ claims: [], now: NOW });
   assert.equal(offer.kind, "offer");
   assert.match(offer.text, /libero: posso prendere lavoro o aiutare/u);
-  assert.equal(selectPresence({ claims: [], presence: { last_offer: NOW - 30 * 60_000 }, now: NOW }), null);
-  assert.ok(selectPresence({ claims: [], presence: { last_offer: NOW - 61 * 60_000 }, now: NOW }));
+  assert.equal(selectPresence({ claims: [], presence: { last_offer: NOW - 2 * 3600_000, last_set: "" }, now: NOW }), null);
+  assert.ok(selectPresence({ claims: [], presence: { last_offer: NOW - 13 * 3600_000, last_set: "" }, now: NOW }));
+  // Just released its last story: offer right away (after the minimum gap).
+  assert.ok(selectPresence({ claims: [], presence: { last_offer: NOW - 2 * 3600_000, last_set: "ST-A-001:release" }, now: NOW }));
+  assert.equal(selectPresence({ claims: [], presence: { last_offer: NOW - 5 * 60_000, last_set: "ST-A-001:release" }, now: NOW }), null);
   assert.equal(heartbeatMinutes({}), 15);
   assert.equal(heartbeatMinutes({ AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES: "0" }), 0);
+});
+
+test("a claim the claim refs show as released or superseded has ended", () => {
+  const claim = (epoch, extra = {}) => ({ status: "active", shared_claim: { scope: "shared", ref: `refs/agentic-sdlc/claims/ST-QA-001D/${epoch}/claim`, remote_fingerprint: "d8f26b3c6fd5b059c87073cc", ...extra } });
+  const base = "refs/agentic-sdlc-shared/claims/d8f26b3c6fd5b059/ST-QA-001D";
+  assert.equal(claimEndedByRefs(claim("000001"), new Set([`${base}/000001/claim`])), false);
+  assert.equal(claimEndedByRefs(claim("000001"), new Set([`${base}/000001/claim`, `${base}/000001/release`])), true);
+  assert.equal(claimEndedByRefs(claim("000001"), new Set([`${base}/000002/claim`])), true);
+  assert.equal(claimEndedByRefs(claim("000002"), new Set([`${base}/000001/release`, `${base}/000002/claim`])), false);
+  assert.equal(claimEndedByRefs(claim("000001"), new Set(["refs/agentic-sdlc-shared/claims/0000000000000000/ST-QA-001D/000001/release"])), false);
+  assert.equal(claimEndedByRefs(claim("000001"), new Set(["refs/agentic-sdlc/claims/ST-QA-001D/000001/release"])), true);
+  assert.equal(claimEndedByRefs({ status: "active", shared_claim: { scope: "local" } }, new Set([`${base}/000001/release`])), false);
+  assert.equal(claimEndedByRefs(claim("000001"), null), false);
+});
+
+test("local claims drop a stale active snapshot once the release ref exists (loose or packed)", () => {
+  for (const packed of [false, true]) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sdlc-presence-refs-"));
+    const git = path.join(root, ".git");
+    fs.mkdirSync(git, { recursive: true });
+    const dir = path.join(root, ".sdlc", "stories", "ST-QA-001D");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "claim.json"), JSON.stringify({
+      story_id: "ST-QA-001D", status: "active", branch: "feature/ST-QA-001D",
+      claimed_at: new Date(NOW - 60 * 60_000).toISOString(), expires_at: new Date(NOW + 3600_000).toISOString(),
+      shared_claim: { scope: "shared", ref: "refs/agentic-sdlc/claims/ST-QA-001D/000001/claim", remote_fingerprint: "d8f26b3c6fd5b059c87073cc" },
+    }));
+    const args = { now: NOW, branchExists: () => true };
+    assert.equal(localActiveClaims(root, args).length, 1);
+    const name = "refs/agentic-sdlc-shared/claims/d8f26b3c6fd5b059/ST-QA-001D/000001/release";
+    if (packed) fs.writeFileSync(path.join(git, "packed-refs"), `# pack-refs with: peeled fully-peeled sorted\n${"a".repeat(40)} ${name}\n`);
+    else {
+      fs.mkdirSync(path.dirname(path.join(git, name)), { recursive: true });
+      fs.writeFileSync(path.join(git, name), `${"a".repeat(40)}\n`);
+    }
+    assert.ok(readClaimRefNames(git).has(name));
+    assert.deepEqual(localActiveClaims(root, args), []);
+  }
 });
 
 test("local claims: active, unexpired, on a branch of this clone, with the workflow phase", () => {

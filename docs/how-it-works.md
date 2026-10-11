@@ -1343,9 +1343,15 @@ waits instead of refusing. Read-only commands are never blocked.
 With messaging on, the plugin also tells the channel when a story enters a
 workflow phase, a commit, push or pull request completes, a test run is
 recorded and a strict gate passes. From the host hook it sends a short status
-every `AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES` (default 15, `0` off) while this
-clone holds active claims, and at most once an hour an offer to help when it
-holds none. `AGENTIC_SDLC_MESSAGING_AUTO=off` stops all of these.
+while this clone holds active claims, only when the stories or their phases
+change, once per story and phase that stays put longer than
+`AGENTIC_SDLC_MESSAGING_STALL_HOURS` (default 4, `0` off), and again after 12
+hours; two statuses are at least `AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES`
+apart (default 15, `0` off; set explicitly, the status is sent every gap as
+before). It offers help when it becomes free, and again after 12 hours. A
+claim counts only while the local claim refs do not show it released or
+superseded, so a checkout behind the base branch does not report a story that
+already ended. `AGENTIC_SDLC_MESSAGING_AUTO=off` stops all of these.
 
 ## 8. Active-Release Migration
 

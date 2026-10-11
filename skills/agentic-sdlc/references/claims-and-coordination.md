@@ -191,9 +191,9 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    the channel before touching another agent's scope; close every thread of
    work with a message. The plugin also sends `[auto]` notices (phase
    changes, commits, pushes, pull requests, test records, strict gates), a
-   periodic status while this computer holds claims
-   (`AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES`, default 15, 0 = off) and an
-   offer to help when it holds none.
+   status while this computer holds claims, sent only when its stories or
+   phases change or one stays put past `AGENTIC_SDLC_MESSAGING_STALL_HOURS`
+   (default 4, 0 = off), and an offer to help when it becomes free.
 
    When the project has a git remote, the claim is first recorded on it
    (`refs/agentic-sdlc/claims/`), so every computer working on the project sees
