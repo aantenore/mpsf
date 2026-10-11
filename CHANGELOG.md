@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.156.1
+
+- Coordinator duties for claims and waits, as standalone idempotent commands with `--dry-run` and `--json`, that do nothing on a computer not holding the coordinator role: `coordinator free-claims` frees a claim only when its lease ended with no push, no declared wait and no live presence of its holder, and saves the freed story's handoff pack (otherwise a person decides, with the commands shown); `coordinator settle-waits` closes expired waits and stale questions; `coordinator handoff --story <id>` builds a handoff pack on demand. Both automatic duties start by themselves on the coordinator (`config/role-duties.json`). Records are the existing release and wait-resolve records: older plugins read them as before.
+
 ## 0.156.0
 
 - Every record has a format version: `schema_version` (`<kind>:v<N>`). Records without it, and the story/contract records stamped with the project config version, read as format 1. Claims now carry `claim:v1`.

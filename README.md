@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.156.1** — coordinator duties for claims and waits: `coordinator free-claims` (with the handoff pack of each freed story), `settle-waits` and `handoff`, each idempotent with `--dry-run`, run only where the coordinator role is held.
 - **0.156.0** — records name their format in `schema_version`; records without it read as format 1, and records from a newer plugin raise a warning instead of an error.
 - **0.155.0** — renamed to **mpsf** (My Personal Software Factory): plugin `mpsf@aantenore`, `/mpsf:...` commands; the old `agentic-sdlc` entry is a bridge that installs mpsf on the next session. Records, refs and config unchanged.
 - **0.154.0** — operational records off the base branch: `state migrate` moves action receipts, executions and gate reports (not the final receipts) to an orphan `sdlc-state` branch of the same remote; the hooks sync them in the background (throttled, fast-forward only, `[skip ci]`); the Change Observatory shows them; older plugins are asked to update.
