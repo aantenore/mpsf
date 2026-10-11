@@ -38,6 +38,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
 - **0.151.2** — English output: hook texts, channel `[auto]` messages, waits and `roles status` in English (`--locale it` keeps Italian for `wait` and `roles status`); the update request keeps its `[auto] aggiorna il plugin` prefix so older plugins still recognize it. Logo in the README; repository links in `package.json`.
+- **0.151.1** — fresh state reader: the base branch is read as the remote has it (bounded fetch, `git show`/`ls-tree`, never the working tree); the context pack says how many commits the checkout is behind it.
 - **0.150.0** — messages between computers on git: one signed ref per computer in the project's remote, any git host, default for new channels (projects with a GitHub channel issue keep it); signed messages and computer keys registered in `.sdlc/machines`, untrusted ones marked in `message read` and the Change Observatory.
 - **0.149.3** — first step of the rename to **mpsf** (My Personal Software Factory): `mpsf` command next to `agentic-sdlc`, `MPSF_*` variables as aliases of `AGENTIC_SDLC_*`.
 - **0.149.2** — Codex `SessionEnd` hook within its 3-second limit: no more timeout notice on every run.
