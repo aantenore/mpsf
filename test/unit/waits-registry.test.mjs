@@ -57,7 +57,7 @@ test("unanswered own question: after 10 minutes the rule suggests deciding and r
   const { suggestions } = planWaitActions(waits, { now: NOW, policy });
   assert.equal(suggestions.length, 1);
   assert.equal(suggestions[0].wait_id, "q:q1");
-  assert.match(suggestions[0].text, /decidi tu sul lavoro di questo computer \(senza assegnare lavoro ad altri\) o chiedi alla tua persona, annuncia la decisione e procedi/u);
+  assert.match(suggestions[0].text, /decide yourself on the work of this computer \(without assigning work to others\) or ask your person, announce the decision and go on/u);
   assert.match(suggestions[0].command, /wait resolve --id q:q1 --resolution/u);
   // The decision recorded as the resolution closes the wait.
   const resolved = applyWaitMemory(waits, { resolutions: new Map([["q:q1", { resolution: "JSON" }]]) });
@@ -74,7 +74,7 @@ test("freezes disabled by default: no freeze wait, send refused", async () => {
   assert.deepEqual(deriveFreezeWaits({ messages, now: NOW, policy }), []);
   const { assertFreezesEnabled } = await import("../../lib/messaging/commands.mjs");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "freeze-off-"));
-  assert.throws(() => assertFreezesEnabled(root), /freeze disabilitati per decisione del progetto/u);
+  assert.throws(() => assertFreezesEnabled(root), /freezes are disabled by project decision/u);
   fs.mkdirSync(path.join(root, ".sdlc"));
   fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ host_policy: { waits: { freezes_enabled: true } } }));
   assert.doesNotThrow(() => assertFreezesEnabled(root));
@@ -92,13 +92,13 @@ test("freeze (enabled by the project): explicit --kind freeze and the text form;
   const unpublished = [{ storyId: "ST-1", base: "origin/main", files: ["a", "b"], command: "agentic-sdlc story publish-records --id ST-1 --to-base" }];
   const blocked = decideKeepGoing({ unpublished, waits: { list: during, suggestions: [], freeze }, now: NOW });
   assert.equal(blocked.block, false, "no publish request during the freeze");
-  assert.match(blocked.note, /sospesi fino alla fine del freeze/u);
+  assert.match(blocked.note, /suspended until the freeze ends/u);
   const later = NOW + 31 * 60_000;
   const after = deriveFreezeWaits({ messages, now: later, policy });
   assert.equal(after[0].state, "expired");
   assert.equal(activeFreeze(after, later), null);
   const { suggestions } = planWaitActions(after, { now: later, policy });
-  assert.match(suggestions[0].text, /freeze .* finito: riprendi le azioni sospese/u);
+  assert.match(suggestions[0].text, /freeze by .* ended: resume the held actions/u);
   const resumed = decideKeepGoing({ unpublished, waits: { list: after, suggestions, freeze: null }, now: later });
   assert.equal(resumed.block, true);
   assert.match(resumed.reason, /publish-records --id ST-1/u);
@@ -110,7 +110,7 @@ test("approval: shown once to this session's person with the exact command, neve
   assert.equal(first.messages.length, 0, "nothing goes to the channel");
   assert.equal(first.suggestions.length, 1);
   assert.equal(first.suggestions[0].person, true);
-  assert.match(first.suggestions[0].text, /^serve la tua persona \(approval BRK-1\).*chiediglielo in questa sessione/u);
+  assert.match(first.suggestions[0].text, /^your person is needed \(approval BRK-1\).*ask them in this session/u);
   assert.match(first.suggestions[0].command, /breakdown approve --id BRK-1/u);
   const marked = applyWaitMemory(waits, { memory: first.memory });
   assert.equal(marked[0].state, "escalated");
@@ -124,8 +124,8 @@ test("approval: shown once to this session's person with the exact command, neve
   // Escalated waits on a person never block keep-going: they are only noted.
   const decision = decideKeepGoing({ waits: { list: marked, suggestions: [], freeze: null }, now: NOW });
   assert.equal(decision.block, false);
-  assert.match(decision.note, /persona gia' avvisata/u);
-  assert.match(waitStatusLines(marked, { now: NOW }).join("\n"), /^In attesa di:\n {2}questo computer:\n {4}- approvazione umana di BRK-1/u);
+  assert.match(decision.note, /person who was already notified/u);
+  assert.match(waitStatusLines(marked, { now: NOW }).join("\n"), /^Waiting on:\n {2}this computer:\n {4}- human approval of BRK-1/u);
 });
 
 test("watch wakes up when a wait expires", async () => {
@@ -146,7 +146,7 @@ test("watch wakes up when a wait expires", async () => {
   assert.equal(result.status, "event");
   assert.ok(scans >= 2, "the first scan is the baseline");
   assert.deepEqual(result.events, [{ type: "wait", id: "WAIT-1", state: "expired", story: null }]);
-  assert.match(result.summary, /attesa scaduta: la PR 12/u);
+  assert.match(result.summary, /wait expired: PR 12/u);
   assert.deepEqual(waitSnapshot([open]), { "WAIT-1": "open" });
 });
 
@@ -257,7 +257,7 @@ test("keep-going: stale waits are a note, never a block", () => {
   const waits = { list: [{ id: "q:old", state: "stale", blocker: { type: "question", ref: "old" } }], suggestions: [], freeze: null };
   const decision = decideKeepGoing({ waits, now: NOW });
   assert.equal(decision.block, false);
-  assert.match(decision.note, /1 attese vecchie \(stale\), non bloccanti/u);
+  assert.match(decision.note, /1 stale waits, not blocking/u);
 });
 
 test("keep-going: at most 3 wait suggestions with a counter, and the same set blocks only once", () => {
@@ -265,11 +265,11 @@ test("keep-going: at most 3 wait suggestions with a counter, and the same set bl
   const first = decideKeepGoing({ waits: { list: [], suggestions, freeze: null }, now: NOW });
   assert.equal(first.block, true);
   assert.equal(first.reason.split("\n").filter((line) => line.startsWith("- nessuna risposta")).length, 3);
-  assert.match(first.reason, /e altre \(2\) attese/u);
+  assert.match(first.reason, /and 2 more waits/u);
   // Same set, even long after the loop window: not blocked again.
   const again = decideKeepGoing({ waits: { list: [], suggestions, freeze: null }, now: NOW + 3 * 3600_000, previous: first.state });
   assert.equal(again.block, false);
-  assert.match(again.note, /5 attese gia' segnalate/u);
+  assert.match(again.note, /5 waits already reported/u);
   // A different set blocks again.
   const changed = decideKeepGoing({ waits: { list: [], suggestions: suggestions.slice(0, 2), freeze: null }, now: NOW + 3 * 3600_000, previous: again.state });
   assert.equal(changed.block, true);

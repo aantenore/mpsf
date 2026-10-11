@@ -46,7 +46,7 @@ test("message filter: [auto] offers pass; a newer plugin version announced is an
   assert.deepEqual(pass.map((event) => event.type), ["offer"]);
   const update = relevantMessageEvents([msg(2, { version: "1.2.0", text: "[auto] plugin 1.2.0" }), msg(3, { version: "0.9.0", kind: "offer", text: "[auto] x" })], { names, installedVersion: "1.0.0" });
   assert.deepEqual(update.map((event) => [event.type, event.message.id]), [["plugin", "2"], ["offer", "3"]]);
-  assert.match(describeEvent(update[0]), /release del plugin 1\.2\.0.*Alice/u);
+  assert.match(describeEvent(update[0]), /plugin release 1\.2\.0.*Alice/u);
 });
 
 test("message filter: [auto] released offers of terminal stories do not wake, non-terminal ones do", () => {
@@ -84,8 +84,8 @@ test("storyTerminalOnBase: closure, lifecycle-complete report, operations step o
 
 test("describeEvent: readable summary with sender, computer and story label", () => {
   const text = describeEvent({ type: "question", message: msg(7, { kind: "question", story: "ST-X", text: "puoi guardare?" }) }, { label: (id) => `${id} (titolo)` });
-  assert.match(text, /^domanda di Alice · pc2 su ST-X \(titolo\)/u);
-  assert.match(describeEvent({ type: "story", story: "ST-Y" }, { label: (id) => `${id} (titolo)` }), /^nuova story libera ST-Y \(titolo\)/u);
+  assert.match(text, /^question from Alice · pc2 on ST-X \(titolo\)/u);
+  assert.match(describeEvent({ type: "story", story: "ST-Y" }, { label: (id) => `${id} (titolo)` }), /^new free story ST-Y \(titolo\)/u);
 });
 
 function repo() {
@@ -124,7 +124,7 @@ test("watch exits on the first relevant message, ignoring the baseline and irrel
     const result = await runWatch(root, { env, timeout: "30m", context: ctx, ...clock() });
     assert.equal(result.status, "event");
     assert.deepEqual(result.events.map((event) => event.id), ["3"]);
-    assert.match(result.summary, /domanda di Alice · pc2 su ST-X \(titolo\)/u);
+    assert.match(result.summary, /question from Alice · pc2 on ST-X \(titolo\)/u);
     assert.equal(watchActive(path.join(root, ".git")), false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -138,13 +138,13 @@ test("watch exits on a new free story, not on stories seen at start or created h
     const result = await runWatch(root, { env, timeout: "30m", context: ctx, ...clock() });
     assert.equal(result.status, "event");
     assert.deepEqual(result.events, [{ type: "story", story: "ST-3" }]);
-    assert.equal(result.summary, "nuova story libera ST-3 (titolo)");
+    assert.equal(result.summary, "new free story ST-3 (titolo)");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("watch times out with exit-0 semantics and 'nessun evento'", async () => {
+test("watch times out with exit-0 semantics and 'no event'", async () => {
   const root = repo();
   try {
     const ctx = context({ rounds: [[msg(1, { kind: "info", time: PRE })], []] });

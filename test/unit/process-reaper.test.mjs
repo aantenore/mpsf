@@ -210,7 +210,7 @@ test("Windows stops through taskkill /T /F; POSIX escalates from SIGTERM to SIGK
 test("the warning names the count, the limit, the first processes and the command", () => {
   const result = { older_than_minutes: 10, processes: [1, 2, 3, 4].map((pid) => ({ pid, age_minutes: 12, command: `node long-${pid}` })) };
   const text = reapWarning(result);
-  assert.match(text, /^4 processi oltre 10 min: 1 node long-1; 2 node long-2; 3 node long-3 e altri 1, esegui `agentic-sdlc processes reap`\.$/u);
+  assert.match(text, /^4 processes older than 10 min: 1 node long-1; 2 node long-2; 3 node long-3 and 1 more, run `agentic-sdlc processes reap`\.$/u);
   assert.equal(reapWarning({ older_than_minutes: 10, processes: [] }), "");
 });
 

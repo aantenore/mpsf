@@ -1,6 +1,6 @@
 {
   "name": "agentic-sdlc",
-  "version": "0.151.1",
+  "version": "0.151.2",
   "description": "Contract-driven delivery, verified assessments, and visual project lineage for Codex and Claude Code.",
   "type": "module",
   "bin": {
@@ -45,5 +45,13 @@
     "explainability"
   ],
   "author": "Antonio Antenore",
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/aantenore/agentic-sdlc#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aantenore/agentic-sdlc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aantenore/agentic-sdlc/issues"
+  }
 }
