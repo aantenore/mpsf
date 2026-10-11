@@ -56,7 +56,7 @@ Each store declares what it guarantees, and the strictest checks ask for them:
 | `immutable_history` | yes | no |
 | `atomic_publish` | yes | no |
 | `base_branch_coupling` (records and code share one history) | yes | no |
-| `shared_state` (claims and waits shared across computers) | yes | this computer only |
+| `shared_state` (claims and waits shared across computers) | yes | no (this computer only) |
 
 Assurance level: `full` (all of them), `standard` (hash chain and atomic publish), `local` (less). `gate check` refuses a level the store cannot back: `strict_intermediate` needs `hash_chain`; `lifecycle_complete` needs `hash_chain`, `immutable_history`, `atomic_publish` and `base_branch_coupling`. On `local-fs` the project can work and pass the intermediate gates, but it cannot be certified as lifecycle-complete.
 

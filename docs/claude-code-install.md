@@ -122,7 +122,7 @@ The exemption is read from the base branch as the trusted remote reports it (`gi
 
 ## Hook output budget
 
-Hooks repeat nothing within a session and stay inside a token budget per event (see [Context packs and compact output](token-efficiency.md#context-packs-and-compact-output)). `SessionStart`, the Stop hint and `story claim` point at `context pack` instead of listing records. Tune with `host_policy.context.hooks`.
+Hooks repeat nothing within a session, cap their lines (12 by default; the SessionStart instructions are limited by tokens only) and stay inside a token budget per event (700, 250, 200, 150 and 150 tokens for SessionStart, UserPromptSubmit, PostToolUse, PreToolUse and Stop; see [Context packs and compact output](token-efficiency.md#context-packs-and-compact-output)). `SessionStart`, the Stop hint and `story claim` point at `context pack` instead of listing records. Tune with `host_policy.context.hooks`.
 
 ## Repositories outside the guard (opt-in)
 
