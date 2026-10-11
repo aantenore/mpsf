@@ -139,8 +139,11 @@ Each setting is taken from the first place that has it:
 | `AGENTIC_SDLC_MESSAGING_OUTBOX_RETRY_MINUTES` | minimum gap between two automatic attempts to send the queued messages (default 5, doubled after each failure) |
 | `AGENTIC_SDLC_HOST_LABEL` | the stable host id of this computer (default: a short hash of the host name); the shown name is set with `message identity --name` |
 | `AGENTIC_SDLC_MESSAGING_JOIN=off` | no automatic join/welcome on this computer |
+| `AGENTIC_SDLC_MESSAGING_PROVIDER` | `github` (default), `local` (a channel file in a folder: offline, tests, a shared network folder) or `none` (messaging off) |
+| `AGENTIC_SDLC_MESSAGING_LOCAL_DIR` | folder of the `local` provider's channel (default: next to the clone's settings in the git folder) |
+| `.sdlc/config.json` -> `host_policy.adapters.messaging` | `{"provider": "local", "options": {"dir": "..."}}` for everyone, below the files above; credentials only by reference (`<name>_env`) |
 
-The settings are not in `.sdlc/config.json`, so older plugins keep working; they only lack the `message` commands until they update. Messages are not stored in git and change no project record; they stay in the issue until someone deletes the comments.
+Messaging only notifies: claims, waits, delegations and records publication never depend on it and work the same with `none`. Apart from `host_policy.adapters` (0.147.0 and later), the settings are not in `.sdlc/config.json`, so older plugins keep working; they only lack the `message` commands until they update. Messages are not stored in git and change no project record; they stay in the issue until someone deletes the comments.
 
 ## Safety
 

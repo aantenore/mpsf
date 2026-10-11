@@ -40,6 +40,11 @@
     "dependency-revision": {
       "since": "0.51.0",
       "summary": "Approved dependencies retired or redirected by a dependency revision"
+    },
+    "pluggable-adapters": {
+      "since": "0.147.0",
+      "summary": "Messaging and record store adapters, and the coordinator role",
+      "config_keys": ["host_policy.adapters", "host_policy.roles"]
     }
   }
 }
