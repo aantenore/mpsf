@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.148.3
+
+- One order for story work everywhere: P1 > P2 > P3 > no priority, then the oldest story. `next`, the end-of-turn hook, the stories unblocked in offers, `orchestrate plan`, `status` and `story park` propose the most urgent story first.
+- A fix story opened with `--incident` inherits its priority from the incident severity (sev1 P1, sev2 P2, sev3/sev4 P3) unless `--priority` is given.
+- Change Observatory: the priority is shown on the story and stories can be sorted by priority.
+- A broken main is never reverted: the agent opens a P1 fix story for it.
+
 ## 0.148.2
 
 - Presence on the channel: `[auto] stato` goes out only when the set of claimed stories or their phase changes, instead of every 15 minutes. A story that stays in the same phase gets one notice after 4 hours (`AGENTIC_SDLC_MESSAGING_STALL_HOURS`, 0 turns it off). Setting `AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES` explicitly brings back the periodic status.
