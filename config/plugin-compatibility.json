@@ -50,6 +50,11 @@
       "since": "0.148.0",
       "summary": "Story context packs, short agent output and budgeted hook text",
       "config_keys": ["host_policy.context"]
+    },
+    "known-error-database": {
+      "since": "0.149.0",
+      "summary": "Known error database: recorded fixes shown when the same failure happens again",
+      "config_keys": ["host_policy.known_errors"]
     }
   }
 }

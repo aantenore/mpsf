@@ -2,6 +2,16 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.149.0
+
+- Known error database in `.sdlc/known-errors/`: a recurring failure with its diagnosis and fix, keyed by a deterministic signature (check or command, exit code, message with ids, hashes, numbers, times and absolute paths masked, project path involved). The same failure gives the same id on every computer and in every story.
+- When `gate check` fails, `test record` records a failing run, or a command ends in an error, the CLI prints the known fix right away (`agentic-sdlc: known error KE-...`) and remembers the failure on this computer. A new signature is announced once with the command to record it.
+- `known-error add --from-last-failure [--signature <KE-id>] --title --diagnosis --fix-step...` records a fix; agents never write the folder by hand. `known-error outcome --id <KE-id> --result worked|failed` reports how it went: a failed fix makes the entry suspect. `known-error list|show|match|retire`.
+- Safe fixes (`--remove-path` of an untracked path, `--gitignore <pattern>`, with `--safe`) run with `known-error apply` only after a person accepts them (`known-error accept --actor-type human`). Every other entry is a suggestion, never an instruction.
+- The entry is immutable; uses, acceptance and retirement are append-only event files, so several computers never conflict. Entries unused for 90 days are stale, entries outside their plugin version range are not proposed. `host_policy.known_errors` (optional) tunes it or turns it off; defaults in `config/known-errors.json`.
+- Change Observatory: "Known errors" panel with each entry's state, how often its fix worked, and the analyses saved.
+- Compatibility: older plugins ignore the new folder.
+
 ## 0.148.5
 
 - This computer's id is decided once and kept in `~/.config/agentic-sdlc/machine.json` (`AGENTIC_SDLC_MACHINE_DIR` to move it). It is the same id as before (`pc-` and a short hash of the host name), so claims, stories and messages keep pointing at this computer, but it no longer changes when the host name changes (a laptop on another network). Every clone, worktree, session and subagent on the computer uses it; `AGENTIC_SDLC_HOST_LABEL` still wins.
