@@ -40,6 +40,7 @@ const ITALIAN = Object.freeze({
   escalated: "passata a una persona",
   open: "aperta",
   deadline: "scadenza",
+  "Coordinator digest": "Riepilogo del coordinatore",
 });
 
 const SOURCE_KIND = Object.freeze({ base: "base", branch: "branch", claim: "claim" });
@@ -146,6 +147,12 @@ export function renderNowPanel(container, view) {
       node("strong", { text: entry.from }),
       node("span", { className: "now-meta", text: relativeTime(entry.time) }),
     ]))));
+  }
+  if (view.digest?.text) {
+    children.push(section("Coordinator digest", [node("li", { className: "now-item" }, [
+      node("strong", { text: view.digest.from ?? "" }),
+      node("span", { className: "now-meta", text: `${view.digest.text} · ${relativeTime(view.digest.time)}` }),
+    ])]));
   }
   if (senders.length) children.push(section("Latest from each computer", senders.map(senderItem)));
   const details = node("details", { className: "now-details", attrs: { open: wasOpen ? "" : null } }, children);

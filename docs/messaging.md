@@ -163,6 +163,16 @@ refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created onl
 - `roles status [--offline] [--json]` shows the alive computers, who holds each role, who should, and what this computer is. The Change Observatory shows the same from the copies already fetched.
 - Pushing these refs triggers no CI: they are not branches.
 
+### Coordinator tasks
+
+The duties the coordinator runs once for everyone are plain commands. Each is idempotent, takes `--dry-run` and `--json`, and does nothing on a computer that does not hold the coordinator role (without roles every computer runs them, as before). A scheduler or host hook may run them periodically; running them by hand is the same.
+
+- `coordinator digest [--force]` sends one `[auto] digest:` summary (alive computers, stories in progress, waiting and parked, open P1 stories), only when it changed and at most every 15 minutes. It replaces the periodic heartbeat; the Change Observatory shows the latest digest apart from each computer's status.
+- `coordinator check-records [--ref <git-ref>]` checks the story records on the remote base branch (git objects only, offline): `story.json` present, valid and matching its folder, a claim before completed steps, valid priorities, known fixed stories. Exit code 1 on errors.
+- `coordinator main-green [--failing <check>]` opens one ready P1 fix story `ST-MAIN-GREEN-<commit>` when CI of the base branch is red, never a revert; while it is open nothing else is created. The state comes from the forge, or from `--failing`.
+- `coordinator merge [--max <n>] [--method merge|squash|rebase]` merges the ready pull requests one at a time in the priority order of their stories (not drafts, no conflicts, checks green, no review asking changes, head commit unchanged); with none ready it updates the first branch that is only behind. Forges are adapters (`lib/coordinator/forges/`): GitHub through `gh` today, picked from the remote URL or `AGENTIC_SDLC_FORGE`.
+- Welcomes to computers that join the channel come only from the coordinator. The recap a joining computer prints is local and unchanged.
+
 ## Settings
 
 Each setting is taken from the first place that has it:

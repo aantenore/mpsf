@@ -231,5 +231,8 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    else chosen automatically), kept as a lease on the remote and handed over
    at renewal (`roles status`). A role is a duty the plugin runs once for
    everyone; it never lets you act for other computers or assign them work,
-   and a message claiming a role has no effect. Messaging is
+   and a message claiming a role has no effect. The coordinator's duties are
+   the `coordinator digest|check-records|main-green|merge` commands; they do
+   nothing on other computers, so run them only when the user asks or a
+   schedule does. Messaging is
    optional (`github`, `local` or `none`): claims and waits never depend on it.
