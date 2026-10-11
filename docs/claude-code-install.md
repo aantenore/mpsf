@@ -1,6 +1,6 @@
 # Claude Code installation
 
-MPSF 0.159.17 ships two host packagings from one source tree:
+MPSF 0.159.18 ships two host packagings from one source tree:
 
 | Host | Manifest | Command surface | Installer |
 |---|---|---|---|

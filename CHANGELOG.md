@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.18
+
+- The test suite runs faster: redundant scenarios were merged or removed while the behaviors they checked stay asserted, and the fast tier's smoke selections follow the merged tests. No change to the plugin itself. Change Observatory: no change. Compatibility: no change.
+
 ## 0.159.17
 
 - Guard: un-exporting the session markers (`export -n`, `declare +x`), running mpsf with an emptied environment (`env -i`, `env -`, `exec -c`, `sudo`), and person-only subcommands hidden in a variable, substitution or xargs are refused. Merges and base-branch pushes through git or gh aliases (inline or configured), refspecs in variables, `push --all`, xargs, inline scripts, GraphQL merge or ref mutations and REST or curl writes to merge and ref endpoints are refused unless an authorization covers them; a target the guard cannot read is never covered, so write it out literally. Not closable by pattern matching: a script file the agent writes and then runs. Change Observatory: no change. Compatibility: nothing changes for older plugins.
