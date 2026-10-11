@@ -283,6 +283,54 @@
             "protect_base_branch": { "type": "boolean", "default": true }
           },
           "additionalProperties": false
+        },
+        "adapters": {
+          "type": "object",
+          "description": "Which adapter delivers notifications (messaging) and which keeps the records. Absent means the GitHub channel and the .sdlc folder in git. Options name credentials only by reference (<name>_env, <name>_ref).",
+          "properties": {
+            "principle": { "type": "string" },
+            "messaging": {
+              "type": "object",
+              "properties": {
+                "principle": { "type": "string" },
+                "provider": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" },
+                "options": { "type": "object" }
+              },
+              "required": ["provider"],
+              "additionalProperties": false
+            },
+            "records": {
+              "type": "object",
+              "properties": {
+                "principle": { "type": "string" },
+                "provider": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$" },
+                "options": { "type": "object" }
+              },
+              "required": ["provider"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "roles": {
+          "type": "object",
+          "description": "Roles of the computers working on the project. A coordinator governs (assigns, merges, publishes, resolves waits, releases) and does not develop; without one every computer runs the usual flows.",
+          "properties": {
+            "principle": { "type": "string" },
+            "coordinator": {
+              "type": "object",
+              "properties": {
+                "principle": { "type": "string" },
+                "hosts": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,64}$" }, "minItems": 1, "uniqueItems": true },
+                "lease_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+                "fallback": { "enum": ["everyone", "next_host", "hold"] },
+                "reserved_actions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+              },
+              "required": ["hosts"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
