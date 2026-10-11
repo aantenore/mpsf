@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.4
+
+- A claim is renewed by the agent's work in the worktree that has its branch: the host hook notes each tool call there (at most once a minute, `<git common dir>/agentic-sdlc/worktree-activity.json`), so editing code before any commit keeps the claim alive. The story folder's own file times no longer count: a checkout or pull rewrote them and brought old claims back to life.
+- Status and claim decisions read the other computers' presence as the remote has it (one bounded fetch, at most once a minute) before judging a claim abandoned.
+- Projects without `claim_policy.default_ttl_seconds` use the template's two hours in the presence too.
+- Change Observatory: no change needed. Compatibility: nothing changes for older plugins.
+
 ## 0.157.3
 
 - The repository is now `aantenore/mpsf`: links in the manifests, the marketplace, the README and the docs point to it (`/plugin marketplace add aantenore/mpsf`). The old `aantenore/agentic-sdlc` URL keeps working through GitHub's redirect; the marketplace name `aantenore` is unchanged, so installed plugins update as before.

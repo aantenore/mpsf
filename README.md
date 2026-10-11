@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.157.4** — claims renewed by the agent's work in their worktree; presence fetched before judging a claim abandoned.
 - **0.157.3** — repository renamed to `aantenore/mpsf`; old URLs redirect, marketplace `aantenore` unchanged.
 - **0.157.2** — skills brought up to date: several computers (roles, presence, the `sdlc-state` branch, plugin versions without update requests, newer record formats) and the capability catalog.
 - **0.157.1** — role duties one at a time on the base worktree; subfolder projects; ticks robust to clock changes.
