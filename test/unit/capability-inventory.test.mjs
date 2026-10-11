@@ -750,3 +750,33 @@ test("the project key of a user settings file is found in either path separator 
   const found = collectCapabilityInventory({ projectRoot: project, home, env: {} });
   assert.deepEqual(found.mcp.map((server) => server.name), ["slash-tool"]);
 });
+
+test("a project catalog keeps only the declared skills, commands, plugins, and servers", async () => {
+  const { catalogAdmits, normalizeCapabilityCatalog } = await import("../../lib/capability-inventory.mjs");
+  const project = temporaryDirectory("catalog-project");
+  const home = temporaryDirectory("catalog-home");
+  write(project, ".claude/skills/kept/SKILL.md", "---\nname: kept\ndescription: kept skill\n---\n");
+  write(project, ".claude/skills/dropped/SKILL.md", "---\nname: dropped\ndescription: dropped skill\n---\n");
+  write(project, ".claude/commands/kept-command.md", "---\ndescription: a command\n---\n");
+  write(home, ".claude/plugins/cache/m/tools/1.0.0/.claude-plugin/plugin.json", JSON.stringify({ name: "tools", version: "1.0.0" }));
+  write(home, ".claude/plugins/cache/m/tools/1.0.0/skills/inside/SKILL.md", "---\nname: inside\n---\n");
+  write(project, ".mcp.json", JSON.stringify({ mcpServers: { db: { command: "x" }, web: { url: "https://example.invalid" } } }));
+  const catalog = normalizeCapabilityCatalog({
+    schema_version: "capability-catalog:v1",
+    allow: ["kept", "command:kept-command", "plugin:tools", "mcp:db", "skill:missing"],
+    later_key: true,
+  });
+  const inventory = collectCapabilityInventory({ projectRoot: project, home, env: {}, catalog, catalogPath: ".sdlc/capability-discovery/catalog.json" });
+  assert.deepEqual(inventory.skills.map((entry) => entry.name).sort(), ["inside", "kept"]);
+  assert.deepEqual(inventory.commands.map((entry) => entry.name), ["kept-command"]);
+  assert.deepEqual(inventory.plugins.map((entry) => entry.name), ["tools"]);
+  assert.deepEqual(inventory.mcp.map((entry) => entry.name), ["db"]);
+  assert.equal(inventory.catalog.hidden, 2);
+  assert.equal(inventory.catalog.path, ".sdlc/capability-discovery/catalog.json");
+  assert.equal(collectCapabilityInventory({ projectRoot: project, home, env: {} }).catalog, null);
+  assert.equal(catalogAdmits(null, { type: "skill", name: "anything" }), true);
+  assert.equal(catalogAdmits(catalog, { type: "skill", name: "db" }), false);
+  assert.throws(() => normalizeCapabilityCatalog({ allow: "kept" }), /allow/u);
+  assert.throws(() => normalizeCapabilityCatalog({ allow: ["bad name"] }), /allow\[0\]/u);
+  assert.throws(() => normalizeCapabilityCatalog({ schema_version: "v9", allow: [] }), /schema_version/u);
+});

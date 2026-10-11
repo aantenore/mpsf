@@ -1018,7 +1018,8 @@
           ]
         },
         "exclude_names": [
-          "agentic-sdlc"
+          "agentic-sdlc",
+          "mpsf"
         ],
         "phase_tags": {
           "analysis": [

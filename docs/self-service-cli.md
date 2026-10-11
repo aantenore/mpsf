@@ -249,6 +249,14 @@ description, and each location with whether it was read, missing, or skipped.
 The default lists the first 25 items of each kind; `--full` or `--json` lists
 all of them.
 
+To keep the list to the tools the project has agreed on, add
+`.sdlc/capability-discovery/catalog.json` with an `allow` list, for example
+`{"schema_version": "capability-catalog:v1", "allow": ["react-review", "plugin:tools", "mcp:db"]}`.
+With the file in place, only declared entries are listed, proposed, and
+suggested; the rest are counted as left out. A bare name matches any kind;
+`skill:`, `command:`, `plugin:`, and `mcp:` narrow it, and an allowed plugin
+brings its own skills and commands. Without the file nothing is filtered.
+
 To use what was found, ask your agent to propose the installed tools that fit
 the work. It runs `capability recommend --from-inventory`, which proposes only
 the installed entries whose name or description names a technology the approved

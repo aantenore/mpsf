@@ -2,6 +2,11 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.0
+
+- **Capability catalog.** An optional `.sdlc/capability-discovery/catalog.json` (`{"schema_version": "capability-catalog:v1", "allow": [...]}`) is an allowlist for installed tools: with it, `capability inventory`, `capability recommend --from-inventory` and the suggestion in `task start` and `status` only consider declared entries. Items are a bare name or `skill:`, `command:`, `plugin:`, `mcp:` plus a name; an allowed plugin brings its own skills and commands. Without the file nothing changes. An unreadable catalog stops the command rather than allowing everything. Older plugins ignore the file. See [Self-service CLI](docs/self-service-cli.md#see-what-tools-are-already-installed).
+- The default inventory exclusion now also names `mpsf`, so the plugin does not suggest itself after the rename (existing projects can add it to `capability_discovery_policy.inventory.matching.exclude_names`).
+
 ## 0.156.1
 
 - Coordinator duties for claims and waits, as standalone idempotent commands with `--dry-run` and `--json`, that do nothing on a computer not holding the coordinator role: `coordinator free-claims` frees a claim only when its lease ended with no push, no declared wait and no live presence of its holder, and saves the freed story's handoff pack (otherwise a person decides, with the commands shown); `coordinator settle-waits` closes expired waits and stale questions; `coordinator handoff --story <id>` builds a handoff pack on demand. Both automatic duties start by themselves on the coordinator (`config/role-duties.json`). Records are the existing release and wait-resolve records: older plugins read them as before.
