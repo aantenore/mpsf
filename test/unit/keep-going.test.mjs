@@ -41,7 +41,7 @@ test("dedupe: an identical list never blocks twice in a session, however much ti
   assert.equal(first.block, true);
   const later = decideKeepGoing({ claims: [claim], previous: first.state, session: "s1", now: 1000 + 10 * IDENTICAL_BLOCKS_WINDOW_MS });
   assert.equal(later.block, false);
-  assert.match(later.note, /gia' segnalati, non blocco di nuovo/u);
+  assert.match(later.note, /already reported, not blocking again/u);
   // Same list after a Stop without work: still not news.
   const empty = decideKeepGoing({ previous: later.state, session: "s1" });
   assert.equal(decideKeepGoing({ claims: [claim], previous: empty.state, session: "s1" }).block, false);
@@ -56,7 +56,7 @@ test("cap: the same set of items with changing text blocks at most maxBlocks tim
     let state = {};
     const blocks = [];
     for (let n = 1; n <= 4; n += 1) {
-      // "indietro di N" is normalized away; the label changes so the text differs each time.
+      // "N commits behind" is normalized away; the label changes so the text differs each time.
       const result = decideKeepGoing({ claims: [{ ...behind(n), next: { ...behind(n).next, label: `passo ${n}` } }], previous: state, session: "s1", maxBlocks });
       blocks.push(result.block);
       state = result.state;
@@ -88,24 +88,24 @@ test("priority: questions, unpublished, plugin update, claims, then available", 
     unpublished: [{ storyId: "ST-1", base: "origin/main", files: ["a"], command: "publish" }],
     update: { version: "9.9.9", from: "pc-2" },
   }).reason.split("\n").slice(1);
-  const order = ["rispondi", "record non pubblicati", "plugin 9.9.9", "completa"].map((word) => reason.findIndex((line) => line.includes(word)));
+  const order = ["answer", "unpublished records", "plugin 9.9.9", "complete"].map((word) => reason.findIndex((line) => line.includes(word)));
   assert.deepEqual(order, [0, 1, 2, 3]);
   assert.match(reason[2], /claude plugin update agentic-sdlc@aantenore/u);
-  assert.match(reason[2], /priorita/u);
+  assert.match(reason[2], /takes priority/u);
 });
 
 test("a waiting or delegated claim is not idle: parallel story and no blocking step", () => {
   const waiting = { ...claim, waiting: "dipendenza ST-0 non ancora mergiata" };
   const result = decideKeepGoing({ claims: [waiting], available: ["ST-5", "ST-6"], ready: ["ST-6"] });
   assert.equal(result.block, true);
-  assert.match(result.reason, /lavora in parallelo su ST-6 -> `agentic-sdlc story claim --id ST-6/u);
+  assert.match(result.reason, /work in parallel on ST-6 -> `agentic-sdlc story claim --id ST-6/u);
   assert.doesNotMatch(result.reason, /complete-step/u);
   const none = decideKeepGoing({ claims: [waiting], available: ["ST-5"], ready: [] });
   assert.equal(none.block, false);
-  assert.match(none.note, /in attesa/u);
+  assert.match(none.note, /waiting/u);
   const delegated = decideKeepGoing({ claims: [{ ...claim, delegated: { until: "2099-01-01T00:00:00Z", reason: "subagente" } }] });
   assert.equal(delegated.block, false);
-  assert.match(delegated.note, /delegato/u);
+  assert.match(delegated.note, /delegated/u);
 });
 
 test("look-ahead reserves the next story at release; sync when behind the base", () => {
@@ -189,7 +189,7 @@ test("unpublished records: local .sdlc changes of a story not on the remote base
 
     const decision = decideKeepGoing({ unpublished: found, claims: [claim] });
     assert.equal(decision.block, true);
-    assert.match(decision.reason.split("\n")[1], /ST-1: record non pubblicati/u);
+    assert.match(decision.reason.split("\n")[1], /ST-1: unpublished records/u);
 
     git(root, "push", "-q", "origin", "main");
     assert.deepEqual(unpublishedRecords(root).map((item) => item.storyId), ["ST-2"]);
@@ -279,7 +279,7 @@ test("own claims of this computer show their next step, or delegated work with t
     const work = collectWork(root, { working: { "ST-B": { until: "2099-01-01T00:00:00Z", reason: "subagent" } } });
     const decision = decideKeepGoing(work);
     assert.match(decision.reason, /ST-A: .*agentic-sdlc story complete-step/u);
-    assert.match(decision.note, /ST-B: lavoro delegato/u);
+    assert.match(decision.note, /ST-B: work delegated/u);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -376,9 +376,9 @@ test("the release step names the sync-before-commit, strict gate and transition 
   const release = nextStoryStep({ storyId: "ST-1", completedSteps: ["discovery", "analysis", "design", "implementation", "validation"] });
   assert.match(release.label, /story sync.*git\.commit/u);
   assert.match(release.label, /gate check --strict.*workflow instance transition --request-id/u);
-  assert.match(release.label, /authorize e `gh pr create` subito di seguito/u);
+  assert.match(release.label, /authorize and `gh pr create` back to back/u);
   const behind = decideKeepGoing({ claims: [{ ...claim, behind: 2 }] }).reason;
-  assert.match(behind, /PRIMA del git\.commit governato/u);
+  assert.match(behind, /BEFORE the governed git\.commit/u);
 });
 
 test("the most advanced record wins: the story worktree is ahead of main", () => {
@@ -411,7 +411,7 @@ test("a governed commit already made: no sync, the real next release step", () =
   assert.match(pending.next.command, /--id AUT-PR-1 --action git\.push/u);
   assert.doesNotMatch(decideKeepGoing({ claims: [pending] }).reason, /story sync --id|PRIMA del git\.commit/u);
   assert.match(withWorktreeProgress(release, { progress: { committed: true, pushed: true, pullRequest: false } }).next.command, /pull_request\.create/u);
-  assert.match(withWorktreeProgress(release, { progress: { committed: true, pushed: true, pullRequest: true } }).next.label, /PR gia' fatti/u);
+  assert.match(withWorktreeProgress(release, { progress: { committed: true, pushed: true, pullRequest: true } }).next.label, /PR already done/u);
   // Other phases keep their step; only the stale sync goes away.
   assert.match(withWorktreeProgress(claim, { behind: 3, progress: { committed: true } }).next.command, /--step validation/u);
 });
@@ -511,7 +511,7 @@ test("a step that needs a person with an open request is shown as waiting and do
   const waiting = withPersonRequest(release, requests);
   const result = decideKeepGoing({ claims: [waiting] });
   assert.equal(result.block, false);
-  assert.match(result.note, /ST-1: in attesa di una persona: agentic-sdlc autonomy delivery reconcile --id AUT-PR-1/u);
+  assert.match(result.note, /ST-1: waiting on a person: agentic-sdlc autonomy delivery reconcile --id AUT-PR-1/u);
   // Answered request: the step is proposed again.
   const answered = personRequests({ ...state, attention: { window: [...state.attention.window, { id: "m3", kind: "answer", reply_to: "m1", text: "ok" }] } });
   assert.equal(withPersonRequest(release, answered).awaitingPerson, undefined);
@@ -524,7 +524,7 @@ test("suggestion-only stops: the same set in any order passes with a short note,
   assert.equal(first.block, true);
   const second = decideKeepGoing({ claims: [w2, w1], available: ["ST-5"], previous: first.state, now: 2000 });
   assert.equal(second.block, false);
-  assert.match(second.note, /gia' segnalati/u);
+  assert.match(second.note, /already reported/u);
   const other = decideKeepGoing({ claims: [w1, w2], available: ["ST-6"], previous: first.state, now: 3000 });
   assert.equal(other.block, true);
   const firm = decideKeepGoing({ claims: [w1, claim], available: ["ST-5"], previous: first.state, now: 4000 });
@@ -537,7 +537,7 @@ test("unpublished records of a delegated story (working marker) do not block", (
   const claim = { storyId: "ST-D", next: { phase: "implementation", label: "x", command: "y" }, delegated: { until: "t", reason: "agente" } };
   const decision = decideKeepGoing({ unpublished, claims: [claim] });
   assert.equal(decision.block, false);
-  assert.match(decision.note, /lavoro delegato: li pubblica chi ci lavora/u);
+  assert.match(decision.note, /work delegated: whoever works on it publishes them/u);
 });
 
 test("unpublished records growing between checks do not block", () => {
@@ -546,14 +546,14 @@ test("unpublished records growing between checks do not block", () => {
   assert.equal(first.block, true);
   const second = decideKeepGoing({ unpublished: [item(13)], previous: first.state });
   assert.equal(second.block, false);
-  assert.match(second.note, /lavoro delegato/u);
+  assert.match(second.note, /work delegated/u);
 });
 
 test("unpublished records, no marker and stable: block once, then dedupe", () => {
   const unpublished = [{ storyId: "ST-S", base: "origin/main", files: ["a"], command: "publish" }];
   const decision = decideKeepGoing({ unpublished });
   assert.equal(decision.block, true);
-  assert.match(decision.reason, /pubblicali prima di tutto/u);
+  assert.match(decision.reason, /publish them first/u);
   assert.equal(decideKeepGoing({ unpublished, previous: decision.state }).block, false);
 });
 

@@ -55,6 +55,23 @@
       "since": "0.149.0",
       "summary": "Known error database: recorded fixes shown when the same failure happens again",
       "config_keys": ["host_policy.known_errors"]
+    },
+    "git-messaging-channel": {
+      "since": "0.150.0",
+      "summary": "Signed messages between computers on git refs (provider git) and registered computer keys in .sdlc/machines"
+    },
+    "windows-appcontainer-local-release": {
+      "since": "0.151.0",
+      "summary": "Local releases on Windows run their smoke test in an AppContainer sandbox"
+    },
+    "coordinator-tasks": {
+      "since": "0.152.0",
+      "summary": "Coordinator tasks: digest, story record check, main-green fix story, serial merges through forge adapters"
+    },
+    "knowledge-role": {
+      "since": "0.153.0",
+      "summary": "Shared knowledge distilled into .sdlc/knowledge, shown in context packs; per-worker context budget",
+      "config_keys": ["host_policy.knowledge"]
     }
   }
 }

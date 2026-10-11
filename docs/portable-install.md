@@ -1,6 +1,6 @@
 # Portable Codex Install
 
-Agentic SDLC 0.149.2 includes a self-contained Codex packaging. The repository root is the plugin root because it contains `.codex-plugin/plugin.json`; all manifest and agent-card paths are repository-relative.
+Agentic SDLC 0.153.0 includes a self-contained Codex packaging. The repository root is the plugin root because it contains `.codex-plugin/plugin.json`; all manifest and agent-card paths are repository-relative.
 
 The Codex packaging keeps the install identifier `agentic-sdlc-codex-plugin` (the `.codex-plugin/plugin.json` name, the installer's `PLUGIN_NAME`, the `codex plugin add/remove` argument, and the `~/plugins/agentic-sdlc-codex-plugin` destination) even though the npm package and repository are named `agentic-sdlc`. This keeps existing Codex installations updating in place instead of creating a second, parallel installation.
 
@@ -127,7 +127,7 @@ A successful list result contains an installed, enabled entry with:
 ```json
 {
   "pluginId": "agentic-sdlc-codex-plugin@personal",
-  "version": "0.149.2",
+  "version": "0.153.0",
   "installed": true,
   "enabled": true
 }
@@ -166,7 +166,7 @@ Each result contains at least:
 
 ```json
 {
-  "package_version": "0.149.2",
+  "package_version": "0.153.0",
   "build_fingerprint": "<sha256-of-distributed-paths-and-bytes>",
   "git_commit": "<source-commit>",
   "git_dirty": false
@@ -295,7 +295,7 @@ Interpret the results as follows:
 
 | Check | Expected result | Recovery |
 | --- | --- | --- |
-| `codex plugin list --available --json` | Installed entry is enabled and reports `0.149.2` | Rerun staging, add again, then open a new task |
+| `codex plugin list --available --json` | Installed entry is enabled and reports `0.153.0` | Rerun staging, add again, then open a new task |
 | `npm run doctor` or CLI doctor | Reports runtime, version, assessment entry point, all four skills, Caveman/native-meter assets, Observatory launcher/UI, preset, optional RTK provider, and project KB checks as passed or not applicable | Repair a required failed item, restage, and open a new task |
 | `npm run check` | JavaScript syntax checks pass | Repair the reported source syntax before reinstalling |
 | Package dry run | Contains manifest, all four skills, agent cards, CLI, Observatory core/UI, schemas, and templates; excludes `.sdlc/` and `test/` | Repair `package.json` `files`, then restage |
@@ -347,12 +347,15 @@ The installed skill must launch the plugin-local CLI, open or return a token-bea
 
 The CLI, hooks, messaging, claims, waits, delivery through pull requests and the Change Observatory run on Windows with Node.js. `agentic-sdlc run --timeout` stops a command and everything it started (`taskkill /T /F`).
 
-One thing does not run natively yet: a **local release** (`autonomy delivery propose --kind local_release`). Its smoke test must run in a read-only sandbox with no network, and the plugin has providers for macOS (`sandbox-exec`) and Linux (`bwrap`) only. On Windows the proposal now stops at once, before anything is recorded, and lists the options:
+A **local release** (`autonomy delivery propose --kind local_release`) runs its smoke test in a read-only sandbox with no network. On Windows 10 1809 or later the plugin uses a per-run AppContainer with no capabilities (`windows-appcontainer-readonly-no-network`), started by Windows PowerShell with a launcher script shipped in the plugin and hash-sealed into the authorization. No admin rights and nothing to install. Compared with macOS and Linux it also denies loopback and lets the smoke process read only the smoke directory, the runtime's folder and the system folders; a temporary read-only permission for the per-run container is added to those folders and removed after the run.
 
-1. run the whole CLI inside a WSL2 Linux distribution with the project on the Linux filesystem (`bwrap` installed there); this works today;
-2. deliver through a pull request (`--kind pull_request`), which runs no local smoke test.
+The provider is unavailable when Windows PowerShell cannot run the launcher in FullLanguage mode (AppLocker or WDAC Constrained Language Mode, or an execution policy forced by Group Policy). Then the proposal stops at once, before anything is recorded, and lists the options:
 
-There is no setting that turns the sandbox off. A native Windows provider is designed but not implemented: [windows-local-release](plans/windows-local-release.md).
+1. allow Windows PowerShell in FullLanguage mode for the launcher;
+2. run the whole CLI inside a WSL2 Linux distribution with the project on the Linux filesystem (`bwrap` installed there);
+3. deliver through a pull request (`--kind pull_request`), which runs no local smoke test.
+
+There is no setting that turns the sandbox off. Design: [windows-local-release](plans/windows-local-release.md).
 
 ## Portability Boundaries
 

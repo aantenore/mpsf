@@ -2025,7 +2025,7 @@ node bin/agentic-sdlc.mjs story wait --root <project> --id ST-002 --on person:"W
 node bin/agentic-sdlc.mjs story wait --root <project> --id ST-002 --clear
 ```
 
-A claim's lease is renewed by activity, without any heartbeat: its effective expiry is the later of its recorded (or default) expiry and the last commit on its branch (this clone's branch, or the remote's as last fetched) plus `claim_policy.default_ttl_seconds`. A story whose branch is still pushed never lapses; one nobody pushes lapses one time to live after its last push. Older plugins read only `expires_at`, which is the conservative view.
+A claim's lease is renewed by activity, without any heartbeat: its effective expiry is the later of its recorded (or default) expiry and the last sign of work plus `claim_policy.default_ttl_seconds` (7200, two hours, for new projects; existing projects keep their value). Work is the last commit on its branch (this clone's branch, or the remote's as last fetched) and the last activity the presence refs report for the story (its branch reflog, the index and HEAD log of its worktree, its records, its workflow checkpoint, as seen by the computer that holds it; see Computers and roles in `docs/messaging.md`). A story somebody works on never lapses; one nobody works on lapses one time to live after the last sign of work, also when its computer is off. Older plugins read only `expires_at` and pushes, which is the conservative view.
 
 `story wait` is run by the holder of the active claim (this worktree's claim; any actor). `--on` is `dep:<story>` (valid while that story is not completed or closed), `pr:<url>` (resolved once this project's delivery records know the pull request merged or closed; otherwise it stays valid), or `person:"<question>"` (valid until `--until` or `--clear`). `--until` is an ISO time or a duration and at most `orchestration_policy.reservation.max_expires_in_seconds`. It writes a sealed record under `.sdlc/stories/<story>/waits/`, a `decision` trace (`story.wait` / `story.wait.clear`), and, when claims are shared, a create-only record `refs/agentic-sdlc/waits/<story>/<claim epoch>/<wait id>` read with the same single remote listing as the claims. Plugins that predate it never list that root, so their claims stay trustworthy. A wait applies only to the claim (epoch) it was declared for.
 
@@ -2046,7 +2046,7 @@ node bin/agentic-sdlc.mjs story prepare --root <project> --resolve [--id ST-002]
 ## Messages between computers
 
 ```bash
-node bin/agentic-sdlc.mjs message setup --root <project> [--repo owner/name] [--issue N]   # every computer: finds or creates the channel issue
+node bin/agentic-sdlc.mjs message setup --root <project> [--provider git|github|local] [--repo owner/name] [--issue N]   # every computer: git channel for new projects (refs/agentic-sdlc/channel/<machine-id>, signed; proposes .sdlc/machines/<id>.json to commit), existing channel issue kept
 node bin/agentic-sdlc.mjs message status --root <project>
 node bin/agentic-sdlc.mjs message send --root <project> --story ST-001 --text "Tests on ST-001 take 30 minutes here"
 node bin/agentic-sdlc.mjs message send --root <project> --kind question --to PC2 --text "Can you publish the records of ST-001?"   # kinds: info|question|answer|ack|offer|request
@@ -2054,7 +2054,7 @@ node bin/agentic-sdlc.mjs message send --root <project> --kind answer --reply-to
 node bin/agentic-sdlc.mjs message read --root <project> --since 2h --skip-own
 node bin/agentic-sdlc.mjs message read --root <project> --unread   # only messages not read yet on this clone, then marked read
 node bin/agentic-sdlc.mjs message listen --root <project> --skip-own --json   # background; one JSON object per line
-node bin/agentic-sdlc.mjs watch --root <project> [--timeout 30m] [--json]   # background alarm: exits at the first relevant message/story/release, or 0 with 'nessun evento' on timeout; re-arm it
+node bin/agentic-sdlc.mjs watch --root <project> [--timeout 30m] [--json]   # background alarm: exits at the first relevant message/story/release, or 0 with 'no event' on timeout; re-arm it
 node bin/agentic-sdlc.mjs message outbox --root <project> [--flush | --drop <outbox-id>]   # messages kept because GitHub refused
 node bin/agentic-sdlc.mjs message identity --root <project> [--name "<name>"]   # unique name of this computer; every message is signed with it (--sender is deprecated)
 node bin/agentic-sdlc.mjs message who --root <project> [--since 7d]   # participants: name, host, login, plugin version, stories; duplicates and old versions flagged

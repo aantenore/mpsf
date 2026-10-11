@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-// First import: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version runs this command instead.
+// MPSF_* variables are aliases of AGENTIC_SDLC_*; applied before anything reads the environment.
+import "../lib/runtime/env-alias.mjs";
+// Then: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version runs this command instead.
 import "../lib/runtime/self-forward.mjs";
 
 import path from "node:path";
@@ -1335,6 +1337,10 @@ function buildCliRuntimeHandlerRegistry() {
     "wait.add": bootstrap(async ({ options }) => (await import("../lib/engine/wait-registry.mjs")).waitAdd(options)),
     "wait.resolve": bootstrap(async ({ options }) => (await import("../lib/engine/wait-registry.mjs")).waitResolve(options)),
     "wait.list": bootstrap(async ({ options }) => (await import("../lib/engine/wait-registry.mjs")).waitList(options)),
+    "coordinator.digest": call(async (context, options) => (await import("../lib/coordinator/cli.mjs")).coordinatorDigestCommand(context, options)),
+    "coordinator.check-records": call(async (context, options) => (await import("../lib/coordinator/cli.mjs")).coordinatorCheckRecordsCommand(context, options)),
+    "coordinator.main-green": call(async (context, options) => (await import("../lib/coordinator/cli.mjs")).coordinatorMainGreenCommand(context, options)),
+    "coordinator.merge": call(async (context, options) => (await import("../lib/coordinator/cli.mjs")).coordinatorMergeCommand(context, options)),
     "roles.status": bootstrap(async ({ options }) => (await import("../lib/engine/role-leases.mjs")).rolesStatusCommand(options)),
     run: bootstrap(({ options, parsed }) => runCommand(options, parsed.passthrough)),
     "processes.reap": bootstrap(({ options }) => processesReap(options)),

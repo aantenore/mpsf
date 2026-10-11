@@ -2,6 +2,73 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.0
+
+- Shared knowledge in `.sdlc/knowledge/`: `knowledge distill` collects recurring traps (known errors, and gate failures seen in at least two stories), fix stories (`story create --fixes`) and channel questions with an answer. Entries with the same key merge (a known error and the same gate failure are one trap). Records and "seen" events carry no author or time of their own, so the same knowledge distilled on two computers is the same file and nothing conflicts. Only the computer holding the knowledge role distils (every computer when nobody holds a lease); `--force` runs it anyway. `knowledge list [--story]`, `knowledge retire --id --reason`.
+- The context pack has a `knowledge` section with the entries that name the story (or a story it depends on) or touch its write scope; packs without such entries are unchanged.
+- `story claim` and `task start --confirm-start` print the story's context pack inside an agent session (not with `--json`, not in a person's terminal), once per session while it is unchanged. `AGENTIC_SDLC_CONTEXT_PACK=off` turns it off.
+- Context budget per worker: `context budget --set <tokens>` (or `AGENTIC_SDLC_CONTEXT_BUDGET`) caps what `context pack` and `context get` print in one agent session on this computer. Local, never published, no cap by default. A pack that does not fit what is left is rebuilt smaller; when the budget is used up, nothing more is printed.
+- Change Observatory: "Knowledge" panel, and the context each agent session used in the Now panel.
+- Compatibility: older plugins ignore `.sdlc/knowledge`; `host_policy.knowledge` is optional (defaults in `config/knowledge.json`).
+
+## 0.152.1
+
+- Coordinator tasks read the stories from the remote base branch after one bounded fetch (`lib/engine/fresh-state.mjs`), plus local stories not there yet; `coordinator check-records` checks the freshly fetched base.
+
+## 0.152.0
+
+- Coordinator tasks as standalone, idempotent commands with `--dry-run` and `--json`; each does nothing on a computer that does not hold the coordinator role (without roles every computer runs it, as before):
+  - `coordinator digest [--force]`: one `[auto] digest:` summary (alive computers, stories in progress, waiting and parked, open P1), only when it changed and at most every 15 minutes, replacing the periodic heartbeat.
+  - `coordinator check-records [--ref <git-ref>]`: consistency of the story records on the remote base branch, from git objects only; exit code 1 on errors.
+  - `coordinator main-green [--failing <check>]`: one ready P1 fix story `ST-MAIN-GREEN-<commit>` when CI of the base branch is red, never a revert.
+  - `coordinator merge [--max <n>] [--method merge|squash|rebase]`: ready pull requests merged one at a time in story priority order; forges are adapters, GitHub through `gh` first (`AGENTIC_SDLC_FORGE` to choose).
+- Welcomes to computers joining the channel come only from the coordinator.
+- Change Observatory: the latest digest has its own line in the "Now" panel and is never shown as its sender's status.
+
+## 0.151.3
+
+- Claims are renewed by work, not by a fixed date. Each computer's presence ref now carries, for each story it holds, when it was last worked on: branch reflog, worktree index and HEAD log, story records, workflow checkpoint. Every computer counts that like a push, so a claim being worked on never lapses and a forgotten one lapses one time to live after the last work, also when its computer is off.
+- New projects get `claim_policy.default_ttl_seconds: 7200` (two hours) instead of 86400; existing projects keep their value.
+- When a session ends and no other session of the same clone worked in the last 15 minutes, a detached push (outside the 3-second SessionEnd limit) marks the computer's presence expired and hands back its roles, so another computer takes them at its next tick. Claims are not released.
+- Change Observatory: the "Now" panel shows the computers (alive or not, stories, roles, plugin version, last seen) and who holds each role.
+- Compatibility: older plugins ignore the new presence field and read only `expires_at` and pushes, which is the conservative view; presences written by 0.149.1 count as activity at their time.
+
+## 0.151.2
+
+- Agent and channel texts that were only in Italian are now in English: hook instructions and notes (keep-going, watch, guard, prepared starts, process hygiene), channel `[auto]` status, free and join/welcome messages, wait suggestions, `next` and `roles status`. `wait add|resolve|list`, `roles status` and the "Waiting on" section of `status` print Italian with `--locale it`.
+- The plugin update request keeps the `[auto] aggiorna il plugin` prefix that older plugins match, so they keep throttling it.
+- Change Observatory: wait descriptions in the "Now" panel are in English.
+- README shows the logo (light and dark); `package.json` has `homepage`, `repository` and `bugs`.
+- Compatibility: no new configuration keys; older plugins read the new messages as before.
+
+## 0.151.1
+
+- Fresh state reader (`lib/engine/fresh-state.mjs`): one bounded fetch (5 s, at most once a minute per clone) of the base branch and of the presence and role refs; records read from `origin/<base>` with `git ls-tree`/`git show`, never from the working tree of the checked-out branch; how many commits the checkout is behind the base; a dedicated worktree on the base in `<git-common-dir>/agentic-sdlc/base-worktree` for role writes (moved to the base tip only when clean). A clone far behind main no longer trusts its stale claims once callers move to it.
+- `context pack` prints `base: N commits behind origin/main` under its title (`base` in `--json`); the pack and its hash do not change. `AGENTIC_SDLC_FRESH_FETCH=off` skips the fetch.
+- Change Observatory: no change needed, it already reads the base branch from git and shows how far the checkout is behind.
+- Compatibility: nothing new is written to the repository or the remote; older plugins are unaffected.
+
+## 0.151.0
+
+- Local releases now run on Windows. The `release.local` smoke test runs in a fresh AppContainer with no capabilities (`windows-appcontainer-readonly-no-network`): no network, no loopback, writes only in the container's private storage, reads limited to the smoke directory, the runtime's folder and the system folders. Windows PowerShell starts it with a launcher script shipped in the plugin, whose SHA-256 is sealed into the authorization and checked again before the run. Windows 10 1809 or later, no admin rights.
+- Where PowerShell cannot run the launcher in FullLanguage mode (AppLocker, WDAC, execution policy forced by Group Policy) the proposal still stops early with the options (WSL2, pull request).
+- macOS and Linux authorizations are unchanged. Compatibility: the first Windows local release in a project records that it needs this version, so older plugins ask for an update instead of rejecting its receipt.
+
+## 0.150.0
+
+- New `git` messaging provider: the channel lives in the project's own remote, one ref per computer (`refs/agentic-sdlc/channel/<machine-id>`), each message a small signed commit. Any git host, no other service or account; each computer pushes only to its own ref, so there are no conflicts. Reads fetch only the channel refs and walk only new commits; a message pushed late is still delivered; each computer compacts its ref to the last 14 days. Hosts that refuse custom refs get branches `agentic-sdlc/channel/<machine-id>` (with `[skip ci]`), detected at the first refused push.
+- `message setup` uses `git` for new channels; a project that already has a GitHub channel issue keeps it (TravelOps does), and `--repo`/`--issue` or `--provider github` still choose GitHub. Nothing already configured is rewritten.
+- Signed messages on every provider that the plugin writes (git and the GitHub issue), with this computer's Ed25519 key. `message setup` proposes the public key in `.sdlc/machines/<machine-id>.json`: commit and merge it, then the other computers trust that computer. Unregistered keys read as `[unverified: key not registered]`, missing or wrong signatures as `[untrusted]`; a hand-written GitHub comment is trusted when its author is owner, member or collaborator. `message status` shows this computer's key.
+- Change Observatory: the "Now" panel marks unverified and untrusted messages.
+- Compatibility: older plugins do not know the `git` provider and say messaging needs a newer plugin; they keep using the issue on projects that use it. To join a git channel, update the plugin.
+
+## 0.149.3
+
+- First step of the rename to **mpsf** (My Personal Software Factory). The CLI also answers as `mpsf` (`bin/mpsf.mjs`); `agentic-sdlc` keeps working.
+- Every `MPSF_<NAME>` variable is an alias of `AGENTIC_SDLC_<NAME>`; an explicit `AGENTIC_SDLC_*` value wins. The old names are never dropped.
+- The guard, the run registry and the automatic update recognize the plugin under both names.
+- Compatibility: nothing changes for older plugins; records, refs and config are untouched.
+
 ## 0.149.1
 
 - Computers and roles without messages: each computer keeps a presence ref on the project's remote (`refs/agentic-sdlc/presence/<id>`, 30 minutes, renewed every 10 by the host hook), and the `coordinator` and `knowledge` roles go to one alive computer each through create-only lease refs (`refs/agentic-sdlc/roles/<role>/<epoch>`): the pinned host of `host_policy.roles.coordinator` first, else rendezvous hashing among the alive computers. The holder renews after half of the lease and hands over at that renewal when another computer should hold it; a lease of a computer that disappears expires. Alone, a computer holds every role. Without a valid lease, a shared remote, or with `AGENTIC_SDLC_ROLES=off`, every computer does every duty itself, as before. Older plugins ignore these refs.

@@ -8,7 +8,8 @@ import test from "node:test";
 
 import { assignedHolder, planRoleLease, rendezvousOrder, resolveRole } from "../../lib/coordination-roles.mjs";
 import { forgetSharedRefState } from "../../lib/engine/shared-refs.mjs";
-import { pushAccepted, readCoordinationCopies, rolesStatus, rolesTick, TICK_MS } from "../../lib/engine/role-leases.mjs";
+import { claimLeaseHolds } from "../../lib/engine/story-waits.mjs";
+import { presenceActivity, pushAccepted, readCoordinationCopies, releaseAtSessionEnd, rolesStatus, rolesTick, TICK_MS } from "../../lib/engine/role-leases.mjs";
 
 const NOW = Date.parse("2026-10-11T12:00:00Z");
 const MIN = 60_000;
@@ -114,5 +115,54 @@ test("off or without a shared remote nothing is written", async () => {
   const lone = createFixtureDir("roles-lone-");
   execFileSync("git", ["init", "-q"], { cwd: lone });
   assert.equal((await rolesTick(lone, { env: { ...process.env, AGENTIC_SDLC_HOST_LABEL: "pc-a" }, now: NOW })).skipped, "no shared remote");
-  assert.equal((await rolesTick(lone, { env: { AGENTIC_SDLC_ROLES: "off" }, now: NOW })).skipped, "off");
+  assert.equal((await rolesTick(lone, { env: { AGENTIC_SDLC_ROLES: "off" }, now: NOW, force: true })).skipped, "off");
+});
+
+test("at the end of its last session a computer stops being alive and hands back its roles; its stories keep their activity", async () => {
+  const seed = createFixtureDir("roles-end-seed-");
+  execFileSync("git", ["init", "-q"], { cwd: seed });
+  const bare = createBareOrigin(seed);
+  const a = clone(bare, "pc-a");
+  const b = clone(bare, "pc-b");
+  forgetSharedRefState();
+  assert.ok((await rolesTick(a.dir, { env: a.env, now: NOW, sessionId: "s1" })).actions.includes("take:coordinator"));
+  await rolesTick(a.dir, { env: a.env, now: NOW + MIN, sessionId: "s2", force: true });
+  // Another session of the clone worked a minute ago: nothing is handed back.
+  assert.equal(releaseAtSessionEnd(a.dir, { env: a.env, now: NOW + 2 * MIN, sessionId: "s1" }).skipped, "other sessions");
+  const end = releaseAtSessionEnd(a.dir, { env: a.env, now: NOW + 3 * MIN, sessionId: "s2" });
+  assert.equal(end.pushed, true, JSON.stringify(end));
+  assert.deepEqual(end.released.sort(), ["coordinator", "knowledge"]);
+  // The other computer sees it gone and takes the roles at its next tick.
+  const taken = await rolesTick(b.dir, { env: b.env, now: NOW + 4 * MIN });
+  assert.ok(taken.actions.includes("take:coordinator"), JSON.stringify(taken));
+  const seen = rolesStatus(b.dir, { env: b.env, now: NOW + 4 * MIN, fetch: false });
+  assert.equal(seen.computers.find((item) => item.host === "pc-a").alive, false);
+});
+
+test("presence activity: per story when the presence carries it, else the time of the presence", () => {
+  const seed = createFixtureDir("roles-activity-");
+  execFileSync("git", ["init", "-q"], { cwd: seed });
+  const state = path.join(seed, ".git", "agentic-sdlc");
+  fs.mkdirSync(state, { recursive: true });
+  fs.writeFileSync(path.join(state, "roles-state.json"), JSON.stringify({
+    local_presence: { at: NOW, stories: ["ST-1", "ST-2"], activity: { "ST-1": iso(NOW - 40 * MIN) } },
+  }));
+  const seen = presenceActivity(seed);
+  assert.equal(seen.get("ST-1"), NOW - 40 * MIN);
+  assert.equal(seen.has("ST-2"), false, "listed without activity: nothing renews it");
+  fs.writeFileSync(path.join(state, "roles-state.json"), JSON.stringify({ local_presence: { at: NOW, stories: ["st-3"] } }));
+  assert.equal(presenceActivity(seed).get("ST-3"), NOW);
+});
+
+test("a claim past its recorded expiry holds while a presence shows work on it, within the time to live", () => {
+  const root = createFixtureDir("roles-lease-");
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  fs.mkdirSync(path.join(root, ".git", "agentic-sdlc"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".git", "agentic-sdlc", "roles-state.json"), JSON.stringify({
+    local_presence: { at: NOW, stories: ["ST-1"], activity: { "ST-1": iso(NOW - 30 * MIN) } },
+  }));
+  const context = { root, config: { claim_policy: { default_ttl_seconds: 7200 } }, templateConfig: {} };
+  const claim = { story_id: "ST-1", branch: "b/ST-1", claimed_at: iso(NOW - 300 * MIN), expires_at: iso(NOW - 180 * MIN) };
+  assert.equal(claimLeaseHolds(context, claim, { nowMs: NOW }), true);
+  assert.equal(claimLeaseHolds({ ...context }, claim, { nowMs: NOW + 120 * MIN }), false);
 });

@@ -1,6 +1,6 @@
 # Messages between computers
 
-Agents on different computers working on the same project can exchange short notes. By default the channel is one GitHub issue of the project's repository and each message is a comment on it; `local` (a folder) and `none` (off) are the other providers, see [Working without messaging](#working-without-messaging). Nothing else is needed: the plugin uses the [`gh`](https://cli.github.com) CLI you are already signed in with (`gh auth login`), holds no token of its own, and creates the issue by itself the first time.
+Agents on different computers working on the same project can exchange short notes. A new channel lives in the project's own git remote (`git` provider): one ref per computer, each message a small signed commit, any git host, no other service or account. A project that already uses a GitHub issue as its channel keeps it (`github` provider, read and written with the [`gh`](https://cli.github.com) CLI you are signed in with). `local` (a folder) and `none` (off) are the other providers, see [Working without messaging](#working-without-messaging).
 
 Messaging is optional. On a computer where it is not set up, `message send`, `read` and `listen` make no network call, say it is not set up, and succeed; nothing else in the plugin uses messaging. GitHub being down or slow (no answer within 10 seconds), or `gh` missing or not signed in, is reported with the command to run, never a failure.
 
@@ -9,8 +9,30 @@ Messaging is optional. On a computer where it is not set up, `message send`, `re
 On every computer, in its clone of the project, the same command:
 
 ```bash
-agentic-sdlc message setup [--repo owner/name] [--issue N]
+agentic-sdlc message setup [--provider git|github|local] [--repo owner/name] [--issue N]
 ```
+
+Which channel setup picks: `--provider`; else the one the settings already choose; else GitHub when `--repo`/`--issue` are given or the project already has a channel issue (TravelOps and other existing projects stay where they are); else `git`.
+
+### Git channel
+
+```text
+refs/agentic-sdlc/channel/<machine-id>      one ref per computer, on the project's remote
+```
+
+- Each computer writes only its own ref, so every push is a fast-forward and never conflicts with another computer. A message is an empty-tree commit whose message holds one JSON line, signed with the computer's Ed25519 key (`~/.config/agentic-sdlc/machine-key.pem`).
+- Reading fetches `refs/agentic-sdlc/channel/*` (at most every 15 seconds; the hooks read at most every 30) and walks only the commits added since the last read. Messages are kept per clone in arrival order (`.git/agentic-sdlc/git-channel/`), so a message pushed late by a computer with a slow network or a wrong clock is still delivered. Ids are the same everywhere, so replies point at the right message.
+- Once a day a computer rewrites its own ref keeping the last 14 days (force-with-lease, its ref only); readers that no longer find their last commit read the ref again and skip what they have.
+- A host that refuses custom refs (Bitbucket Cloud does not document them) is detected at the first refused push: the clone switches to branches `agentic-sdlc/channel/<machine-id>`, whose commits carry `[skip ci]`.
+- The remote is `origin`; `AGENTIC_SDLC_MESSAGING_REMOTE`, `remote` in the messaging files or `host_policy.adapters.messaging.options.remote` change it. On a public repository the channel is public, like the issue.
+
+### Signed messages and trusted computers
+
+Every message the plugin writes, on the git channel and on the GitHub issue, carries the computer's id, key fingerprint, public key and signature. `message setup` proposes the key in `.sdlc/machines/<machine-id>.json` (public key only, never a secret); a person commits and merges it, and from then on the other computers trust that computer's messages. That merge is the handshake. Signing costs less than a tenth of a millisecond; only new messages are verified.
+
+`message read`, `listen` and the Change Observatory mark a message `[unverified: key not registered]` (valid signature, key not in `.sdlc/machines` yet) or `[untrusted]` (no signature or a wrong one). On the GitHub issue a hand-written comment is trusted when its author is the repository's owner, a member or a collaborator, so a person can still write from the phone. Trust only changes how a message is shown: messages never approve, claim or block anything. `message status` shows this computer's key and whether it is registered.
+
+### GitHub channel
 
 The repository defaults to the `origin` remote. The channel issue is the one given with `--issue`; otherwise the plugin looks for the issue labelled `agentic-sdlc-channel` (or titled "Agentic SDLC · canale tra computer") and, only if there is none, creates it once. Two computers running setup at the same moment end up on the lowest issue number (the extra one is closed). Repository and issue number are stored in the clone's git folder (`.git/agentic-sdlc/messaging.json`), which git never commits; all worktrees of that clone share it. People can read and write in the same issue from github.com or the GitHub app: a comment without the plugin's hidden trailer reads as an `info` message from the author's GitHub login.
 
@@ -152,7 +174,7 @@ The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defau
 Every computer that runs the plugin on a project with a shared remote keeps a presence ref there, and the computers share two roles without any message:
 
 ```
-refs/agentic-sdlc/presence/<computer id>        replaced by its computer at each renewal: when, until when, stories held, roles held, plugin version
+refs/agentic-sdlc/presence/<computer id>        replaced by its computer at each renewal: when, until when, stories held and when each was last worked on, roles held, plugin version
 refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created only if it does not exist yet: who, until when
 ```
 
@@ -161,7 +183,19 @@ refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created onl
 - The holder keeps a lease (`lease_minutes`, 30 by default) and renews it after half of it. When another computer should hold the role (one joined that ranks first) it hands over at that renewal; when the holder disappears its lease expires and the next computer takes it. Two computers trying at the same moment cannot both win: an epoch is created only once.
 - Without a valid lease, without a shared remote, or with `AGENTIC_SDLC_ROLES=off`, every computer does the duties itself, as before roles. Older plugins ignore these refs.
 - `roles status [--offline] [--json]` shows the alive computers, who holds each role, who should, and what this computer is. The Change Observatory shows the same from the copies already fetched.
+- The presence also carries, for each story held, when it was last worked on here (branch reflog, worktree index and HEAD log, story records, workflow checkpoint). That renews the claim's lease for every computer, so the claim time to live can be short: a forgotten claim lapses, one in progress does not.
+- When a session ends and no other session of the same clone worked in the last 15 minutes, the SessionEnd hook starts a detached push (bounded to 5 seconds, outside the hook's 3) that marks the presence expired and hands back the roles this computer holds. Claims are not released: the same person resumes them, or they lapse one time to live after the last work. If the push is cut, presence and leases lapse on their own.
 - Pushing these refs triggers no CI: they are not branches.
+
+### Coordinator tasks
+
+The duties the coordinator runs once for everyone are plain commands. Each is idempotent, takes `--dry-run` and `--json`, and does nothing on a computer that does not hold the coordinator role (without roles every computer runs them, as before). A scheduler or host hook may run them periodically; running them by hand is the same.
+
+- `coordinator digest [--force]` sends one `[auto] digest:` summary (alive computers, stories in progress, waiting and parked, open P1 stories), only when it changed and at most every 15 minutes. It replaces the periodic heartbeat; the Change Observatory shows the latest digest apart from each computer's status.
+- `coordinator check-records [--ref <git-ref>]` checks the story records on the remote base branch (git objects only, offline): `story.json` present, valid and matching its folder, a claim before completed steps, valid priorities, known fixed stories. Exit code 1 on errors.
+- `coordinator main-green [--failing <check>]` opens one ready P1 fix story `ST-MAIN-GREEN-<commit>` when CI of the base branch is red, never a revert; while it is open nothing else is created. The state comes from the forge, or from `--failing`.
+- `coordinator merge [--max <n>] [--method merge|squash|rebase]` merges the ready pull requests one at a time in the priority order of their stories (not drafts, no conflicts, checks green, no review asking changes, head commit unchanged); with none ready it updates the first branch that is only behind. Forges are adapters (`lib/coordinator/forges/`): GitHub through `gh` today, picked from the remote URL or `AGENTIC_SDLC_FORGE`.
+- Welcomes to computers that join the channel come only from the coordinator. The recap a joining computer prints is local and unchanged.
 
 ## Settings
 

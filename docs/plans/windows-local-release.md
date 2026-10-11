@@ -1,6 +1,6 @@
 # Plan: `release.local` on Windows
 
-Status: early proposal failure and the provider seam are implemented in 0.146.17. A native Windows provider is not implemented yet.
+Status: early proposal failure and the provider seam are implemented in 0.146.17. The AppContainer provider (step 2) is implemented in 0.151.1: `lib/delivery/providers/windows-appcontainer-launcher.ps1` plus the `windows-appcontainer-readonly-no-network` entry. Its launcher subject adds `wrapper_script` and `wrapper_script_sha256` (checked again before spawn) and keeps `local-smoke-sandbox-policy:v2`, because the launcher record accepts extra fields and macOS and Linux subjects stay byte-identical. Real runs are covered by `test/unit/windows-appcontainer-launcher.test.mjs` on Windows only; the rest of the suite keeps the fail-closed path on Windows (`AGENTIC_SDLC_TEST_LOCAL_SMOKE_PROVIDER=unavailable` set by the test runner). Step 3 is still open.
 
 ## Current behaviour (verified on 0.146.17)
 

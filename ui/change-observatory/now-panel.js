@@ -46,6 +46,19 @@ const ITALIAN = Object.freeze({
   packs: "pack",
   gets: "letture",
   "no cap": "nessun tetto",
+  untrusted: "non fidato",
+  unverified: "chiave non registrata",
+  "Coordinator digest": "Riepilogo del coordinatore",
+  "Computers and roles": "Computer e ruoli",
+  alive: "attivo",
+  "not alive": "non attivo",
+  stories: "storie",
+  roles: "ruoli",
+  "last seen": "visto",
+  coordinator: "coordinatore",
+  knowledge: "conoscenza",
+  until: "fino alle",
+  "nobody: everyone works on their own": "nessuno: ognuno fa da sé",
 });
 
 const SOURCE_KIND = Object.freeze({ base: "base", branch: "branch", claim: "claim" });
@@ -94,11 +107,19 @@ function workItem(item) {
   ]);
 }
 
+// A message whose signature is missing, wrong or by a key the project has not registered.
+function trustFlag(message) {
+  return message?.trust === "untrusted" || message?.trust === "unverified"
+    ? node("span", { className: "now-flag", text: label(message.trust), attrs: { title: message.trust } })
+    : null;
+}
+
 function senderItem(sender) {
   const shown = sender.status && sender.status !== sender.last ? [sender.status, sender.last] : [sender.last];
   return node("li", { className: "now-item" }, [
     node("strong", { text: sender.from }),
     ...shown.filter(Boolean).map((message) => node("span", { className: "now-meta" }, [
+      trustFlag(message),
       node("span", { text: `${message.text} ` }),
       node("time", { text: relativeTime(message.time), attrs: { datetime: message.time } }),
     ])),
@@ -109,6 +130,7 @@ function openItem(message) {
   return node("li", { className: "now-item" }, [
     node("strong", { text: message.from }),
     node("span", { className: "now-flag", text: message.kind }),
+    trustFlag(message),
     node("span", { className: "now-meta", text: `${message.text} · ${label("waiting on")} ${message.waitingOn.join(", ")} · ${relativeTime(message.time)}` }),
   ]);
 }
@@ -122,6 +144,36 @@ function waitItem(item) {
   ]);
 }
 
+function computerItem(item) {
+  const parts = [];
+  if (item.stories.length) parts.push(`${label("stories")} ${item.stories.join(", ")}`);
+  if (item.roles.length) parts.push(`${label("roles")} ${item.roles.map(label).join(", ")}`);
+  if (item.plugin_version) parts.push(`plugin ${item.plugin_version}`);
+  if (item.at) parts.push(`${label("last seen")} ${relativeTime(item.at)}`);
+  return node("li", { className: "now-item" }, [
+    node("strong", { text: item.host }),
+    node("span", { className: "now-flag", text: label(item.alive ? "alive" : "not alive") }),
+    node("span", { className: "now-meta", text: parts.join(" · ") }),
+  ]);
+}
+
+function roleItem(item) {
+  const until = item.holder ? new Date(item.expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
+  return node("li", { className: "now-item" }, [
+    node("strong", { text: `${label(item.role)}:` }),
+    node("span", { className: "now-meta", text: until ? `${item.holder} ${label("until")} ${until}` : label("nobody: everyone works on their own") }),
+  ]);
+}
+
+// Rows from a server that predates computers and roles, or with malformed entries, are left out.
+function wellFormedCoordination(view) {
+  const computers = (Array.isArray(view.computers) ? view.computers : [])
+    .filter((item) => item && typeof item.host === "string")
+    .map((item) => ({ ...item, stories: Array.isArray(item.stories) ? item.stories : [], roles: Array.isArray(item.roles) ? item.roles : [] }));
+  const roles = (Array.isArray(view.roles) ? view.roles : []).filter((item) => item && typeof item.role === "string");
+  return { computers, roles };
+}
+
 export function renderNowPanel(container, view) {
   const wasOpen = container.querySelector("details")?.open ?? true;
   container.replaceChildren();
@@ -133,6 +185,7 @@ export function renderNowPanel(container, view) {
   const senders = Array.isArray(view.senders) ? view.senders : [];
   const open = Array.isArray(view.open) ? view.open : [];
   const free = Array.isArray(view.free) ? view.free : [];
+  const { computers, roles } = wellFormedCoordination(view);
   const children = [
     node("summary", {}, [
       node("strong", { text: label("Now") }),
@@ -153,6 +206,15 @@ export function renderNowPanel(container, view) {
       node("span", { className: "now-meta", text: relativeTime(entry.time) }),
     ]))));
   }
+  if (view.digest?.text) {
+    children.push(section("Coordinator digest", [node("li", { className: "now-item" }, [
+      node("strong", { text: view.digest.from ?? "" }),
+      view.digest.trust ? node("span", { className: "now-flag", text: label(view.digest.trust) }) : null,
+      node("span", { className: "now-meta", text: `${view.digest.text} · ${relativeTime(view.digest.time)}` }),
+    ])]));
+  }
+  // Nothing is shown while no computer has announced itself and no role has a holder (no shared remote).
+  if (computers.length || roles.some((item) => item.holder)) children.push(section("Computers and roles", [...computers.map(computerItem), ...roles.map(roleItem)]));
   if (senders.length) children.push(section("Latest from each computer", senders.map(senderItem)));
   const sessions = Array.isArray(view.context?.sessions) ? view.context.sessions : [];
   if (sessions.length) children.push(section("Context used by agent sessions", sessions.map(contextItem)));

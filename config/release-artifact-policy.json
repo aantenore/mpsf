@@ -41,6 +41,7 @@
       "LICENSE",
       "README.md",
       "bin/agentic-sdlc.mjs",
+      "bin/mpsf.mjs",
       "config/release-artifact-policy.json",
       "hooks/agentic-sdlc-guard.mjs",
       "hooks/hooks.json",
@@ -61,7 +62,8 @@
     "plugin_manifest": ".claude-plugin/plugin.json",
     "installer": "scripts/install-personal-marketplace-v2.py",
     "bin": {
-      "agentic-sdlc": "./bin/agentic-sdlc.mjs"
+      "agentic-sdlc": "./bin/agentic-sdlc.mjs",
+      "mpsf": "./bin/mpsf.mjs"
     },
     "forbidden_lifecycle_scripts": [
       "dependencies",

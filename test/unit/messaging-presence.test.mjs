@@ -14,7 +14,7 @@ test("status when the stories or phases change, never more than once per heartbe
   const claims = [{ story: "ST-A-001", phase: "implement", phaseSince: NOW - 20 * 60_000 }];
   const status = selectPresence({ claims, now: NOW });
   assert.equal(status.kind, "info");
-  assert.equal(status.text, "[auto] stato: ST-A-001 in fase implement da 20 min");
+  assert.equal(status.text, "[auto] status: ST-A-001 in phase implement for 20 min");
   assert.equal(status.set, "ST-A-001:implement");
   assert.equal(selectPresence({ claims, presence: { last_status: NOW - 5 * 60_000 }, now: NOW }), null);
   // Same stories and phases: nothing new to say until the 12-hour refresh.
@@ -22,7 +22,7 @@ test("status when the stories or phases change, never more than once per heartbe
   assert.ok(selectPresence({ claims, presence: { last_status: NOW - 13 * 3600_000, last_set: status.set }, now: NOW }));
   // A new phase is news.
   const moved = [{ ...claims[0], phase: "verify" }];
-  assert.match(selectPresence({ claims: moved, presence: { last_status: NOW - 16 * 60_000, last_set: status.set }, now: NOW }).text, /in fase verify/u);
+  assert.match(selectPresence({ claims: moved, presence: { last_status: NOW - 16 * 60_000, last_set: status.set }, now: NOW }).text, /in phase verify/u);
   // The heartbeat set explicitly keeps the old periodic status; 0 turns it off.
   assert.ok(selectPresence({ claims, presence: { last_status: NOW - 16 * 60_000, last_set: status.set }, now: NOW, periodic: true }));
   assert.equal(selectPresence({ claims, now: NOW, heartbeatMs: 0 }), null);
@@ -34,7 +34,7 @@ test("one stall notice per story and phase", () => {
   const claims = [{ story: "ST-A-001", phase: "discovery", phaseSince: NOW - 5 * 3600_000 }];
   const presence = { last_status: NOW - 16 * 60_000, last_set: "ST-A-001:discovery" };
   const stall = selectPresence({ claims, presence, now: NOW });
-  assert.equal(stall.text, "[auto] stato: ST-A-001 ferma in fase discovery da 5 h");
+  assert.equal(stall.text, "[auto] status: ST-A-001 stalled in phase discovery for 5 h");
   assert.equal(stall.stalled, "ST-A-001:discovery");
   assert.equal(selectPresence({ claims, presence: { ...presence, stalled: ["ST-A-001:discovery"] }, now: NOW }), null);
   assert.equal(selectPresence({ claims, presence, now: NOW, stallMs: 0 }), null);
@@ -47,7 +47,7 @@ test("one stall notice per story and phase", () => {
 test("offer when the computer becomes free, then at most every 12 hours", () => {
   const offer = selectPresence({ claims: [], now: NOW });
   assert.equal(offer.kind, "offer");
-  assert.match(offer.text, /libero: posso prendere lavoro o aiutare/u);
+  assert.match(offer.text, /free: can take work or help/u);
   assert.equal(selectPresence({ claims: [], presence: { last_offer: NOW - 2 * 3600_000, last_set: "" }, now: NOW }), null);
   assert.ok(selectPresence({ claims: [], presence: { last_offer: NOW - 13 * 3600_000, last_set: "" }, now: NOW }));
   // Just released its last story: offer right away (after the minimum gap).
@@ -118,7 +118,7 @@ test("local claims: active, unexpired, on a branch of this clone, with the workf
   fs.writeFileSync(path.join(instance, "checkpoint.json"), JSON.stringify({ current_state: "verify", updated_at: new Date(NOW - 10 * 60_000).toISOString() }));
   const claims = localActiveClaims(root, { now: NOW, branchExists: (branch) => branch !== "b/ST-D-001" });
   assert.deepEqual(claims.map((item) => [item.story, item.phase]), [["ST-A-001", "verify"]]);
-  assert.match(selectPresence({ claims, now: NOW }).text, /ST-A-001 in fase verify da 10 min/u);
+  assert.match(selectPresence({ claims, now: NOW }).text, /ST-A-001 in phase verify for 10 min/u);
 });
 
 test("[auto] notices for phase, delivery steps, tests and strict gate", () => {
@@ -167,4 +167,28 @@ test("local claims: one set for the whole clone, a live record wins over a stale
   for (const from of [root, one, two]) {
     assert.deepEqual(localActiveClaims(from, args).map((item) => [item.story, item.phase]), [["ST-1", null], ["ST-2", "implementation"]]);
   }
+});
+
+test("local claims: a claim past its recorded expiry stays live while its work shows activity within the time to live", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sdlc-presence-ttl-"));
+  fs.mkdirSync(path.join(root, ".sdlc"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ claim_policy: { default_ttl_seconds: 7200 } }));
+  const claim = (id) => {
+    fs.mkdirSync(path.join(root, ".sdlc", "stories", id), { recursive: true });
+    fs.writeFileSync(path.join(root, ".sdlc", "stories", id, "claim.json"), JSON.stringify({
+      story_id: id, status: "active", branch: `b/${id}`, claimed_at: new Date(NOW - 5 * 3600_000).toISOString(),
+      expires_at: new Date(NOW - 3 * 3600_000).toISOString(),
+    }));
+  };
+  claim("ST-A-001");
+  claim("ST-B-001");
+  const worked = { "ST-A-001": NOW - 30 * 60_000, "ST-B-001": NOW - 3 * 3600_000 };
+  const args = { now: NOW, branchExists: () => true, activity: (item) => worked[item.story_id] };
+  const claims = localActiveClaims(root, args);
+  assert.deepEqual(claims.map((item) => [item.story, item.active_at]), [["ST-A-001", NOW - 30 * 60_000]]);
+  // Activity in the future of `now` says nothing about `now`.
+  assert.deepEqual(localActiveClaims(root, { ...args, activity: () => NOW + 3600_000 }), []);
+  // Claims that never expire are not affected.
+  fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ claim_policy: { default_ttl_seconds: null } }));
+  assert.deepEqual(localActiveClaims(root, args), []);
 });
