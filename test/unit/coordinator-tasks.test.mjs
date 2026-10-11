@@ -107,8 +107,8 @@ test("github checks and forge resolution", () => {
   assert.equal(checksState([{ status: "COMPLETED", conclusion: "FAILURE" }, { status: "QUEUED" }]), "red");
   assert.equal(detectForge("git@github.com:a/b.git"), "github");
   assert.equal(detectForge("https://github.com/a/b"), "github");
-  assert.equal(detectForge("https://gitlab.com/a/b"), null);
-  assert.equal(resolveForge("/x", { env: {}, url: "https://gitlab.com/a/b" }).forge, null);
+  assert.equal(detectForge("https://example.com/a/b"), null);
+  assert.equal(resolveForge("/x", { env: {}, url: "https://example.com/a/b" }).forge, null);
   assert.equal(resolveForge("/x", { env: { AGENTIC_SDLC_FORGE: "github" }, url: null }).forge.id, "github");
 });
 
