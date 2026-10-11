@@ -61,7 +61,7 @@ test("own questions without an answer from a known sender are escalated once, af
   assert.deepEqual(once.escalate, []);
 
   const reminder = reminderFor(first.escalate[0]);
-  assert.equal(reminder.kind, "request");
+  assert.equal(reminder.kind, "info");
   assert.equal(reminder.replyTo, "q1");
   assert.match(reminder.text, /^\[auto\] reminder: no answer yet from pc-b to #q1/u);
 });

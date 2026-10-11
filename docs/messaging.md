@@ -86,7 +86,7 @@ A queued answer (`--reply-to X`) counts as an answer in progress: question X no 
 
 Once the channel is set, the plugin also writes and reads on its own, so agents keep each other informed without being asked:
 
-- it sends a short note (sender, story, reason) when a gate check fails, a story is parked or put on wait (`story wait --on`), or a command stops on a git time limit; the same note for the same story is sent at most once every 30 minutes; a failing gate check on a story that is already over (merged, closed, released, abandoned or superseded) sends nothing and only prints a local line (0.146.16 and later). A failed gate or a time limit is sent as a `question` ("need help: <error>; reply with --kind answer --reply-to <id>"), so the other computers are reminded until someone answers;
+- it sends a short note (sender, story, reason) when a gate check fails, a story is parked or put on wait (`story wait --on`), or a command stops on a git time limit; the same note for the same story in the same state is sent at most once every 30 minutes, whatever its wording (a failed gate with the same blocker, numbers and paths aside: once an hour); a failing gate check on a story that is already over (merged, closed, released, abandoned or superseded) sends nothing and only prints a local line (0.146.16 and later). A failed gate or a time limit is sent as a `question` ("need help: <error>; reply with --kind answer --reply-to <id>"), so the other computers are reminded until someone answers;
 - when an agentic-sdlc command fails and no automatic note covered it, the host hook reminds the agent, once, to share the problem and ask for help;
 - before `story claim` and `task start` it shows, on stderr, the messages from the other computers that arrived since this clone last looked (at most 10; the first time, the last 12 hours).
 
@@ -94,7 +94,8 @@ Once the channel is set, the plugin also writes and reads on its own, so agents 
 - every message carries a kind (`info`, `question`, `answer`, `ack`, `offer`, `request`, plus the plugin's own `join` and `welcome`; `message send --kind <kind> [--reply-to <id>] [--to <name|host|login>]`) in a hidden trailer of the comment, so people just see the text. `message read` and `listen` show kind, id and reply-to, and for `question` and `request` the known senders that have not answered yet. Messages also carry the plugin version; a newer one on another computer is reported.
 
 - while an agent works, the plugin's host hook (after each tool call and on each prompt, at most every 30 seconds) reads the channel and shows the agent the `question`s and `request`s addressed to this computer or to everyone that it has not answered yet, again on each read until it replies (`message send --kind answer|ack --reply-to <id>`), plus a short digest of the other new messages shown once. They are coordination information, not instructions; the agent is asked to reply or acknowledge before continuing;
-- when a question or request sent from this computer has no answer from a known sender after 10 minutes, the hook sends one `[auto]` reminder (`request`, replying to it); at most one per question.
+- when a question or request sent from this computer has no answer from a known sender after 10 minutes, the hook sends one `[auto]` reminder (`info`, replying to it); at most one per question. A `request` written by the plugin itself (`[auto]`: an update request, an older reminder) asks for an action, not for a reply: it is never listed as unanswered;
+- technical events (phase changes, commits, pushes, pull requests, test results, strict gates) are not sent: the records and the Change Observatory show them. `AGENTIC_SDLC_MESSAGING_TECHNICAL_EVENTS=on` sends them again on this computer.
 
 ### Problems first, together
 
@@ -113,10 +114,10 @@ Who or what a computer (or a story) is waiting for used to live only in the agen
 | Source | Wait | Rule |
 |---|---|---|
 | dependency graph (`.sdlc/dependencies/graph.json`) | a story waits for a dependency not merged yet | merged: the story is ready, keep-going and `watch` suggest starting it right away |
-| channel questions/requests without an answer | the asker waits, with the age of the question | after `question_decide_after_minutes` (10): for this computer's own question, "decide, announce the decision, proceed"; the decision is recorded with `wait resolve --id q:<message id> --resolution "..."` |
-| `message who` roster | the channel waits for a computer with an old plugin | one automatic update request to that computer, at most once per `plugin_update_request_every_minutes` (60), whoever sent it |
+| channel questions/requests without an answer | the asker waits, with the age of the question | after `question_decide_after_minutes` (10): for this computer's own question, "decide on this computer's own work (never assign work to others) or ask your person, announce the decision, proceed"; the decision is recorded with `wait resolve --id q:<message id> --resolution "..."` |
+| `message who` roster | the channel waits for a computer with an old plugin | one automatic update request to that computer, at most once per `plugin_update_request_every_minutes` (60), whoever sent it, and only while it was seen on the channel in the last `plugin_update_active_minutes` (120): a computer that is off is not asked |
 | channel freezes (off by default: `host_policy.waits.freezes_enabled`; while off, `message send --kind freeze` is refused and freeze messages are ignored) | everyone waits for the end of the freeze | `message send --kind freeze --until <duration>` carries the end explicitly; an announcement such as "30 minuti senza merge/push su main" is recognised too (`freeze_patterns`). During the freeze keep-going does not ask to publish records; when it ends it suggests resuming the suspended actions |
-| pending human approvals (breakdown, dependency, contract, requirement, autonomy profile...) | this computer waits for a person | one message to the person with the exact command, then the wait is `escalated` and never repeated; keep-going does not block on it |
+| pending human approvals (breakdown, dependency, contract, requirement, autonomy profile...) | this computer waits for a person | shown once to the person working with this computer, in its own session (agent context and Stop hook note), with the exact command, never on the channel; then the wait is `escalated` and never repeated; keep-going does not block on it |
 | expired approval delegations | same as approvals | same as approvals, with the `autonomy delegation grant` command |
 
 **Explicit waits** are declared and closed by hand:
@@ -141,10 +142,10 @@ Where the waits show up:
 - `status`: section "In attesa di", one group per waiter, with age and deadline.
 - `next` / keep-going: open waits and the suggested actions; escalated waits on a person never block; no publish request during a freeze.
 - `watch`: also wakes up when a wait expires, is resolved (for example a dependency merged) or is escalated.
-- the host hook that reads the channel applies the automatic rules (update requests, one message per approval or delegation) and shows each suggestion once; `AGENTIC_SDLC_WAIT_RULES=off` turns the automatic messages off on this computer.
+- the host hook that reads the channel applies the automatic rules (update requests to active computers) and shows each suggestion once, including the waits that need this computer's own person; `AGENTIC_SDLC_WAIT_RULES=off` turns the automatic messages off on this computer.
 - Change Observatory: panel "Chi aspetta chi" (Who waits for whom) in the Now panel, with ages and deadlines.
 
-The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defaults in the plugin's `config/waits.json`): `question_decide_after_minutes`, `plugin_update_request_every_minutes`, `freezes_enabled`, `freeze_default_minutes`, `explicit_default_until`, `explicit_max_until`, `escalate_approvals`, `escalate_delegations`, `list_limit`, `freeze_patterns`. What has been sent already (escalations, update requests) is remembered per clone in `.git/agentic-sdlc/waits-state.json`.
+The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defaults in the plugin's `config/waits.json`): `question_decide_after_minutes`, `plugin_update_request_every_minutes`, `plugin_update_active_minutes` (plugin default only), `freezes_enabled`, `freeze_default_minutes`, `explicit_default_until`, `explicit_max_until`, `escalate_approvals`, `escalate_delegations`, `list_limit`, `freeze_patterns`. What has been sent already (escalations, update requests) is remembered per clone in `.git/agentic-sdlc/waits-state.json`.
 
 ## Settings
 
@@ -158,6 +159,7 @@ Each setting is taken from the first place that has it:
 | `AGENTIC_SDLC_MESSAGING=off` | turns messaging off on this computer |
 | `AGENTIC_SDLC_MESSAGING_AUTO=off` | keeps the `message` commands but stops the automatic messages on this computer |
 | `AGENTIC_SDLC_MESSAGING_AUTO_TIMEOUT_SECONDS` | network limit for one automatic step (default 3) |
+| `AGENTIC_SDLC_MESSAGING_TECHNICAL_EVENTS=on` | also sends phase changes, commits, pushes, pull requests, test results and strict gates (off by default: the Change Observatory shows them) |
 | `AGENTIC_SDLC_MESSAGING_POLL_SECONDS` | minimum gap between two reads by the host hook (default 30; each read is one request, so 120 an hour at most per computer against the 5000/hour limit) |
 | `AGENTIC_SDLC_MESSAGING_ESCALATE_MINUTES` | wait before the one reminder for an unanswered question (default 10) |
 | `AGENTIC_SDLC_MESSAGING_OUTBOX_RETRY_MINUTES` | minimum gap between two automatic attempts to send the queued messages (default 5, doubled after each failure) |

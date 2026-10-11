@@ -57,7 +57,7 @@ test("unanswered own question: after 10 minutes the rule suggests deciding and r
   const { suggestions } = planWaitActions(waits, { now: NOW, policy });
   assert.equal(suggestions.length, 1);
   assert.equal(suggestions[0].wait_id, "q:q1");
-  assert.match(suggestions[0].text, /decidi, annuncia la decisione e procedi/u);
+  assert.match(suggestions[0].text, /decidi tu sul lavoro di questo computer \(senza assegnare lavoro ad altri\) o chiedi alla tua persona, annuncia la decisione e procedi/u);
   assert.match(suggestions[0].command, /wait resolve --id q:q1 --resolution/u);
   // The decision recorded as the resolution closes the wait.
   const resolved = applyWaitMemory(waits, { resolutions: new Map([["q:q1", { resolution: "JSON" }]]) });
@@ -104,15 +104,23 @@ test("freeze (enabled by the project): explicit --kind freeze and the text form;
   assert.match(resumed.reason, /publish-records --id ST-1/u);
 });
 
-test("approval: one message to the person with the exact command, then escalated and never repeated", () => {
+test("approval: shown once to this session's person with the exact command, never on the channel, then escalated", () => {
   const waits = deriveApprovalWaits([{ id: "approve-breakdown-BRK-1", subject_id: "BRK-1", summary: "Work breakdown (BRK-1) is proposed", suggested_command: "agentic-sdlc breakdown approve --id BRK-1 --actor-type human" }]);
   const first = planWaitActions(waits, { now: NOW, policy, memory: {} });
-  assert.equal(first.messages.length, 1);
-  assert.match(first.messages[0].text, /breakdown approve --id BRK-1/u);
+  assert.equal(first.messages.length, 0, "nothing goes to the channel");
+  assert.equal(first.suggestions.length, 1);
+  assert.equal(first.suggestions[0].person, true);
+  assert.match(first.suggestions[0].text, /^serve la tua persona \(approval BRK-1\).*chiediglielo in questa sessione/u);
+  assert.match(first.suggestions[0].command, /breakdown approve --id BRK-1/u);
   const marked = applyWaitMemory(waits, { memory: first.memory });
   assert.equal(marked[0].state, "escalated");
   const second = planWaitActions(marked, { now: NOW + 3_600_000, policy, memory: first.memory });
   assert.equal(second.messages.length, 0);
+  assert.equal(second.suggestions.length, 0);
+  // A person wait declared by another computer is escalated there, by its own person.
+  const explicit = { id: "WAIT-9", source: "explicit", waiter: { host: "pc2", story: "ST-9" }, blocker: { type: "person", ref: "Alice" }, since: at(200), until: at(10), state: "expired" };
+  assert.equal(planWaitActions([explicit], { now: NOW, policy, names: new Set(["pc1"]) }).suggestions.length, 0);
+  assert.equal(planWaitActions([explicit], { now: NOW, policy, names: new Set(["pc2"]) }).suggestions[0].person, true);
   // Escalated waits on a person never block keep-going: they are only noted.
   const decision = decideKeepGoing({ waits: { list: marked, suggestions: [], freeze: null }, now: NOW });
   assert.equal(decision.block, false);
@@ -265,4 +273,14 @@ test("keep-going: at most 3 wait suggestions with a counter, and the same set bl
   // A different set blocks again.
   const changed = decideKeepGoing({ waits: { list: [], suggestions: suggestions.slice(0, 2), freeze: null }, now: NOW + 3 * 3600_000, previous: again.state });
   assert.equal(changed.block, true);
+});
+
+test("plugin update requests go only to computers seen on the channel recently", () => {
+  const recent = { id: "plugin:pc2", source: "derived", waiter: { host: "*" }, blocker: { type: "plugin_version", ref: "pc2", version: "0.140.0", newest: "0.148.2" }, since: at(30), state: "open" };
+  const off = { ...recent, id: "plugin:pc3", blocker: { ...recent.blocker, ref: "pc3" }, since: at(180) };
+  const { messages, memory } = planWaitActions([recent, off], { now: NOW, policy, memory: {} });
+  assert.deepEqual(messages.map((item) => item.to), ["pc2"]);
+  assert.equal(memory.update_requests.pc3, undefined);
+  // Not again within the interval.
+  assert.equal(planWaitActions([recent], { now: NOW + 60_000, policy, memory }).messages.length, 0);
 });

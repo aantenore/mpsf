@@ -8,7 +8,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { alertFor, rememberOwnMessage } from "../../lib/messaging/auto.mjs";
+import { alertFor, blockerSignature, rememberOwnMessage, sendAutoAlert } from "../../lib/messaging/auto.mjs";
 import { pendingQuestions } from "../../lib/host-hooks/keep-going.mjs";
 import { installFakeGh } from "../helpers/fake-gh.mjs";
 
@@ -150,4 +150,28 @@ test("a failing gate of a story that is already over is not announced, an active
   assert.equal(over.code, 1);
   assert.match(over.stderr, /ST-DONE-001 is already merged\/closed/u);
   assert.equal(gh.read().comments.length, sent, "terminal story: nothing new on the channel");
+});
+
+test("technical events stay off the channel; the same state is a repeat whatever its wording", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-auto-state-"));
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  fs.mkdirSync(path.join(root, ".git/agentic-sdlc"));
+  fs.writeFileSync(path.join(root, ".git/agentic-sdlc/messaging.json"), JSON.stringify(CONFIG));
+  const sent = [];
+  const providers = { github: () => ({ publish: async ({ message }) => { sent.push(message); return { id: String(sent.length) }; } }) };
+  const env = { AGENTIC_SDLC_HOST_LABEL: "PC1" };
+  const send = (alert, extra = {}) => sendAutoAlert(root, alert, { env: { ...env, ...extra }, providers });
+  const push = alertFor("autonomy.delivery.action", { id: "AUT-1", action: "git.push", outcome: "passed" }, { extra: { story: "ST-A-001" } });
+  assert.equal((await send(push)).skipped, "technical");
+  assert.equal((await send(alertFor("test.record", { story: "ST-A-001", "exit-code": "0" }))).skipped, "technical");
+  assert.equal((await send(alertFor("workflow.instance.transition", { id: "WF-1", to: "build" }, { extra: { story: "ST-A-001" } }))).skipped, "technical");
+  assert.equal(sent.length, 0);
+  assert.equal((await send(push, { AGENTIC_SDLC_MESSAGING_TECHNICAL_EVENTS: "on" })).sent, true);
+  // A gate that fails again on the same blocker, numbers and paths aside, is not sent twice; another blocker is.
+  const gate = (blocker) => alertFor("gate.check", { story: "ST-A-001" }, { exitCode: 1, blockers: [blocker] });
+  assert.equal((await send(gate("3 files changed after /tmp/a/x.json"))).sent, true);
+  assert.equal((await send(gate("5 files changed after /var/b/x.json"))).skipped, "repeat");
+  assert.equal((await send(gate("secret scan missing"))).sent, true);
+  assert.equal(sent.length, 3);
+  assert.equal(blockerSignature("Output 'a1b2c3d4e5' at C:\\x\\y\\out.json: 12 left"), "output <value> at <path>/out.json: # left");
 });

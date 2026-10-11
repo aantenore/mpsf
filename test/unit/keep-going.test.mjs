@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { claimOwnership, collectWork, decideKeepGoing, deliveryProgress, personRequests, withPersonRequest, withWorktreeProgress, isFreshForeignStory, heldClaimRefs, IDENTICAL_BLOCKS_WINDOW_MS, DEFAULT_MAX_CONSECUTIVE_BLOCKS, MAX_BLOCKS_ENV, maxConsecutiveBlocks, storyWorktreeResolver, nextStoryStep, pendingQuestions, unpublishedRecords } from "../../lib/host-hooks/keep-going.mjs";
+import { claimOwnership, collectWork, decideKeepGoing, deliveryProgress, escalatedPersonRequests, personRequests, withPersonRequest, withWorktreeProgress, isFreshForeignStory, heldClaimRefs, IDENTICAL_BLOCKS_WINDOW_MS, DEFAULT_MAX_CONSECUTIVE_BLOCKS, MAX_BLOCKS_ENV, maxConsecutiveBlocks, storyWorktreeResolver, nextStoryStep, pendingQuestions, unpublishedRecords } from "../../lib/host-hooks/keep-going.mjs";
 
 const claim = { storyId: "ST-1", next: nextStoryStep({ storyId: "ST-1", completedSteps: ["discovery", "analysis", "design", "implementation"] }) };
 
@@ -555,4 +555,19 @@ test("unpublished records, no marker and stable: block once, then dedupe", () =>
   assert.equal(decision.block, true);
   assert.match(decision.reason, /pubblicali prima di tutto/u);
   assert.equal(decideKeepGoing({ unpublished, previous: decision.state }).block, false);
+});
+
+test("a step only a person takes is a note for this session's person and never blocks", () => {
+  const person = { wait_id: "approval:A1", person: true, text: "serve la tua persona (approval BRK-1): chiediglielo in questa sessione, non sul canale", command: "agentic-sdlc breakdown approve --id BRK-1" };
+  const decision = decideKeepGoing({ waits: { list: [], suggestions: [person], freeze: null } });
+  assert.equal(decision.block, false);
+  assert.match(decision.note, /serve la tua persona \(approval BRK-1\).*breakdown approve --id BRK-1/u);
+  // Once escalated, a wait naming a person-only step marks its story as waiting for that person.
+  const requests = escalatedPersonRequests([
+    { state: "escalated", waiter: { story: "ST-1" }, blocker: { type: "approval", command: "agentic-sdlc autonomy delivery reconcile --id AUT-1" } },
+    { state: "open", waiter: { story: "ST-2" }, blocker: { type: "approval", command: "agentic-sdlc autonomy delivery reconcile --id AUT-2" } },
+  ]);
+  assert.equal(requests.length, 1);
+  const claim = withPersonRequest({ storyId: "ST-1", next: { phase: "release" } }, requests);
+  assert.match(claim.awaitingPerson.command, /delivery reconcile --id AUT-1/u);
 });
