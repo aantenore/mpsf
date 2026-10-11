@@ -3,6 +3,7 @@
   "principle": "Defaults of the context module: how much text the CLI, the host hooks and a story's context pack may put in front of an agent. A project overrides any value in .sdlc/config.json under host_policy.context.",
   "output": {
     "mode": "auto",
+    "json_profile": "auto",
     "max_tokens": 300,
     "max_detail_lines": 6
   },

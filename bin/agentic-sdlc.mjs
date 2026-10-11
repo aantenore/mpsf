@@ -4,7 +4,7 @@
 import "../lib/runtime/self-forward.mjs";
 
 import path from "node:path";
-import { compactOutputLines, compactOutputRequested, setOutputProjectConfig } from "../lib/context/compact-output.mjs";
+import { compactOutputLines, compactOutputRequested, jsonPayloadForOutput, setOutputProjectConfig } from "../lib/context/compact-output.mjs";
 import zlib from "node:zlib";
 // File system, child processes, OS, randomness, process, console and clock
 // come from the host seam, so every code path can run against test doubles.
@@ -1696,7 +1696,7 @@ async function main() {
       return;
     }
     let context = buildContext(parsed.options);
-    try { setOutputProjectConfig(context.config); } catch { /* defaults apply */ }
+    try { setOutputProjectConfig(context.config, context.root); } catch { /* defaults apply */ }
     if (resolution?.canonical_action === "status") {
       // Status first brings this clone up to date; when that moved the
       // checkout, the records are read again from the new commit.
@@ -1759,7 +1759,7 @@ async function main() {
       : exitCodeForError(error);
     if (error instanceof UnknownCommandError) {
       if (jsonRequested) {
-        console.error(JSON.stringify(buildCliErrorPayload(error, parsed.options, errorRedaction), null, 2));
+        console.error(JSON.stringify(jsonPayloadForOutput(buildCliErrorPayload(error, parsed.options, errorRedaction), parsed.options), null, 2));
         process.exitCode = failureExitCode;
         return;
       }
@@ -1799,7 +1799,7 @@ async function main() {
             details: "Technical details (optional)",
           };
       if (jsonRequested) {
-        console.error(JSON.stringify(buildCliErrorPayload(error, parsed.options, errorRedaction), null, 2));
+        console.error(JSON.stringify(jsonPayloadForOutput(buildCliErrorPayload(error, parsed.options, errorRedaction), parsed.options), null, 2));
         process.exitCode = failureExitCode;
         return;
       }

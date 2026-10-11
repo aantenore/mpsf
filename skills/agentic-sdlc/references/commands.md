@@ -1264,6 +1264,8 @@ node <plugin-root>/bin/agentic-sdlc.mjs context get trace:ST-001#TR-202610101200
 
 Sections: story, requirement (accepted criteria only), contract, decisions, dependencies, scope (write paths and a file index with symbol names, no file contents), evidence (gates, latest tests, steps), waits, next governed step. Each phase weighs them differently (`host_policy.context.pack.phase_sections`); a cut section ends with `… N more: context get sec:...`. The pack is deterministic (`pack_hash`), redacts secrets, and is cached under `.sdlc/cache/context/` until a record it read changes; `--no-cache` rebuilds it. Inside an agent session every command prints a short form (outcome, next step, ids, exact error); `--verbose` prints the full explanation, `--compact` forces the short one.
 
+With `--json` inside an agent session the payload is the agent profile: `status`, `outcome`, `next`, `ids`, `hashes`, `records` (id, status and hashes of each record, with a `rec:` ref), `warnings`/`errors`, `refs`, and `assistant_message`/`decide` only when a person must decide. Fetch a record with `context get <ref>`; pass `--json-profile full` when a script needs the complete payload.
+
 ## Handoff And Locks
 
 ```bash

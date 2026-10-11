@@ -99,7 +99,7 @@ test("deterministic and passthrough", () => {
   assert.deepEqual(compactGuidanceLines(plain), plain);
 });
 
-test("cli: --compact shortens text output and leaves --json untouched", () => {
+test("cli: --compact shortens text output; --json-profile full keeps the complete payload", () => {
   const root = createFixtureDir("sdlc-compact-");
   const env = { ...process.env, AGENTIC_SDLC_OUTPUT: "full" };
   const run = (...args) => spawnSync(process.execPath, [CLI, ...args, "--root", root], { encoding: "utf8", env });
@@ -116,5 +116,6 @@ test("cli: --compact shortens text output and leaves --json untouched", () => {
     delete payload.correlation_id;
     return payload;
   };
-  assert.deepEqual(json(run("status", "--sync", "off", "--json", "--compact")), json(run("status", "--sync", "off", "--json")));
+  assert.deepEqual(json(run("status", "--sync", "off", "--json", "--compact", "--json-profile", "full")), json(run("status", "--sync", "off", "--json")));
+  assert.equal(json(run("status", "--sync", "off", "--json", "--compact")).profile, "agent");
 });

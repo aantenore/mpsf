@@ -144,6 +144,27 @@ Errors print `error: <exact message>` (and `cause:` when present). Mode resoluti
 host (`CLAUDECODE`, `CODEX_THREAD_ID`, `CODEX_AGENT_NAME`), full for people. `--json` is
 never affected. The test isolation helper pins `AGENTIC_SDLC_OUTPUT=full`.
 
+### Agent JSON profile
+
+With `--json` an agent gets the `agent` profile (`lib/context/compact-json.mjs`):
+`status`, `outcome`, `next`, `ids` (keys `*_id`/`*_ids`, ids of listed records),
+`hashes` (keys `*_hash`), `records` (per nested record only id, kind, status, levels and
+its `*_hash` fields, plus `ref: rec:<path>` found by id under `.sdlc/`), `warnings`/`errors`
+(first 5), `error`, `refs` (`context get rec:...` for the `*_path` fields), `omitted` and
+`full: "--json-profile full"`. `assistant_message` and `decide` stay only when a person
+must decide (approval requests or a real required decision). Keys are sorted.
+
+Resolution: `--json-profile agent|full`; `--verbose` → full, `--compact` → agent;
+`AGENTIC_SDLC_JSON_PROFILE`; `AGENTIC_SDLC_OUTPUT` (compact → agent, full → full);
+`host_policy.context.output.json_profile` (`auto|agent|full`); `auto` = agent inside an
+agent host. Internal callers that parse the payload pass `--json-profile full`: the
+SessionStart standing status, `next` scope checks, `story close` sub-steps and its
+background run, `story fix`, test triage, prepared starts, the release verifier's
+`doctor`. Tests run with `AGENTIC_SDLC_OUTPUT=full` from the isolation helper.
+
+Measured (e2e fixture, mean per call): `autonomy delivery approve --json` 5206 → 453
+tokens (-91%), `requirement approve --json` 4397 → 426 tokens (-90%).
+
 ### Hook injections
 
 `lib/host-hooks/injection-budget.mjs` filters what SessionStart, UserPromptSubmit,
@@ -171,7 +192,7 @@ records one by one.
 
 ```json
 {
-  "output": { "mode": "auto", "max_tokens": 300, "max_detail_lines": 6 },
+  "output": { "mode": "auto", "json_profile": "auto", "max_tokens": 300, "max_detail_lines": 6 },
   "hooks": { "dedupe": true, "max_lines": 12, "ledger_max_keys": 500, "ledger_max_age_days": 7,
              "budget_tokens": { "session_start": 700, "user_prompt_submit": 250, "post_tool_use": 200, "pre_tool_use": 150, "stop": 150 } },
   "pack": { "budget_tokens": 2000, "file_index_max_entries": 40, "symbols_per_file": 8, "test_runs": 3, "decisions": 8,

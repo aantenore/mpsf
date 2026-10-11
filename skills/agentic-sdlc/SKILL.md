@@ -128,7 +128,7 @@ These rules apply at every step, whether or not its reference file is loaded:
 - When critical context, output format, acceptance criteria, destination, or the autonomy choice is missing, ask concise questions and stop; never invent details. `--allow-incomplete-contract` never starts phase work (step 6).
 - A request to implement or push is not a formal SDLC approval. An agent-supplied `--actor-type human` is not authority: never act as the person, and a short “ok” applies only to the immutable subject just shown (step 7).
 - Ask before installing skills or plugins or using external, write, production, tenant, workspace, endpoint, or secret-bearing targets (step 7).
-- Show the returned `assistant_message` whenever available instead of only IDs (steps 7, 10).
+- Show the returned `assistant_message` whenever available instead of only IDs (steps 7, 10); with the agent JSON profile it is returned, with `decide`, exactly when a person must decide.
 - Every pull request or local release gets a fresh working-mode choice; never inherit, infer, or reuse it, and disclose any reduction or cap before the user answers. The code review and merge questions are the user's formal decisions for pull requests only: never answer them, infer them, or carry them over (step 13).
 - Every state-changing delivery action is authorize → execute → complete. On `checkpoint_required`, show the plain-language decision and rerun with `--confirm-action` only after the person decides. An `authorized` receipt does not run the operation; never close a delivery manually as `merged` or `released` (step 13).
 - Local release: record `rollback.verify` before `release.local`, never install files at release time, and keep the approved shell-free smoke argv and rollback (step 13).

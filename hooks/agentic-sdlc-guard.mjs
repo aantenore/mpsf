@@ -240,7 +240,7 @@ async function standingContext(root) {
     return [];
   }
   if (entries.length === 0) return [];
-  const result = spawnSync(process.execPath, [CLI, "autonomy", "standing", "status", "--root", root, "--json"], {
+  const result = spawnSync(process.execPath, [CLI, "autonomy", "standing", "status", "--root", root, "--json", "--json-profile", "full"], {
     encoding: "utf8",
     timeout: STATUS_TIMEOUT_MS,
     windowsHide: true,
