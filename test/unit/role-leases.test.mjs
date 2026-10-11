@@ -1,0 +1,118 @@
+import { createBareOrigin, createFixtureDir } from "../helpers/test-isolation.mjs";
+
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+import { assignedHolder, planRoleLease, rendezvousOrder, resolveRole } from "../../lib/coordination-roles.mjs";
+import { forgetSharedRefState } from "../../lib/engine/shared-refs.mjs";
+import { pushAccepted, readCoordinationCopies, rolesStatus, rolesTick, TICK_MS } from "../../lib/engine/role-leases.mjs";
+
+const NOW = Date.parse("2026-10-11T12:00:00Z");
+const MIN = 60_000;
+const iso = (ms) => new Date(ms).toISOString();
+
+test("rendezvous hashing picks one computer per role and moves little when computers come and go", () => {
+  const hosts = ["pc-a", "pc-b", "pc-c", "pc-d"];
+  const order = rendezvousOrder("coordinator", hosts);
+  assert.deepEqual([...order].sort(), hosts);
+  assert.equal(rendezvousOrder("coordinator", [...hosts].reverse())[0], order[0], "order of the input does not matter");
+  // Removing a computer that does not hold the role keeps the holder.
+  const other = order.find((host) => host !== order[0]);
+  assert.equal(assignedHolder("coordinator", { live: hosts.filter((host) => host !== other) }), order[0]);
+  // Removing the holder passes the role to the next one.
+  assert.equal(assignedHolder("coordinator", { live: hosts.filter((host) => host !== order[0]) }), order[1]);
+  // Pinned hosts win, in their order, when alive.
+  assert.equal(assignedHolder("coordinator", { live: hosts, pinned: ["pc-x", "pc-c", "pc-a"] }), "pc-c");
+  assert.equal(assignedHolder("coordinator", { live: hosts, pinned: ["pc-x"] }), null);
+  assert.equal(assignedHolder("coordinator", { live: ["pc-a"] }), "pc-a", "alone, a computer holds every role");
+});
+
+test("the lease is taken by the assigned computer, renewed after half of it, handed over only at renewal", () => {
+  const leaseMs = 30 * MIN;
+  const [first, second] = rendezvousOrder("coordinator", ["pc-a", "pc-b"]);
+  assert.deepEqual(planRoleLease({ role: "coordinator", self: first, live: [second], current: null, now: NOW, leaseMs }), { action: "take", role: "coordinator", epoch: 1 });
+  assert.equal(planRoleLease({ role: "coordinator", self: second, live: [first], current: null, now: NOW, leaseMs }).action, "none");
+  const held = { role: "coordinator", host: second, epoch: 4, expires_at: iso(NOW + 20 * MIN) };
+  // A valid lease is respected by everyone, even by the computer that should hold it.
+  assert.equal(planRoleLease({ role: "coordinator", self: first, live: [second], current: held, now: NOW, leaseMs }).action, "none");
+  // Its holder keeps it until half has passed, then hands it over because the other computer is assigned.
+  assert.equal(planRoleLease({ role: "coordinator", self: second, live: [first], current: held, now: NOW, leaseMs }).action, "none");
+  assert.deepEqual(planRoleLease({ role: "coordinator", self: second, live: [first], current: held, now: NOW + 6 * MIN, leaseMs }), { action: "release", role: "coordinator", epoch: 5, handover: first });
+  // Alone it renews.
+  assert.deepEqual(planRoleLease({ role: "coordinator", self: second, live: [], current: held, now: NOW + 6 * MIN, leaseMs }), { action: "renew", role: "coordinator", epoch: 5 });
+  // A released or expired lease is taken by the assigned computer.
+  assert.equal(planRoleLease({ role: "coordinator", self: first, live: [second], current: { ...held, released: true }, now: NOW, leaseMs }).action, "take");
+  assert.equal(planRoleLease({ role: "coordinator", self: first, live: [second], current: { ...held, expires_at: iso(NOW - MIN) }, now: NOW, leaseMs }).epoch, 5);
+  // A computer that is not pinned never takes a pinned role.
+  assert.equal(planRoleLease({ role: "coordinator", self: "pc-z", live: [], current: null, now: NOW, leaseMs, pinned: ["pc-a"] }).action, "none");
+});
+
+test("with automatic roles, the lease holder coordinates and the others do not run reserved actions", () => {
+  const lease = { host: "pc-a", expires_at: iso(NOW + 10 * MIN) };
+  assert.equal(resolveRole({}, { host: "pc-a", lease, now: NOW }).role, "coordinator");
+  assert.equal(resolveRole({}, { host: "pc-b", lease, now: NOW }).may_run_reserved, false);
+  assert.equal(resolveRole({}, { host: "pc-b", lease: { ...lease, released: true }, now: NOW }).mode, "everyone");
+  assert.equal(resolveRole({}, { host: "pc-b", lease: null, now: NOW }).may_run_reserved, true);
+});
+
+test("porcelain push output: a rejected ref is not accepted", () => {
+  const out = "To /x\n*\tabc:refs/agentic-sdlc/presence/pc-a\t[new reference]\n!\tdef:refs/agentic-sdlc/roles/coordinator/000002\t[rejected] (stale info)\nDone\n";
+  assert.equal(pushAccepted(out, "refs/agentic-sdlc/presence/pc-a"), true);
+  assert.equal(pushAccepted(out, "refs/agentic-sdlc/roles/coordinator/000002"), false);
+  assert.equal(pushAccepted(out, "refs/other"), false);
+});
+
+function clone(bare, host) {
+  const dir = createFixtureDir(`roles-${host}-`);
+  execFileSync("git", ["init", "-q"], { cwd: dir });
+  execFileSync("git", ["remote", "add", "origin", bare], { cwd: dir });
+  fs.mkdirSync(path.join(dir, ".sdlc"));
+  fs.writeFileSync(path.join(dir, ".sdlc", "config.json"), JSON.stringify({ orchestration_policy: { coordination: { mode: "auto", remote: "origin", timeout_seconds: 5 } } }));
+  return { dir, env: { ...process.env, AGENTIC_SDLC_HOST_LABEL: host } };
+}
+
+test("two computers on one remote: one coordinator, both alive, the role moves when its holder leaves", async () => {
+  const seed = createFixtureDir("roles-seed-");
+  execFileSync("git", ["init", "-q"], { cwd: seed });
+  const bare = createBareOrigin(seed);
+  const [first, second] = rendezvousOrder("coordinator", ["pc-a", "pc-b"]);
+  const a = clone(bare, first);
+  const b = clone(bare, second);
+  forgetSharedRefState();
+  // The second computer ticks first: alone, it takes both roles.
+  const t0 = await rolesTick(b.dir, { env: b.env, now: NOW });
+  assert.equal(t0.pushed, true);
+  assert.deepEqual(t0.actions.sort(), ["take:coordinator", "take:knowledge"]);
+  // The first one joins: it sees the lease and does not take the role.
+  const t1 = await rolesTick(a.dir, { env: a.env, now: NOW + MIN });
+  assert.equal(t1.pushed, true);
+  assert.deepEqual((t1.actions ?? []).filter((item) => item.endsWith(":coordinator")), []);
+  const seen = rolesStatus(a.dir, { env: a.env, now: NOW + MIN });
+  assert.deepEqual(seen.computers.map((item) => item.host).sort(), [first, second].sort());
+  assert.equal(seen.roles.find((item) => item.role === "coordinator").holder, second);
+  assert.equal(seen.roles.find((item) => item.role === "coordinator").assigned, first);
+  // Throttled between ticks.
+  assert.equal((await rolesTick(a.dir, { env: a.env, now: NOW + 2 * MIN })).skipped, "throttled");
+  // At renewal time the holder hands over; the assigned computer takes it at its next tick.
+  const handover = await rolesTick(b.dir, { env: b.env, now: NOW + 16 * MIN });
+  assert.ok(handover.actions.includes("release:coordinator"), JSON.stringify(handover));
+  const taken = await rolesTick(a.dir, { env: a.env, now: NOW + 16 * MIN + TICK_MS });
+  assert.ok(taken.actions.includes("take:coordinator"), JSON.stringify(taken));
+  const after = rolesStatus(b.dir, { env: b.env, now: NOW + 17 * MIN + TICK_MS });
+  assert.equal(after.roles.find((item) => item.role === "coordinator").holder, first);
+  // The holder disappears (presence and lease lapse): the other one takes the role.
+  const later = NOW + 120 * MIN;
+  const back = await rolesTick(b.dir, { env: b.env, now: later });
+  assert.ok(back.actions.includes("take:coordinator"), JSON.stringify(back));
+  assert.equal(readCoordinationCopies(b.dir).leases.coordinator.host, second);
+});
+
+test("off or without a shared remote nothing is written", async () => {
+  const lone = createFixtureDir("roles-lone-");
+  execFileSync("git", ["init", "-q"], { cwd: lone });
+  assert.equal((await rolesTick(lone, { env: { ...process.env, AGENTIC_SDLC_HOST_LABEL: "pc-a" }, now: NOW })).skipped, "no shared remote");
+  assert.equal((await rolesTick(lone, { env: { AGENTIC_SDLC_ROLES: "off" }, now: NOW })).skipped, "off");
+});

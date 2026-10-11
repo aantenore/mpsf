@@ -20,7 +20,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.149.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.149.2 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -30,6 +30,8 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.149.2** — Codex `SessionEnd` hook within its 3-second limit: no more timeout notice on every run.
+- **0.149.1** — computers and roles without messages: presence refs on the remote, coordinator and knowledge roles held by one alive computer each through create-only leases, handed over at renewal; `roles status`.
 - **0.149.0** — known error database: when a gate, a test record or a command fails, the CLI shows the recorded fix of the same failure (deterministic signature, same on every computer); `known-error add --from-last-failure` records a new fix, `known-error outcome` reports whether it worked, a safe fix accepted by a person runs with `known-error apply`; Change Observatory panel "Known errors".
 - **0.148.5** — stable computer id: kept in `~/.config/agentic-sdlc/machine.json`, same value as before, unchanged when the host name changes; an Ed25519 key per computer for signed coordination.
 - **0.148.4** — quieter channel: a step only a person takes goes to the person of the session that waits, never to the channel; update requests only to computers seen in the last 2 hours; phase changes, commits, pushes, pull requests and test results stay in the records and the Change Observatory; alerts are deduplicated by state, not by wording.

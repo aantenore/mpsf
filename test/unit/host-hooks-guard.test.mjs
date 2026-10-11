@@ -296,6 +296,8 @@ test("one hooks.json fits both hosts: plain command handlers, a known blocking s
       }
     }
   }
+  // Codex clamps a longer SessionEnd timeout and warns on every run.
+  assert.ok(hooks.hooks.SessionEnd.every((group) => group.hooks.every((handler) => handler.timeout <= 3)));
   // An exact-name alternation selects Codex's apply_patch and both hosts' shell tool.
   assert.match(hooks.hooks.PreToolUse[0].matcher, /^[A-Za-z_|]+$/u);
   for (const tool of ["Bash", "apply_patch", "Write", "Edit"]) {
