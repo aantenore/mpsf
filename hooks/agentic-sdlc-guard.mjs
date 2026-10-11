@@ -263,12 +263,16 @@ async function standingContext(root) {
 }
 
 /** Stops this repository's plugin commands that outlived their time limit. Silent, never blocks. */
-async function reapRuns(payload) {
+async function reapRuns(payload, options = {}) {
   const { findGitCommonDir, reapStaleRuns, reapUnregisteredProcesses } = await import("../lib/runtime/run-registry.mjs");
   const commonDir = findGitCommonDir(payload.cwd || process.cwd());
-  if (commonDir) reapStaleRuns(commonDir);
-  reapUnregisteredProcesses(commonDir);
+  if (commonDir) reapStaleRuns(commonDir, options);
+  reapUnregisteredProcesses(commonDir, options);
 }
+
+// Codex caps the SessionEnd hook at 3 seconds: two short SIGTERM waits keep the reap inside it.
+// Anything left over is stopped by the next Stop hook or the run watchdog.
+const SESSION_END_KILL_AFTER_MS = 800;
 
 /** Keeps the agent working while this computer has work in the project (see lib/host-hooks/keep-going.mjs). */
 async function keepGoing(payload) {
@@ -302,7 +306,7 @@ try {
     } finally {
       await keepGoing(payload);
     }
-  } else if (event === "session-end") await reapRuns(payload);
+  } else if (event === "session-end") await reapRuns(payload, { killAfterMs: SESSION_END_KILL_AFTER_MS });
   else if (event === "user-prompt-submit") await coordinationMessages(payload, "UserPromptSubmit", pendingProcessWarning);
 } catch {
   process.exitCode = 0;
