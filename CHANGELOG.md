@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.6
+
+- Version bumps (`npm version` or `npm run release`) set the version in every plugin manifest, the `agentic-sdlc` bridge included, so it can no longer fall behind. Change Observatory: no change. Compatibility: nothing changes for older plugins.
+
 ## 0.159.5
 
 - `npm run test:fast` runs a quick local subset of the tests: the cheap unit files whole, plus a few selected end-to-end tests per feature area, listed in `test/test-tiers.json`. It is a partial run for routine checks and is refused under CI; releases and CI keep running the full suite (`npm test`). A selected end-to-end test that is renamed, skipped, or no longer runs fails the tier and is named, and a unit test checks the list against the test files.
