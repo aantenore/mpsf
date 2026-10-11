@@ -1,6 +1,6 @@
 # Context module
 
-Status: phase 1 implemented (0.148.0). Owner: plugin maintainers.
+Status: phase 1 implemented (0.148.0, on top of the 0.147.0 RecordStore/MessagingProvider ports). Owner: plugin maintainers.
 
 ## Problem
 
@@ -57,14 +57,15 @@ Each piece has one responsibility; the pack builder never touches the filesystem
 list(dir) · readJson(file) · readText(file, max) · readLines(file, visit) · hash(file) · observed()
 ```
 
-Paths are project-relative (`.sdlc/stories/<id>/story.json`). The filesystem reader is
-the only implementation today. When the `RecordStore` port of `feat/pluggable-adapters`
-lands, a `createRecordStoreReader(store, { fallback })` maps the known paths to
-`store.read(kind, key)` / `store.list(kind, parent)` / `store.readTrace(stream)` (story,
-story-step, gate-report, traces) and falls back to the filesystem reader for kinds the
-store does not address yet (requirements, contracts, tests, dependencies, waits). The
-builder and the cache do not change: `observed()` keeps recording a content hash per
-input, whatever the source.
+Paths are project-relative (`.sdlc/stories/<id>/story.json`). `createRecordStoreReader(store, { fallback })`
+reads through the RecordStore port of `lib/adapters/records/` (`openRecordStore`): story,
+story steps and gate reports with `store.read(kind, key)`, step folders with
+`store.list("story-step", { parent })`, traces with `store.readTrace(stream)`. Records the
+port does not address yet (requirements, contracts, tests, dependencies, waits, delivery
+profiles) come from the filesystem reader given as fallback; when no store can be opened
+the filesystem reader is used alone. Hashes of store records are taken over their JSON;
+the cache key includes the reader kind and the cache check uses the same reader, so a
+change of records adapter rebuilds the pack.
 
 ### Context pack
 
@@ -207,8 +208,8 @@ records one by one.
 2. Story commands (`story claim`, `task start`) print the pack hash and the
    `context pack` command as their next step; `next` and the Stop hook add the pack ref of
    the active claim.
-3. `createRecordStoreReader` once the RecordStore port is on main; pack refs become
-   store-neutral (`rec:<kind>/<key>`).
+3. Pack refs become store-neutral (`rec:<kind>/<key>`) as the RecordStore port covers more
+   kinds; the filesystem fallback shrinks with it.
 4. Messaging digest through the MessagingProvider port: the hook reads "new since the
    ledger cursor" from the provider instead of filtering text.
 5. `context stats`: per-session report from the hook ledger and pack cache (tokens

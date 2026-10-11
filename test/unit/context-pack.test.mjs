@@ -226,3 +226,41 @@ test("CLI: context pack --json and context get, compact and deterministic", () =
   const refused = run("context", "get", "rec:../etc/passwd");
   assert.notEqual(refused.status, 0);
 });
+
+test("the pack reads through the RecordStore port, with the filesystem as fallback", async () => {
+  const { createFsRecordReader, createRecordStoreReader } = await import("../../lib/context/reader.mjs");
+  const { readerFactory } = await import("../../lib/context/service.mjs");
+  const { assemblePack, collectStoryFacts } = await import("../../lib/context/pack.mjs");
+  const { resolveContextPolicy } = await import("../../lib/context/policy.mjs");
+  const root = fixture();
+  assert.equal(readerFactory(contextOf(root))(root).kind, "record-store:git-sdlc");
+  const calls = [];
+  const store = {
+    id: "memory",
+    read(kind, key) {
+      calls.push(`read:${kind}`);
+      if (kind === "story") return { id: key.id, title: "From the store", status: "ready", phase: "analysis", acceptance_criteria: ["store criterion"], requirement_refs: [] };
+      if (kind === "story-step") return { step: key.id, status: "completed", summary: `store ${key.id}` };
+      return null;
+    },
+    list(kind, parent) {
+      calls.push(`list:${kind}:${parent.parent}`);
+      return ["discovery"];
+    },
+    readTrace(stream) {
+      calls.push(`trace:${stream}`);
+      return stream === STORY ? [{ id: "TR-S", story_id: STORY, type: "decision", summary: "Decided in the store", created_at: "2026-10-11T00:00:00Z" }] : [];
+    },
+  };
+  const reader = createRecordStoreReader(store, { fallback: createFsRecordReader(root) });
+  const policy = resolveContextPolicy(contextOf(root).config);
+  const facts = collectStoryFacts(reader, { storyId: STORY, policy, root });
+  const pack = assemblePack(facts, { storyId: STORY, phase: "handoff", budget: 4000, policy });
+  const text = pack.sections.flatMap((section) => section.lines).join("\n");
+  assert.match(text, /From the store/u);
+  assert.match(text, /step discovery: completed — store discovery/u);
+  assert.match(text, /Decided in the store/u);
+  assert.match(text, /blocked_by ST-CTX-000/u);
+  assert.ok(calls.includes("read:story") && calls.includes(`list:story-step:${STORY}`) && calls.includes(`trace:${STORY}`));
+  assert.match(reader.observed().files[`.sdlc/stories/${STORY}/story.json`], /^[0-9a-f]{64}$/u);
+});
