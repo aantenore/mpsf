@@ -164,6 +164,7 @@ import {
   messageStatus,
   messageWho,
 } from "../lib/messaging/commands.mjs";
+import { storyIsTerminal } from "../lib/messaging/story-terminal.mjs";
 import { alertFor, readsMessagesBefore, recordRunOutcome, sendAutoAlert, showNewMessages } from "../lib/messaging/auto.mjs";
 import { createPortfolioRuntime } from "../lib/change-observatory/portfolio-runtime.mjs";
 import {
@@ -1235,7 +1236,12 @@ async function sendRunAlert() {
     const { action, options, root, error, result, extra } = AUTO_MESSAGING;
     if (!action || !root) return;
     const blockers = Array.isArray(result?.human_blockers) ? result.human_blockers : result?.errors;
-    const alert = alertFor(action, options, { error, exitCode: process.exitCode, blockers, result, extra });
+    let alert = alertFor(action, options, { error, exitCode: process.exitCode, blockers, result, extra });
+    // A failing check of a story that is already over is only worth a local line, not a question for the others.
+    if (alert?.kind === "question" && action === "gate.check" && storyIsTerminal(root, alert.story)) {
+      process.stderr.write(`agentic-sdlc: ${alert.story} is already merged/closed; the failed gate check is not announced on the channel.\n`);
+      alert = null;
+    }
     const sent = alert ? await sendAutoAlert(root, alert, { stderr: (text) => process.stderr.write(text) }) : null;
     // A message waiting in the outbox is not a failure to announce.
     const queued = action === "message.send" && process.exitCode === EXIT_CODES.queued;

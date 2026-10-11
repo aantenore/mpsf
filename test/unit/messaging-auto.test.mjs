@@ -131,3 +131,23 @@ test("a reply sent here counts as answered before the next poll", () => {
   assert.deepEqual(state.own, ["A1"]);
   assert.deepEqual(pendingQuestions(state, "PC1"), []);
 });
+
+test("a failing gate of a story that is already over is not announced, an active one is", async () => {
+  const gh = fakeGh();
+  const root = await project(true);
+  const story = "ST-DONE-001";
+  const gates = path.join(root, ".sdlc/gates");
+  fs.mkdirSync(gates, { recursive: true });
+  const check = () => runCli(["gate", "check", "--story", story, "--strict"], root, gh.env);
+
+  const active = await check();
+  assert.equal(active.code, 1);
+  const sent = gh.read().comments.length;
+  assert.equal(sent, 1, "active story: the question is sent");
+
+  fs.writeFileSync(path.join(gates, `${story}-final.json`), JSON.stringify({ lifecycle_complete: true, status: "passed" }));
+  const over = await check();
+  assert.equal(over.code, 1);
+  assert.match(over.stderr, /ST-DONE-001 is already merged\/closed/u);
+  assert.equal(gh.read().comments.length, sent, "terminal story: nothing new on the channel");
+});
