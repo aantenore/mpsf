@@ -2,6 +2,14 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.149.3
+
+- Agent and channel texts that were only in Italian are now in English: hook instructions and notes (keep-going, watch, guard, prepared starts, process hygiene), channel `[auto]` status, free and join/welcome messages, wait suggestions, `next` and `roles status`. `wait add|resolve|list`, `roles status` and the "Waiting on" section of `status` print Italian with `--locale it`.
+- The plugin update request keeps the `[auto] aggiorna il plugin` prefix that older plugins match, so they keep throttling it.
+- Change Observatory: wait descriptions in the "Now" panel are in English.
+- README shows the logo (light and dark); `package.json` has `homepage`, `repository` and `bugs`.
+- Compatibility: no new configuration keys; older plugins read the new messages as before.
+
 ## 0.149.1
 
 - Computers and roles without messages: each computer keeps a presence ref on the project's remote (`refs/agentic-sdlc/presence/<id>`, 30 minutes, renewed every 10 by the host hook), and the `coordinator` and `knowledge` roles go to one alive computer each through create-only lease refs (`refs/agentic-sdlc/roles/<role>/<epoch>`): the pinned host of `host_policy.roles.coordinator` first, else rendezvous hashing among the alive computers. The holder renews after half of the lease and hands over at that renewal when another computer should hold it; a lease of a computer that disappears expires. Alone, a computer holds every role. Without a valid lease, a shared remote, or with `AGENTIC_SDLC_ROLES=off`, every computer does every duty itself, as before. Older plugins ignore these refs.
