@@ -13,6 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  CONTEXT_PACK_INSTRUCTION,
   evaluatePreToolUse,
   mainThreadMode,
   orchestratorEditWarning,
@@ -53,6 +54,28 @@ function governedRoot(start) {
   }
 }
 
+/** Session id of the host payload (Claude Code: session_id), or "". */
+function sessionIdOf(payload) {
+  return String(payload?.session_id || payload?.sessionId || "");
+}
+
+/**
+ * Drops from `text` what this session already saw and caps the rest (see
+ * lib/host-hooks/injection-budget.mjs). Never throws; on any failure the text
+ * is returned as it was.
+ */
+async function budgeted(text, { event, payload, root, pointer, extraTokens = 0 }) {
+  try {
+    const { applyInjectionBudget } = await import("../lib/host-hooks/injection-budget.mjs");
+    const { findGitCommonDir } = await import("../lib/runtime/run-registry.mjs");
+    const base = root ?? payload?.cwd ?? process.cwd();
+    const config = readJson(path.join(governedRoot(base) ?? base, ".sdlc", "config.json"));
+    return applyInjectionBudget({ text, event, sessionId: sessionIdOf(payload), commonDir: findGitCommonDir(base), config, pointer, extraTokens });
+  } catch {
+    return text;
+  }
+}
+
 function readJson(file) {
   try {
     return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -89,7 +112,13 @@ async function coordinationMessages(payload, hookEventName, extraContext = async
   if (!root) return;
   // Loaded here so a problem with it never disables the edit guard.
   const { checkAttention } = await import("../lib/messaging/attention.mjs");
-  const context = [await checkAttention(root), await extraContext(root)].filter(Boolean).join("\n");
+  const raw = [await checkAttention(root), await extraContext(root)].filter(Boolean).join("\n");
+  const context = raw ? await budgeted(raw, {
+    event: hookEventName === "PostToolUse" ? "post_tool_use" : "user_prompt_submit",
+    payload,
+    root,
+    pointer: "agentic-sdlc wait list",
+  }) : "";
   try {
     const { checkPresence } = await import("../lib/messaging/presence.mjs");
     await checkPresence(root);
@@ -110,7 +139,7 @@ async function pendingProcessWarning(root) {
   }
 }
 
-function preToolUse(payload) {
+async function preToolUse(payload) {
   // Every rule protects agentic-sdlc records, so other projects are never touched.
   if (!insideGovernedProject(payload.cwd)) return;
   const root = governedRoot(payload.cwd);
@@ -132,12 +161,14 @@ function preToolUse(payload) {
     process.exitCode = 2;
     return;
   }
-  const warning = orchestratorEditWarning(payload, mode);
+  const rawWarning = orchestratorEditWarning(payload, mode);
+  const warning = rawWarning ? await budgeted(rawWarning, { event: "pre_tool_use", payload, root, pointer: "agentic-sdlc wait list" }) : "";
   if (warning) process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: warning } })}\n`);
 }
 
 /** Tells the session to ask for a plugin update when the project's records need a newer version. */
 async function pluginUpdateNotice(root) {
+  // Returns the notice text ("" when none is due).
   // Loaded here so a problem with it never disables the edit guard.
   const { COMPATIBILITY_DIRECTORY, evaluateRequirements, pluginUpdateLine } = await import("../lib/plugin-compatibility.mjs");
   const directory = path.join(root, ".sdlc", COMPATIBILITY_DIRECTORY);
@@ -145,7 +176,7 @@ async function pluginUpdateNotice(root) {
   try {
     names = fs.readdirSync(directory).filter((name) => name.endsWith(".json"));
   } catch {
-    return;
+    return "";
   }
   const entries = names.map((name) => {
     try {
@@ -155,9 +186,9 @@ async function pluginUpdateNotice(root) {
     }
   });
   const verdict = evaluateRequirements(entries);
-  if (verdict.satisfied) return;
-  process.stdout.write(`Agentic SDLC: ${pluginUpdateLine(verdict.required_plugin_version)}\n`
-    + "Tell the user before any other agentic-sdlc work: commands that change the project are refused until the plugin is updated.\n");
+  if (verdict.satisfied) return "";
+  return `Agentic SDLC: ${pluginUpdateLine(verdict.required_plugin_version)}\n`
+    + "Tell the user before any other agentic-sdlc work: commands that change the project are refused until the plugin is updated.\n";
 }
 
 /** Opt-in plugin update (AGENTIC_SDLC_AUTO_UPDATE=1): detached and throttled; never blocks or fails the hook. */
@@ -173,37 +204,55 @@ async function autoUpdate(reason) {
 async function sessionStart(payload) {
   await autoUpdate("session-start");
   const root = path.resolve(String(payload.cwd || process.cwd()));
+  // The update notice is safety-critical: written first and never deduplicated.
+  let notice = "";
   try {
-    await pluginUpdateNotice(root);
+    notice = await pluginUpdateNotice(root);
   } catch {
     // The notice is advice; the CLI enforces the check on its own.
   }
+  if (notice) process.stdout.write(notice);
+  const parts = [];
   const orchestrator = orchestratorSessionContext(projectMainThreadMode(governedRoot(root) ?? root));
-  if (orchestrator) process.stdout.write(`${orchestrator}\n`);
-  else if (governedRoot(root)) process.stdout.write(`${STORY_LABEL_INSTRUCTION}\n`);
-  if (orchestrator || governedRoot(root)) process.stdout.write(`${PROCESS_HYGIENE_INSTRUCTION}\n${WATCH_INSTRUCTION}\n`);
+  if (orchestrator) parts.push(orchestrator);
+  else if (governedRoot(root)) parts.push(STORY_LABEL_INSTRUCTION);
+  if (orchestrator || governedRoot(root)) parts.push(PROCESS_HYGIENE_INSTRUCTION, CONTEXT_PACK_INSTRUCTION, WATCH_INSTRUCTION);
+  parts.push(...(await standingContext(root)));
+  const text = parts.filter(Boolean).join("\n");
+  if (!text) return;
+  const filtered = await budgeted(text, {
+    event: "session_start",
+    payload,
+    root,
+    pointer: "agentic-sdlc context pack --story <id>",
+    extraTokens: Math.ceil(notice.length / 4),
+  });
+  if (filtered) process.stdout.write(`${filtered}\n`);
+}
+
+/** The standing-approvals summary lines for SessionStart ([] when there are none). */
+async function standingContext(root) {
   const standingRoot = path.join(root, ".sdlc", "autonomy", "standing");
   let entries = [];
   try {
     entries = fs.readdirSync(standingRoot).filter((name) => !name.startsWith("."));
   } catch {
-    return;
+    return [];
   }
-  if (entries.length === 0) return;
+  if (entries.length === 0) return [];
   const result = spawnSync(process.execPath, [CLI, "autonomy", "standing", "status", "--root", root, "--json"], {
     encoding: "utf8",
     timeout: STATUS_TIMEOUT_MS,
     windowsHide: true,
   });
-  if (result.status !== 0) return;
+  if (result.status !== 0) return [];
   let status = null;
   try {
     status = JSON.parse(result.stdout);
   } catch {
-    return;
+    return [];
   }
-  const context = sessionStartContext(status);
-  if (context) process.stdout.write(`${context}\n`);
+  return [sessionStartContext(status)];
 }
 
 /** Stops this repository's plugin commands that outlived their time limit. Silent, never blocks. */
@@ -225,13 +274,18 @@ async function keepGoing(payload) {
   const { processHygieneAtStop } = await import("../lib/host-hooks/process-hygiene.mjs");
   const { message } = await processHygieneAtStop(root, { commonDir, pluginRoot: PLUGIN_ROOT });
   const merged = message ? { ...output, systemMessage: [output?.systemMessage, message].filter(Boolean).join("\n") } : output;
-  if (merged) process.stdout.write(`${JSON.stringify(merged)}\n`);
+  if (!merged) return;
+  const { filterHookOutput } = await import("../lib/host-hooks/injection-budget.mjs");
+  // Only the free-text fields are filtered; decision and reason stay intact.
+  const filtered = merged.systemMessage ? await budgeted(merged.systemMessage, { event: "stop", payload, root, pointer: "agentic-sdlc wait list" }) : "";
+  const shown = filterHookOutput(merged, (text) => (text === merged.systemMessage ? filtered : text));
+  if (shown) process.stdout.write(`${JSON.stringify(shown)}\n`);
 }
 
 try {
   const event = process.argv[2];
   const payload = readPayload();
-  if (event === "pre-tool-use") preToolUse(payload);
+  if (event === "pre-tool-use") await preToolUse(payload);
   else if (event === "session-start") await sessionStart(payload);
   else if (event === "post-tool-use") await coordinationMessages(payload, "PostToolUse");
   else if (event === "stop") {

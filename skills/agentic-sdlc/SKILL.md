@@ -19,6 +19,10 @@ For a request to contextualize an existing project and produce a technical, func
 
 Never store project contracts or project KB state inside the plugin installation. Treat the plugin as reusable method code only. Treat `<target-project>/.sdlc/` as the project source of truth. Treat `<target-project>/.sdlc/cache/` and `<target-project>/.sdlc/indexes/` as derived local optimization artifacts, never as canonical evidence.
 
+## Story Context
+
+To work on a story, read its context pack instead of the records: `agentic-sdlc context pack --story <id> [--phase <phase|handoff>]` prints the accepted criteria, contract essentials, decisions, dependencies, write scope with a file index, latest tests and gates, open waits and the next governed step within a token budget. Fetch only what a section cut short, with the ref it prints: `agentic-sdlc context get <ref>`. Do not open `.sdlc/` records one by one, and do not re-read gate reports or traces. Inside an agent session commands print a short form (outcome, next step, ids, exact error); add `--verbose` only when a person needs the full explanation. Hand a story to another agent or computer with `context pack --story <id> --phase handoff`.
+
 ## Novice Front Door
 
 Users do not need to know the CLI command tree or the names of internal records. Recognize outcome-oriented requests such as:
