@@ -187,3 +187,20 @@ test("with fallback hold, the pinned host takes the free lease when it needs a r
   assert.equal(refused.allowed, false);
   assert.equal(refused.coordinator, "pc-a");
 });
+
+test("a duty the role holder's plugin is too old for is run by one recent computer standing in", async () => {
+  const { standsIn } = await import("../../lib/engine/role-duties.mjs");
+  const { rolesHeldElsewhere } = await import("../../lib/engine/role-leases.mjs");
+  const { rendezvousOrder } = await import("../../lib/coordination-roles.mjs");
+  const live = (host, version) => ({ host, plugin_version: version, at: iso(NOW), expires_at: iso(NOW + 20 * MIN) });
+  const presence = [live("pc-old", "0.149.1"), live("pc-a", "9.0.0"), live("pc-b", "9.0.0")];
+  const leases = { coordinator: { host: "pc-old", epoch: 3, expires_at: iso(NOW + 20 * MIN) } };
+  const duty = { key: "coordinator-main-green", role: "coordinator", since: "0.153.5", auto: true };
+  const [first, second] = rendezvousOrder("coordinator", ["pc-a", "pc-b"]);
+  const elsewhereFor = (self) => rolesHeldElsewhere({ self, presence, leases, now: NOW });
+  assert.equal(standsIn(duty, { self: first, elsewhere: elsewhereFor(first) }), true);
+  assert.equal(standsIn(duty, { self: second, elsewhere: elsewhereFor(second) }), false, "only one stands in");
+  assert.equal(standsIn({ ...duty, since: "0.149.0" }, { self: first, elsewhere: elsewhereFor(first) }), false, "the holder runs what it knows");
+  assert.equal(standsIn({ ...duty, since: null }, { self: first, elsewhere: elsewhereFor(first) }), false);
+  assert.deepEqual(rolesHeldElsewhere({ config: pinned(), self: first, presence, leases, now: NOW }), {}, "never for a pinned role");
+});

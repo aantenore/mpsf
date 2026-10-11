@@ -1,13 +1,13 @@
 {
   "schema_version": "agentic-sdlc.role-duties.v1",
-  "principle": "Duties the plugin runs by itself on the computer that holds a role (lease confirmed on the remote), each at most every every_minutes, as a detached CLI run with --json. Only duties with auto true start by themselves; the others are run by hand until a person turns them on (they send messages to other computers, merge into the base branch, or publish records to it). A duty with publish base runs in the dedicated worktree on the base branch, never in the person's checkout, and pushes the records it wrote under .sdlc to the base branch with [skip ci]. A duty whose command this plugin does not have is skipped. Commands check the role themselves too. AGENTIC_SDLC_ROLE_DUTIES=off stops them on a computer.",
+  "principle": "Duties the plugin runs by itself on the computer that holds a role (lease confirmed on the remote), each at most every every_minutes, as a detached CLI run with --json. Only duties with auto true start by themselves; the others are run by hand until a person turns them on (they send messages to other computers, merge into the base branch, or publish records to it). A duty with publish base runs in the dedicated worktree on the base branch, never in the person's checkout, and pushes the records it wrote under .sdlc to the base branch with [skip ci]. A duty whose command this plugin does not have is skipped. since is the first plugin version that runs the duty by itself: while the role holder runs an older plugin, the live computer recent enough chosen by rendezvous hashing stands in for it (never for a pinned role). Commands check the role themselves too. AGENTIC_SDLC_ROLE_DUTIES=off stops them on a computer.",
   "duties": [
-    { "role": "coordinator", "command": ["coordinator", "free-claims"], "every_minutes": 15, "auto": true },
-    { "role": "coordinator", "command": ["coordinator", "settle-waits"], "every_minutes": 15, "auto": true },
-    { "role": "coordinator", "command": ["coordinator", "check-records"], "every_minutes": 60, "auto": true },
+    { "role": "coordinator", "command": ["coordinator", "free-claims"], "every_minutes": 15, "auto": true, "since": "0.156.0" },
+    { "role": "coordinator", "command": ["coordinator", "settle-waits"], "every_minutes": 15, "auto": true, "since": "0.156.0" },
+    { "role": "coordinator", "command": ["coordinator", "check-records"], "every_minutes": 60, "auto": true, "since": "0.153.1" },
     { "role": "coordinator", "command": ["coordinator", "digest"], "every_minutes": 15, "auto": false },
-    { "role": "coordinator", "command": ["coordinator", "main-green"], "every_minutes": 30, "auto": true, "publish": "base" },
+    { "role": "coordinator", "command": ["coordinator", "main-green"], "every_minutes": 30, "auto": true, "publish": "base", "since": "0.153.5" },
     { "role": "coordinator", "command": ["coordinator", "merge"], "every_minutes": 10, "auto": false },
-    { "role": "knowledge", "command": ["knowledge", "distill"], "every_minutes": 60, "auto": true, "publish": "base" }
+    { "role": "knowledge", "command": ["knowledge", "distill"], "every_minutes": 60, "auto": true, "publish": "base", "since": "0.153.5" }
   ]
 }
