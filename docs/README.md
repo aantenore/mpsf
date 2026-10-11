@@ -9,12 +9,14 @@ This page is the documentation map. Start with the goal that matches what you wa
 - [How it works](how-it-works.md) — the advanced lifecycle from project context and requirement agreement through per-delivery autonomy, execution, verification, and release evidence.
 - [Limits and metering](limits-and-metering.md) — how requirement ceilings and explicit pull-request or local-release choices constrain actions, files, capabilities, time, steps, tokens, calls, cost, and custom metrics.
 - [Change Observatory](change-observatory.md) — open and interpret the bundled visual request/change/decision lineage.
-- [Token efficiency](token-efficiency.md) — reduce derived JSON and shell-output context without changing canonical evidence.
+- [Token efficiency](token-efficiency.md) — context packs, short command output, compact JSON and shell-output filtering, without changing canonical evidence.
 - [Configuration safety](configuration-safety.md) — keep project policy stable across plugin updates and apply only a reviewed migration plan.
 - [Self-service CLI](self-service-cli.md) — get focused help, one next action, safe presentation presets, shell completion, and deterministic JSON without learning internal record names.
 - [Claude Code installation](claude-code-install.md) — install, verify, and use the plugin from Claude Code, and see which Codex-only steps do not apply.
 - [Configurable workflows](configurable-workflows.md) — use governed project, change-request, assessment, or generic processes without changing active history or delivery authority.
-- [Messages between computers](messaging.md) — let agents on different computers exchange short notes through one GitHub issue of the project's repository (via the `gh` CLI), and what never to send.
+- [Messages between computers](messaging.md) — optional short notes between computers (a GitHub issue by default, a folder, or none), how to work without them, and what never to send.
+- [Adapters and roles](adapters-and-roles.md) — replace the messaging channel or the record store, understand assurance levels, and name a coordinator.
+- [Changelog](../CHANGELOG.md) — what changed in each release.
 - [Examples](examples/README.md) — copy-paste material that is tested but not active here, starting with a GitHub Action that proposes a work brief from a labelled issue.
 
 ## Find a page by goal
@@ -37,7 +39,9 @@ This page is the documentation map. Start with the goal that matches what you wa
 | Revoke a delegated authorization | [Limits and metering — Check and revoke a delegated authorization](limits-and-metering.md#check-and-revoke-a-delegated-authorization) | When to revoke, what already-issued usage receipts keep, what revocation does not undo, and how to verify with `authorization status` |
 | Measure the exact local Codex task | [Native Codex session meter](codex-session-metering.md) | Authentication-free local counters, task binding, deltas, and limit semantics |
 | Keep a legacy CodeBurn project working | [CodeBurn adapter reference](codeburn-metering.md) | Disabled-by-default compatibility, snapshot/delta contracts, and library APIs |
-| Reduce command and response tokens | [Token efficiency](token-efficiency.md) | Compact JSON, RTK, Caveman, autoconfiguration, and measured net usage |
+| Reduce command and response tokens | [Token efficiency](token-efficiency.md) | Context packs, short output, agent JSON, hook budgets, RTK, Caveman, and measured net usage |
+| Work without a messaging channel, or keep records outside git | [Adapters and roles](adapters-and-roles.md) | Providers, record stores, assurance levels, config examples |
+| Name a coordinator for several computers | [Adapters and roles — Coordinator role](adapters-and-roles.md#coordinator-role) | Duties, lease, fallback, and what is enforced today |
 | Keep behavior stable across plugin updates | [Configuration safety](configuration-safety.md) | Config locks, safe previews, drift recovery, and exact plan application |
 | Select or customize a governed process | [Configurable workflows](configurable-workflows.md) | Built-in presets, safe overlays, pinned instances, append-only events, and CLI examples |
 | Understand the architecture and trust model | [Architecture](architecture.md) | Components, canonical records, validation, and release evidence |

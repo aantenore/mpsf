@@ -109,6 +109,21 @@ Set `AGENTIC_SDLC_AUTO_UPDATE=1` in the environment of the computer to enable al
 - **Files synced in place.** After an update (and at each SessionStart/Stop), the files of the newer version in `skills/`, `commands/`, `hooks/`, `lib/`, `bin/`, `templates/`, `schemas/` and `docs/` are copied over the folder the session uses (each file is written to a temp file, then renamed; a `.agentic-sdlc-synced-version` marker avoids repeating the copy). This happens only when that folder is inside the plugin cache and the source is a sibling with a higher version. Override the list with `AGENTIC_SDLC_AUTO_UPDATE_SYNC_DIRS` (comma-separated). Skill bodies and slash command texts are meant to be read from disk when invoked, so they should refresh without a reload; new skills or commands and changed descriptions in the listing still need `/reload-plugins` or a new session.
 - **Codex.** Not covered: there is no CLI equivalent of `claude plugin update`, so keep using the transactional installer.
 
+## Base-branch guard
+
+In a project that has `.sdlc/project.json` (in the working tree, the index or the committed base branch), the guard blocks `git merge` into, and `git push` to, the base branch, and `gh pr merge`, outside the governed delivery chain. Deleting `project.json` locally does not lift it, and agent edits to `host_policy.guard` in `.sdlc/config.json` are denied.
+
+To switch the rule off for a repository on purpose, two things are needed, both from a person:
+
+1. commit `"host_policy": { "guard": { "protect_base_branch": false } }` to the base branch (the default is `true`);
+2. record the remote once, from your own terminal: `agentic-sdlc guard trust-remote --root <repo> --url <url> --actor-type human --approval-source explicit-user`. The URL is stored in a user-level file under `~/.config/agentic-sdlc/` (`XDG_CONFIG_HOME` or `AGENTIC_SDLC_TRUSTED_REMOTES_FILE` can move it). The command is refused inside an agent session.
+
+The exemption is read from the base branch as the trusted remote reports it (`git ls-remote`, 5 seconds, `AGENTIC_SDLC_GUARD_REMOTE_TIMEOUT_MS`), never from local branches or the repository's git configuration. With no trusted URL, no origin, an unreachable remote, an `origin` URL that differs from the trusted one, or a rewriting `insteadOf`, the rule stays on.
+
+## Hook output budget
+
+Hooks repeat nothing within a session, cap their lines (12 by default; the SessionStart instructions are limited by tokens only) and stay inside a token budget per event (700, 250, 200, 150 and 150 tokens for SessionStart, UserPromptSubmit, PostToolUse, PreToolUse and Stop; see [Context packs and compact output](token-efficiency.md#context-packs-and-compact-output)). `SessionStart`, the Stop hint and `story claim` point at `context pack` instead of listing records. Tune with `host_policy.context.hooks`.
+
 ## Repositories outside the guard (opt-in)
 
 `AGENTIC_SDLC_UNGOVERNED_REPOS` holds absolute repository paths separated by the OS path separator (`:` on macOS/Linux, `;` on Windows). The guard does not block a push or `gh pr merge` when the git toplevel of the working directory (or of the `git -C` target) is one of them. Every other repository keeps the current behavior.

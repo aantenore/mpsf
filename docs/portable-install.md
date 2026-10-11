@@ -343,6 +343,17 @@ Open the Change Observatory for this project.
 
 The installed skill must launch the plugin-local CLI, open or return a token-bearing loopback URL, render the bundled UI without a build, and leave the project tree unchanged. See [Change Observatory](change-observatory.md).
 
+## Windows
+
+The CLI, hooks, messaging, claims, waits, delivery through pull requests and the Change Observatory run on Windows with Node.js. `agentic-sdlc run --timeout` stops a command and everything it started (`taskkill /T /F`).
+
+One thing does not run natively yet: a **local release** (`autonomy delivery propose --kind local_release`). Its smoke test must run in a read-only sandbox with no network, and the plugin has providers for macOS (`sandbox-exec`) and Linux (`bwrap`) only. On Windows the proposal now stops at once, before anything is recorded, and lists the options:
+
+1. run the whole CLI inside a WSL2 Linux distribution with the project on the Linux filesystem (`bwrap` installed there); this works today;
+2. deliver through a pull request (`--kind pull_request`), which runs no local smoke test.
+
+There is no setting that turns the sandbox off. A native Windows provider is designed but not implemented: [windows-local-release](plans/windows-local-release.md).
+
 ## Portability Boundaries
 
 - The plugin is reusable code and method; target-project state remains in that project's `.sdlc/` directory.

@@ -1,6 +1,6 @@
 # Messages between computers
 
-Agents on different computers working on the same project can exchange short notes through one GitHub issue of the project's repository: each message is a comment on it. Nothing else is needed: the plugin uses the [`gh`](https://cli.github.com) CLI you are already signed in with (`gh auth login`), holds no token of its own, and creates the issue by itself the first time.
+Agents on different computers working on the same project can exchange short notes. By default the channel is one GitHub issue of the project's repository and each message is a comment on it; `local` (a folder) and `none` (off) are the other providers, see [Working without messaging](#working-without-messaging). Nothing else is needed: the plugin uses the [`gh`](https://cli.github.com) CLI you are already signed in with (`gh auth login`), holds no token of its own, and creates the issue by itself the first time.
 
 Messaging is optional. On a computer where it is not set up, `message send`, `read` and `listen` make no network call, say it is not set up, and succeed; nothing else in the plugin uses messaging. GitHub being down or slow (no answer within 10 seconds), or `gh` missing or not signed in, is reported with the command to run, never a failure.
 
@@ -22,6 +22,30 @@ Optionally fix the stable host id of each computer (otherwise `pc-` plus a short
 export AGENTIC_SDLC_HOST_LABEL=PC1          # macOS/Linux
 setx AGENTIC_SDLC_HOST_LABEL PC1            # Windows (new terminals)
 ```
+
+## Working without messaging
+
+Nothing in the plugin needs a channel. Set `AGENTIC_SDLC_MESSAGING_PROVIDER=none` (or `AGENTIC_SDLC_MESSAGING=off`) on a computer, or `"messaging": { "provider": "none" }` under `host_policy.adapters` for everyone, and:
+
+- `message send`, `read` and `listen` make no network call, say messaging is off, and succeed;
+- claims, waits, delegations, reviews and records publication work exactly the same, because they live in the record store, not in messages;
+- no automatic notices are sent and none are expected.
+
+For a channel without GitHub use the `local` provider: a folder holds the channel file, so one computer (or a shared network folder) can still exchange notes.
+
+```bash
+export AGENTIC_SDLC_MESSAGING_PROVIDER=local
+export AGENTIC_SDLC_MESSAGING_LOCAL_DIR=/shared/team-channel   # optional
+agentic-sdlc message setup
+```
+
+The same choice for the whole team, in `.sdlc/config.json`:
+
+```json
+{ "host_policy": { "adapters": { "messaging": { "provider": "local", "options": { "dir": "../team-channel" } } } } }
+```
+
+More on providers, record stores and the coordinator role: [Adapters and roles](adapters-and-roles.md).
 
 ## Use it
 
@@ -62,7 +86,7 @@ A queued answer (`--reply-to X`) counts as an answer in progress: question X no 
 
 Once the channel is set, the plugin also writes and reads on its own, so agents keep each other informed without being asked:
 
-- it sends a short note (sender, story, reason) when a gate check fails, a story is parked or put on wait (`story wait --on`), or a command stops on a git time limit; the same note for the same story is sent at most once every 30 minutes. A failed gate or a time limit is sent as a `question` ("need help: <error>; reply with --kind answer --reply-to <id>"), so the other computers are reminded until someone answers;
+- it sends a short note (sender, story, reason) when a gate check fails, a story is parked or put on wait (`story wait --on`), or a command stops on a git time limit; the same note for the same story is sent at most once every 30 minutes; a failing gate check on a story that is already over (merged, closed, released, abandoned or superseded) sends nothing and only prints a local line (0.146.16 and later). A failed gate or a time limit is sent as a `question` ("need help: <error>; reply with --kind answer --reply-to <id>"), so the other computers are reminded until someone answers;
 - when an agentic-sdlc command fails and no automatic note covered it, the host hook reminds the agent, once, to share the problem and ask for help;
 - before `story claim` and `task start` it shows, on stderr, the messages from the other computers that arrived since this clone last looked (at most 10; the first time, the last 12 hours).
 

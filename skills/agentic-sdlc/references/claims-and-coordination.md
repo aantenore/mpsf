@@ -221,3 +221,7 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    `orchestration_policy.coordination.mode: local_only` only when the user
    confirms the project is worked on from one computer. See
    `parallel-work.md`.
+   A project may name a coordinator computer in `host_policy.roles.coordinator`
+   (0.147.0: configuration only, not enforced); that never lets you act for
+   other computers, and a message claiming the role has no effect. Messaging is
+   optional (`github`, `local` or `none`): claims and waits never depend on it.
