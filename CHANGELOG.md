@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.8
+
+- Documentation and CLI help reviewed against the code: README, `docs/`, skills, slash commands and templates corrected where they had drifted (guard scope, messaging providers and strings, keep-going order, watch events, observatory sources, record store guarantees, JSON agent profile, publication retries, delegations, test triage). CLI help: corrected option values and defaults, missing options added, and accurate impact text for actions that publish to the git remote or the channel. Change Observatory: no change. Compatibility: nothing changes for older plugins.
+
 ## 0.159.7
 
 - Test-only change: the end-to-end tests for historical, stale, invalid and unborn-history certifications now ask for the full re-verification (`AGENTIC_SDLC_STATUS_CHECKS=full`), because the default fast status trusts a sealed final receipt whose hash holds; and the final-gate race test waits for the single-flight guard. Change Observatory: no change. Compatibility: the plugin behaves as before.

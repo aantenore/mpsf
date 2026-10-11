@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.8** — documentation and CLI help aligned with the code.
 - **0.159.7** — tests only: sealed-receipt checks ask for the full re-verification.
 - **0.159.6** — version bumps update every plugin manifest, the `agentic-sdlc` bridge included.
 - **0.159.5** — `npm run test:fast` runs a quick local subset of the tests; the suite no longer inherits `NODE_USE_SYSTEM_CA`.
