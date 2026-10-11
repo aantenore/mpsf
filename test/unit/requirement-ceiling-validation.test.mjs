@@ -31,7 +31,7 @@ test("requirement propose refuses an unknown autonomy ceiling as a user error th
       "--json",
     ]);
     assert.notEqual(result.status, 0);
-    const report = JSON.parse(result.stdout);
+    const report = JSON.parse(result.stdout || result.stderr);
     assert.equal(report.error.code, "USER_ERROR");
     for (const level of ["supervised", "checkpointed", "bounded-autonomous"]) {
       assert.match(report.error.message, new RegExp(level, "u"));
