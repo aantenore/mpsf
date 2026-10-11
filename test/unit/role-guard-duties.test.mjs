@@ -75,4 +75,51 @@ test("role duties: only automatic ones, for roles held, with a command, at most 
   for (const key of ["coordinator-digest", "coordinator-update-requests", "coordinator-merge", "coordinator-main-green"]) {
     assert.equal(shipped.find((item) => item.key === key)?.auto, false, key);
   }
+  for (const key of ["coordinator-main-green", "knowledge-distill"]) assert.equal(shipped.find((item) => item.key === key)?.publish, "base", key);
+});
+
+test("a duty that writes records runs on the base worktree and publishes them to the base branch, never in the person's checkout", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { runDutyOnBase } = await import("../../lib/engine/role-duty-worker.mjs");
+  const git = (cwd, args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  const project = createFixtureDir("role-duty-base-");
+  git(project, ["init", "-q", "-b", "main"]);
+  git(project, ["config", "user.email", "t@example.test"]);
+  git(project, ["config", "user.name", "T"]);
+  fs.mkdirSync(path.join(project, ".sdlc"));
+  fs.writeFileSync(path.join(project, ".sdlc", "config.json"), "{}\n");
+  git(project, ["add", "-A"]);
+  git(project, ["commit", "-q", "-m", "seed"]);
+  const { createBareOrigin } = await import("../helpers/test-isolation.mjs");
+  const bare = createBareOrigin(project);
+  git(project, ["push", "-q", "origin", "main"]);
+  git(project, ["checkout", "-q", "-b", "story/ST-1"]);
+  const write = (cwd) => {
+    fs.mkdirSync(path.join(cwd, ".sdlc", "knowledge"), { recursive: true });
+    fs.writeFileSync(path.join(cwd, ".sdlc", "knowledge", "KN-1.json"), "{\"id\":\"KN-1\"}\n");
+    return { status: 0, stdout: "{}", stderr: "" };
+  };
+  const result = runDutyOnBase(project, "knowledge-distill", ["knowledge", "distill"], { run: write });
+  assert.equal(result.published, true, JSON.stringify(result));
+  assert.equal(git(bare, ["show", "main:.sdlc/knowledge/KN-1.json"]), "{\"id\":\"KN-1\"}");
+  assert.match(git(bare, ["log", "-1", "--format=%s", "main"]), /knowledge distill: records \[skip ci\]/u);
+  assert.equal(fs.existsSync(path.join(project, ".sdlc", "knowledge")), false, "the checkout is untouched");
+  assert.equal(git(project, ["branch", "--show-current"]), "story/ST-1");
+  // Nothing new: nothing published.
+  assert.equal(runDutyOnBase(project, "knowledge-distill", ["knowledge", "distill"], { run: write }).published, false);
+  // The base moves while the duty runs: its records go on top.
+  const other = createFixtureDir("role-duty-other-");
+  execFileSync("git", ["clone", "-q", bare, other]);
+  git(other, ["config", "user.email", "o@example.test"]);
+  git(other, ["config", "user.name", "O"]);
+  const racing = (cwd) => {
+    fs.writeFileSync(path.join(other, "code.txt"), "x\n");
+    git(other, ["add", "-A"]);
+    git(other, ["commit", "-q", "-m", "work"]);
+    git(other, ["push", "-q", "origin", "main"]);
+    fs.writeFileSync(path.join(cwd, ".sdlc", "knowledge", "KN-2.json"), "{\"id\":\"KN-2\"}\n");
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  assert.equal(runDutyOnBase(project, "knowledge-distill", ["knowledge", "distill"], { run: racing }).published, true);
+  assert.equal(git(bare, ["log", "-2", "--format=%s", "main"]).split("\n")[1], "work");
 });
