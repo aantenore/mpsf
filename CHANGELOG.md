@@ -2,6 +2,16 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.152.0
+
+- Coordinator tasks as standalone, idempotent commands with `--dry-run` and `--json`; each does nothing on a computer that does not hold the coordinator role (without roles every computer runs it, as before):
+  - `coordinator digest [--force]`: one `[auto] digest:` summary (alive computers, stories in progress, waiting and parked, open P1), only when it changed and at most every 15 minutes, replacing the periodic heartbeat.
+  - `coordinator check-records [--ref <git-ref>]`: consistency of the story records on the remote base branch, from git objects only; exit code 1 on errors.
+  - `coordinator main-green [--failing <check>]`: one ready P1 fix story `ST-MAIN-GREEN-<commit>` when CI of the base branch is red, never a revert.
+  - `coordinator merge [--max <n>] [--method merge|squash|rebase]`: ready pull requests merged one at a time in story priority order; forges are adapters, GitHub through `gh` first (`AGENTIC_SDLC_FORGE` to choose).
+- Welcomes to computers joining the channel come only from the coordinator.
+- Change Observatory: the latest digest has its own line in the "Now" panel and is never shown as its sender's status.
+
 ## 0.151.1
 
 - Fresh state reader (`lib/engine/fresh-state.mjs`): one bounded fetch (5 s, at most once a minute per clone) of the base branch and of the presence and role refs; records read from `origin/<base>` with `git ls-tree`/`git show`, never from the working tree of the checked-out branch; how many commits the checkout is behind the base; a dedicated worktree on the base in `<git-common-dir>/agentic-sdlc/base-worktree` for role writes (moved to the base tip only when clean). A clone far behind main no longer trusts its stale claims once callers move to it.

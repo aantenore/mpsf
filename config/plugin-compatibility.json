@@ -63,6 +63,10 @@
     "windows-appcontainer-local-release": {
       "since": "0.151.0",
       "summary": "Local releases on Windows run their smoke test in an AppContainer sandbox"
+    },
+    "coordinator-tasks": {
+      "since": "0.152.0",
+      "summary": "Coordinator tasks: digest, story record check, main-green fix story, serial merges through forge adapters"
     }
   }
 }
