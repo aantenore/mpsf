@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.14
+
+- Documentation: the how-it-works guide names the current version in its examples. Change Observatory: no change. Compatibility: nothing changes for older plugins.
+
 ## 0.159.13
 
 - Process reaper: the shared `.sdlc/config.json` can no longer turn on reaping at Stop or widen what the Stop hook selects (`reap_on_stop`, `include_patterns`, `use_default_patterns`, `scope_paths`, a shorter limit are ignored there; `exclude_patterns` and a longer limit still apply), so a committed config cannot stop other users' processes on every computer that pulls it. Turn it on per machine with `AGENTIC_SDLC_REAP_ON_STOP=1` or `reap_on_stop: true` in `.git/agentic-sdlc/process-reaper.json`, which accepts every key. `mpsf processes reap` run by hand is unchanged. Change Observatory: no change. Compatibility: projects that relied on `reap_on_stop: true` in the shared config now get the warning instead.

@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.14** — how-it-works examples name the current version.
 - **0.159.13** — the Stop hook reaps only with a machine-local opt-in; the shared config can only narrow it.
 - **0.159.12** — skill and install docs aligned with the code: `story cancel`, governed story-branch push, `git` messaging provider, coordinator duties.
 - **0.159.11** — known-error apply stays inside the project and needs a real person's acceptance.
