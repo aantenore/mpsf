@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.5
+
+- `coordinator main-green` (every 30 minutes) and `knowledge distill` (every 60) now start by themselves on the computer holding the role. They run in the dedicated worktree on the base branch and push only the `.sdlc` records they wrote, with `[skip ci]`, never forced. `coordinator digest`, `update-requests` and `merge` stay manual. `AGENTIC_SDLC_ROLE_DUTIES=off` stops every duty on a computer.
+- Change Observatory: no change needed.
+- Compatibility: older plugins do not run duties; the records they read are the same.
+
 ## 0.153.4
 
 - Fix: Known Error Database, machine identity, fresh state, `MPSF_*` env aliases, context budget and auto-pack, knowledge CLI and role duties/guard read the clock, process, files, git and hashing through the runtime host, so the host-seam unit test passes on main again. No behavior change.
