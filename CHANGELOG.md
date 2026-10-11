@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.151.1
+
+- Fresh state reader (`lib/engine/fresh-state.mjs`): one bounded fetch (5 s, at most once a minute per clone) of the base branch and of the presence and role refs; records read from `origin/<base>` with `git ls-tree`/`git show`, never from the working tree of the checked-out branch; how many commits the checkout is behind the base; a dedicated worktree on the base in `<git-common-dir>/agentic-sdlc/base-worktree` for role writes (moved to the base tip only when clean). A clone far behind main no longer trusts its stale claims once callers move to it.
+- `context pack` prints `base: N commits behind origin/main` under its title (`base` in `--json`); the pack and its hash do not change. `AGENTIC_SDLC_FRESH_FETCH=off` skips the fetch.
+- Change Observatory: no change needed, it already reads the base branch from git and shows how far the checkout is behind.
+- Compatibility: nothing new is written to the repository or the remote; older plugins are unaffected.
+
 ## 0.151.0
 
 - Local releases now run on Windows. The `release.local` smoke test runs in a fresh AppContainer with no capabilities (`windows-appcontainer-readonly-no-network`): no network, no loopback, writes only in the container's private storage, reads limited to the smoke directory, the runtime's folder and the system folders. Windows PowerShell starts it with a launcher script shipped in the plugin, whose SHA-256 is sealed into the authorization and checked again before the run. Windows 10 1809 or later, no admin rights.
