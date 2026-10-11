@@ -237,11 +237,11 @@ Each setting is taken from the first place that has it:
 | `AGENTIC_SDLC_MESSAGING_STALL_HOURS` | one status notice per story and phase that stays unchanged this long (default 4, 0 = off) |
 | `AGENTIC_SDLC_LISTEN_MAX_HOURS` | `message listen` is stopped after this many hours (default 8, 0 = no limit) |
 | `AGENTIC_SDLC_WAIT_RULES=off` | no automatic wait-rule messages on this computer |
-| `AGENTIC_SDLC_MESSAGING_PROVIDER` | `github` (default), `local` (a channel file in a folder: offline, tests, a shared network folder) or `none` (messaging off) |
+| `AGENTIC_SDLC_MESSAGING_PROVIDER` | `git` (refs on the project's remote; what `message setup` picks for a new channel), `github` (an issue; the fallback when nothing is set), `local` (a channel file in a folder: offline, tests, a shared network folder) or `none` (messaging off) |
 | `AGENTIC_SDLC_MESSAGING_LOCAL_DIR` | folder of the `local` provider's channel (default: next to the clone's settings in the git folder) |
 | `.sdlc/config.json` -> `host_policy.adapters.messaging` | `{"provider": "local", "options": {"dir": "..."}}` for everyone, below the files above; credentials only by reference (`<name>_env`) |
 
-Messaging only notifies: claims, waits, delegations and records publication never depend on it and work the same with `none`. Apart from `host_policy.adapters` (0.147.0 and later), the settings are not in `.sdlc/config.json`, so older plugins keep working; they only lack the `message` commands until they update. Messages are not stored in git and change no project record; they stay in the issue until someone deletes the comments.
+Messaging only notifies: claims, waits, delegations and records publication never depend on it and work the same with `none`. Apart from `host_policy.adapters` (0.147.0 and later), the settings are not in `.sdlc/config.json`, so older plugins keep working; they only lack the `message` commands until they update. Messages change no project record and never land on the base branch or a story branch: with `git` they live in the `refs/agentic-sdlc/channel/` refs of the remote (each computer keeps the last 14 days of its own ref), with `github` in the issue until someone deletes the comments.
 
 ## Safety
 

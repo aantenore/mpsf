@@ -5,7 +5,7 @@ description: Open the Change Observatory bundled with this MPSF plugin in Codex 
 
 # Change Observatory
 
-Launch the plugin-local, read-only visual lineage application for the selected project. The application runs only on `127.0.0.1`, uses an ephemeral per-run access token, and never requires a frontend build or cloud service.
+Launch the plugin-local visual lineage application, which never edits records, for the selected project. The application runs only on `127.0.0.1`, uses an ephemeral per-run access token, and never requires a frontend build or cloud service.
 
 ## Launch
 

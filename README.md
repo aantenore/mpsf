@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF 0.159.1 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -128,7 +128,7 @@ Install from the `aantenore` source repository. Keep this checkout separate from
 
 ```bash
 git clone https://github.com/aantenore/mpsf.git
-cd agentic-sdlc
+cd mpsf
 python3 scripts/install-personal-marketplace-v2.py check
 python3 scripts/install-personal-marketplace-v2.py plan --json
 python3 scripts/install-personal-marketplace-v2.py apply --plan-hash <plan_hash-from-plan> --json
@@ -320,7 +320,7 @@ shim; the plugin-local form above is always explicit.
 
 ## Change Observatory
 
-Change Observatory is a local, read-only application bundled in the plugin. It answers “What was asked?”, “What changed?”, and “Why was it decided?”, then gives every recorded story a proof-bound Asked / Decided / Contract / Done / Verified dossier. Technical and non-technical readers can inspect the causal iteration, global contracts, decisions, changes, tests, gates, and raw canonical evidence without the app inventing missing history.
+Change Observatory is a local application bundled in the plugin that never edits your records. It answers “What was asked?”, “What changed?”, and “Why was it decided?”, then gives every recorded story a proof-bound Asked / Decided / Contract / Done / Verified dossier. Technical and non-technical readers can inspect the causal iteration, global contracts, decisions, changes, tests, gates, and raw canonical evidence without the app inventing missing history.
 
 From an npm/git/tarball package installation that exposes the bin entry:
 
@@ -579,7 +579,7 @@ Records an older plugin would misread declare the plugin version they need: a pr
 
 ### Working without messaging
 
-Messaging between computers is optional and only notifies. Claims, waits, delegations and records publication never depend on it. Pick the provider with `AGENTIC_SDLC_MESSAGING_PROVIDER` (`github` is the default, `local` uses a folder, `none` turns it off) or, for the whole team, with `host_policy.adapters.messaging` in `.sdlc/config.json`:
+Messaging between computers is optional and only notifies. Claims, waits, delegations and records publication never depend on it. Pick the provider with `AGENTIC_SDLC_MESSAGING_PROVIDER` (`git` keeps the channel in refs on the project's own remote and is what `message setup` picks for a new channel, `github` uses an issue and is the fallback when nothing is set, `local` uses a folder, `none` turns it off) or, for the whole team, with `host_policy.adapters.messaging` in `.sdlc/config.json`:
 
 ```json
 { "host_policy": { "adapters": { "messaging": { "provider": "none" } } } }
@@ -589,7 +589,7 @@ Records can also live in plain files instead of git (`"records": { "provider": "
 
 ### Coordinator role
 
-With several computers, one can be named coordinator: it assigns stories, merges pull requests one at a time and publishes records, while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`, and optionally `reserved_actions`). With that section, a reserved action (by default merging a pull request and refreshing the baseline) is refused on a computer that does not hold the coordinator lease; without it, roles are assigned automatically among the computers alive on the remote and nothing is refused. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
+With several computers, one can be named coordinator: it merges pull requests one at a time, publishes records, frees abandoned claims, settles expired waits and keeps the base branch green (stories are not assigned: every computer claims its own), while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`, and optionally `reserved_actions`). With that section, a reserved action (by default merging a pull request and refreshing the baseline) is refused on a computer that does not hold the coordinator lease; without it, roles are assigned automatically among the computers alive on the remote and nothing is refused. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
 
 ## Native Codex Metering Versus Exact Metering
 
@@ -751,7 +751,7 @@ The final chat response reports the assessment verdict, major risks, recommendat
 Use a source checkout that is separate from the generated personal-plugin directory:
 
 ```bash
-cd /path/to/agentic-sdlc
+cd /path/to/mpsf
 python3 scripts/install-personal-marketplace-v2.py check
 python3 scripts/install-personal-marketplace-v2.py plan --json
 python3 scripts/install-personal-marketplace-v2.py apply --plan-hash <plan_hash-from-plan> --json
@@ -792,7 +792,7 @@ installs implicitly.
 Update the source checkout, rerun the staging installer, and add the plugin again. The current Codex CLI has no dedicated plugin-update subcommand; re-adding refreshes the installed cache, including when the version is unchanged.
 
 ```bash
-cd /path/to/agentic-sdlc
+cd /path/to/mpsf
 python3 scripts/install-personal-marketplace-v2.py plan --json
 python3 scripts/install-personal-marketplace-v2.py apply --plan-hash <plan_hash-from-plan> --json
 # Execute the exact candidate_registration argv/environment returned by apply.
