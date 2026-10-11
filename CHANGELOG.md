@@ -12,6 +12,14 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 - Welcomes to computers joining the channel come only from the coordinator.
 - Change Observatory: the latest digest has its own line in the "Now" panel and is never shown as its sender's status.
 
+## 0.151.2
+
+- Agent and channel texts that were only in Italian are now in English: hook instructions and notes (keep-going, watch, guard, prepared starts, process hygiene), channel `[auto]` status, free and join/welcome messages, wait suggestions, `next` and `roles status`. `wait add|resolve|list`, `roles status` and the "Waiting on" section of `status` print Italian with `--locale it`.
+- The plugin update request keeps the `[auto] aggiorna il plugin` prefix that older plugins match, so they keep throttling it.
+- Change Observatory: wait descriptions in the "Now" panel are in English.
+- README shows the logo (light and dark); `package.json` has `homepage`, `repository` and `bugs`.
+- Compatibility: no new configuration keys; older plugins read the new messages as before.
+
 ## 0.151.1
 
 - Fresh state reader (`lib/engine/fresh-state.mjs`): one bounded fetch (5 s, at most once a minute per clone) of the base branch and of the presence and role refs; records read from `origin/<base>` with `git ls-tree`/`git show`, never from the working tree of the checked-out branch; how many commits the checkout is behind the base; a dedicated worktree on the base in `<git-common-dir>/agentic-sdlc/base-worktree` for role writes (moved to the base tip only when clean). A clone far behind main no longer trusts its stale claims once callers move to it.

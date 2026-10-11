@@ -91,7 +91,7 @@ test("the first command joins once per name and version", async () => {
   await messageSend({ root, text: "two", json: true }, envOf("PC3"), providers);
   assert.deepEqual(kindsOf(gh), ["join", "info", "info"]);
   assert.match(bodies(gh)[0], /^\*\*Antonio · PC3\*\* \(alice\) · join/u);
-  assert.match(bodies(gh)[0], /si è unito al canale \(versione /u);
+  assert.match(bodies(gh)[0], /joined the channel \(version /u);
   // A new name joins again.
   await messageIdentity({ root, name: "Antonio · Studio" }, envOf("PC3"), providers);
   await messageSend({ root, text: "three", json: true }, envOf("PC3"), providers);
@@ -112,7 +112,7 @@ test("the other computers welcome a join once, and the roster lists everybody", 
   const b = clone();
   await messageSend({ root: a, text: "hello", json: true }, envOf("PC1"), providers);
   const first = await checkAttention(b, { env: envOf("PC2"), providers });
-  assert.match(first, /PC1 si è unito al canale \(versione /u);
+  assert.match(first, /PC1 joined the channel \(version /u);
   assert.deepEqual(kindsOf(gh), ["join", "info", "welcome"]);
   assert.match(bodies(gh)[2], /^\*\*PC2\*\*/u);
   assert.match(bodies(gh)[2], /"reply_to":"\d+"/u);
@@ -126,7 +126,7 @@ test("the other computers welcome a join once, and the roster lists everybody", 
   // The joiner never welcomes itself.
   const own = await checkAttention(a, { env: envOf("PC1"), providers });
   assert.equal(kindsOf(gh).filter((kind) => kind === "welcome").length, 1);
-  assert.doesNotMatch(String(own), /si è unito/u);
+  assert.doesNotMatch(String(own), /joined the channel/u);
   const who = await messageWho({ root: a, json: true }, envOf("PC1"), providers);
   assert.deepEqual(who.participants.map((entry) => entry.name).sort(), ["PC1", "PC2"]);
   assert.deepEqual(who.duplicates, []);
@@ -171,7 +171,7 @@ test("keep-going notes a recent join of another computer, once it is in the wind
     { id: "9", kind: "join", from: "Me", version: "0.114.0", time: new Date(now - 60_000).toISOString() },
     { id: "2", kind: "join", from: "Old", version: "0.1.0", time: new Date(now - 3_600_000).toISOString() },
   ] } };
-  assert.deepEqual(recentJoins(state, "Me", now), ["Ann si è unito al canale (versione 0.114.0)"]);
+  assert.deepEqual(recentJoins(state, "Me", now), ["Ann joined the channel (version 0.114.0)"]);
 });
 
 test("read --unread shows only what this clone has not read, then marks it read", async () => {
