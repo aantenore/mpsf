@@ -11,25 +11,26 @@ import {
 } from "../../scripts/run-test-suite.mjs";
 
 // Top-level test names written as plain string literals: test("name", ...) or it("name", ...).
-const TEST_NAME_PATTERN = /\b(?:test|it)(?:\.(?:only|skip|todo))?\(\s*("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\$]|\\.)*`)/gu;
+const TEST_NAME_PATTERN = /\b(?:test|it)(?:\.(only|skip|todo))?\(\s*("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\$]|\\.)*`)/gu;
 
-function literalTestNames(source) {
-  const names = [];
-  for (const [, literal] of source.matchAll(TEST_NAME_PATTERN)) {
+function literalTests(source) {
+  const tests = [];
+  for (const [, modifier, literal] of source.matchAll(TEST_NAME_PATTERN)) {
     const quote = literal[0];
     const body = literal.slice(1, -1);
-    names.push(quote === "\"" ? JSON.parse(literal) : body.replace(/\\(.)/gu, "$1"));
+    tests.push({ name: quote === "\"" ? JSON.parse(literal) : body.replace(/\\(.)/gu, "$1"), modifier });
   }
-  return names;
+  return tests;
 }
 
 const tiers = loadTestTiers();
 const discovered = discoverTestFiles();
 const discoveredPaths = discovered.map(projectRelativePath);
-const namesByFile = new Map(discovered.map((file) => [
+const testsByFile = new Map(discovered.map((file) => [
   projectRelativePath(file),
-  literalTestNames(fs.readFileSync(file, "utf8")),
+  literalTests(fs.readFileSync(file, "utf8")),
 ]));
+const namesByFile = new Map([...testsByFile].map(([relative, tests]) => [relative, tests.map(({ name }) => name)]));
 
 test("the test tiers manifest parses and defines the fast tier", () => {
   assert.ok(fs.existsSync(TEST_TIERS_FILE));
@@ -67,6 +68,17 @@ for (const [name, tier] of tiers) {
           1,
           `${name}: ${JSON.stringify(testName)} is defined more than once in ${file}`,
         );
+      }
+    }
+  });
+
+  test(`tier ${name}: no smoke test is declared with test.skip or test.todo`, () => {
+    // Such a test always passes as skipped, so the tier would keep its name but lose its coverage.
+    for (const [file, names] of tier.smoke) {
+      for (const { name: testName, modifier } of testsByFile.get(file)) {
+        if (names.includes(testName)) {
+          assert.ok(modifier !== "skip" && modifier !== "todo", `${name}: ${file}: ${JSON.stringify(testName)} is test.${modifier}`);
+        }
       }
     }
   });

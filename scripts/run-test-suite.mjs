@@ -29,6 +29,8 @@ const NON_TEST_DIRECTORIES = new Set(["helpers", "fixtures"]);
 const TEST_TIER_NAME_PATTERN = /^[a-z][a-z0-9-]{0,31}$/u;
 const ENV_NAME_PATTERN = /^[A-Z_][A-Z0-9_]*$/u;
 const TIER_FIELDS = new Set(["description", "files", "exclude", "smoke"]);
+// The closing counters of one run ("tests 12", "pass 11", ...); unlike t.diagnostic() output they carry no file.
+const RUN_SUMMARY_PATTERN = /^(tests|suites|pass|fail|cancelled|skipped|todo) ([0-9]+)$/u;
 
 export function parseTestConcurrency(value) {
   if (value === undefined) return DEFAULT_TEST_CONCURRENCY;
@@ -294,6 +296,11 @@ function escapeRegExp(text) {
   return text.replace(/[\\^$.*+?()[\]{}|]/gu, "\\$&");
 }
 
+// CI providers set CI to "true", "1", "True", and similar; only empty, "0", and "false" mean "not CI".
+export function isContinuousIntegration(value) {
+  return typeof value === "string" && value !== "" && !/^(?:0|false)$/iu.test(value);
+}
+
 // npm passes script flags the same way on every platform, unlike inline variable assignments.
 export function applyRunnerArguments(argv, env) {
   for (const argument of argv) {
@@ -318,6 +325,7 @@ export async function main({
   let completedTestCount = 0;
   let expectedFileCount = 0;
   const failures = [];
+  const runTotals = new Map();
   const watch = (stream) => {
     stream.on("test:pass", () => {
       completedTestCount += 1;
@@ -330,6 +338,10 @@ export async function main({
     stream.on("error", (error) => {
       failed = true;
       streamError ||= error;
+    });
+    stream.on("test:diagnostic", (data) => {
+      const match = data?.nesting === 0 && data.file === undefined ? RUN_SUMMARY_PATTERN.exec(String(data.message)) : null;
+      if (match !== null) runTotals.set(match[1], (runTotals.get(match[1]) ?? 0) + Number(match[2]));
     });
     return stream;
   };
@@ -345,7 +357,7 @@ export async function main({
         `${TEST_TIER_ENV} and ${TEST_SHARD_ENV} cannot be combined: a tier is a partial local run and a shard is a slice of the full suite.`,
       );
     }
-    if (tier !== null && env.CI === "true") {
+    if (tier !== null && isContinuousIntegration(env.CI)) {
       throw new TypeError(`${TEST_TIER_ENV}=${tier} is a partial local run; CI always runs the full suite.`);
     }
     const strippedEnv = parseStrippedEnv(env[TEST_STRIP_ENV]);
@@ -385,8 +397,11 @@ export async function main({
     if (process.platform === "win32") env.AGENTIC_SDLC_TEST_LOCAL_SMOKE_PROVIDER ??= "unavailable";
 
     let source;
-    const ranSmokeTests = new Set();
     const smokeKey = (file, name) => `${path.resolve(file)}\n${name}`;
+    const selectedSmokeTests = new Set(tierPlan?.smoke.flatMap(({ file, names }) => names.map((name) => smokeKey(file, name))));
+    const ranSmokeTests = new Set();
+    const skippedSmokeTests = new Set();
+    const failedSmokeFiles = new Set();
     if (tierPlan === null) {
       testStream = watch(runTests({ concurrency, files }));
       source = testStream;
@@ -401,11 +416,25 @@ export async function main({
           files: smoke.map(({ file }) => file),
           testNamePatterns: smoke.flatMap(({ names }) => names.map((name) => new RegExp(`^${escapeRegExp(name)}$`, "u"))),
         }));
+        // data.file is the file that called test(). A smoke test defined in a helper module would report the
+        // helper's path and count as missing; test/unit/test-tiers.test.mjs therefore requires every smoke name
+        // to be a literal test() call in its own file.
         const record = (data) => {
-          if (data?.nesting === 0 && typeof data.file === "string") ranSmokeTests.add(smokeKey(data.file, data.name));
+          if (data?.nesting !== 0 || typeof data.file !== "string") return;
+          const key = smokeKey(data.file, data.name);
+          ranSmokeTests.add(key);
+          // A platform skip still counts as run, but the selected test exercised nothing here.
+          if (selectedSmokeTests.has(key) && (data.skip || data.todo)) skippedSmokeTests.add(key);
         };
         smokeStream.on("test:pass", record);
-        smokeStream.on("test:fail", record);
+        smokeStream.on("test:fail", (data) => {
+          record(data);
+          // A file that fails outside its selected tests (for example, it throws on import) reports the failure
+          // under its own path; its selected tests did not run because of that failure, not a stale manifest.
+          if (data?.nesting === 0 && typeof data.file === "string" && !selectedSmokeTests.has(smokeKey(data.file, data.name))) {
+            failedSmokeFiles.add(path.resolve(data.file));
+          }
+        });
         yield* smokeStream;
       })();
     }
@@ -413,9 +442,24 @@ export async function main({
     for await (const chunk of reporter(source)) {
       if (!stdout.write(chunk)) await once(stdout, "drain");
     }
+    if (tierPlan !== null) {
+      // Each run prints its own plan and counters, so the last block above covers only the smoke run.
+      if (runTotals.size > 0) {
+        stdout.write(`# test tier ${tier} totals (all runs): ${[...runTotals].map(([name, count]) => `${name} ${count}`).join(", ")}\n`);
+      }
+      const skipped = tierPlan.smoke.flatMap(({ file, names }) => names
+        .filter((name) => skippedSmokeTests.has(smokeKey(file, name)))
+        .map((name) => `${projectRelativePath(file)}: ${name}`));
+      if (skipped.length > 0) {
+        stdout.write(
+          `# test tier ${tier}: ${skipped.length} selected test(s) were skipped or todo here and exercised nothing:\n`
+          + skipped.map((line) => `#   - ${line}\n`).join(""),
+        );
+      }
+    }
     if (tierPlan !== null && !streamError) {
       // A renamed or deleted smoke test would otherwise match nothing and pass silently.
-      const missing = tierPlan.smoke.flatMap(({ file, names }) => names
+      const missing = tierPlan.smoke.filter(({ file }) => !failedSmokeFiles.has(path.resolve(file))).flatMap(({ file, names }) => names
         .filter((name) => !ranSmokeTests.has(smokeKey(file, name)))
         .map((name) => `${projectRelativePath(file)}: ${name}`));
       if (missing.length > 0) {

@@ -20,6 +20,7 @@ import {
   TEST_TIER_ENV,
   applyRunnerArguments,
   discoverTestFiles,
+  isContinuousIntegration,
   loadShardWeights,
   loadTestTiers,
   main,
@@ -705,6 +706,159 @@ test("a tier is rejected together with a shard, under CI, when unknown, or witho
   });
   assert.equal(code, 0);
 });
+
+test("every script under test/ outside helpers and fixtures is a discovered test file", () => {
+  // Discovery skips any other name silently, so a misnamed test file would never run in CI.
+  const scripts = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { encoding: "utf8", withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "helpers" && entry.name !== "fixtures") visit(entryPath);
+      } else if (/\.(?:cjs|js|mjs)$/u.test(entry.name)) {
+        scripts.push(path.resolve(entryPath));
+      }
+    }
+  };
+  visit(path.join(PROJECT_ROOT, "test"));
+  const discovered = new Set(discoverTestFiles());
+  assert.ok(scripts.length >= discovered.size);
+  assert.deepEqual(
+    scripts.filter((file) => !discovered.has(file)).map(projectRelativePath),
+    [],
+    "name test files *.test.<ext> or *.e2e.<ext>, or move shared modules under helpers/ or fixtures/",
+  );
+});
+
+test("CI detection treats any value but empty, 0, or false as CI", async () => {
+  for (const value of ["true", "1", "True", "TRUE", "yes", "github"]) {
+    assert.equal(isContinuousIntegration(value), true, value);
+    const result = await runMainRejected({ [TEST_TIER_ENV]: "fast", CI: value }, () => parseTestTiers(tierManifest({ fast: FAST_TIER })));
+    assert.match(result.stderr, /AGENTIC_SDLC_TEST_TIER=fast is a partial local run; CI always runs the full suite/u, value);
+  }
+  for (const value of [undefined, "", "0", "false", "False", "FALSE"]) {
+    assert.equal(isContinuousIntegration(value), false, String(value));
+    const run = await runTier({ CI: value }, (options) => (options.testNamePatterns === undefined
+      ? wholePasses(options)
+      : scriptedStream(FAST_SMOKE_PASSES)));
+    assert.equal(run.code, 0, `${value}: ${run.stderr}`);
+  }
+});
+
+test("a smoke file that fails on import is reported as a failure, not as a stale manifest", async () => {
+  const crashed = tierPath("test/d.e2e.mjs");
+  const run = await runTier({}, (options) => {
+    if (options.testNamePatterns === undefined) return wholePasses(options);
+    return scriptedStream([
+      // node:test reports a file that throws on import once, under the file's own path.
+      { type: "test:fail", data: { file: crashed, name: crashed, nesting: 0, details: { error: new Error("boom at import") } } },
+    ]);
+  });
+  assert.equal(run.code, 1);
+  // The other smoke file reported nothing either, and its selected test is still named.
+  assert.match(run.stderr, /Test tier fast selected 1 test\(s\) that did not run; update test\/test-tiers\.json:/u);
+  assert.ok(run.stderr.includes("  - test/unit/heavy.test.mjs: heavy cheap"), run.stderr);
+  assert.equal(run.stderr.includes("test/d.e2e.mjs"), false, run.stderr);
+  assert.match(run.stdout, /# Failing tests \(1\):\n# - test\/d\.e2e\.mjs .*\n#   Error: boom at import/u);
+
+  // A failing selected test is not a file failure: a renamed sibling in the same file is still named.
+  const renamed = await runTier({}, (options) => {
+    if (options.testNamePatterns === undefined) return wholePasses(options);
+    return scriptedStream([
+      { type: "test:fail", data: { file: crashed, name: "d one", nesting: 0, details: { error: new Error("assertion") } } },
+      { type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0 } },
+    ]);
+  });
+  assert.equal(renamed.code, 1);
+  assert.ok(renamed.stderr.includes(`  - test/d.e2e.mjs: ${ODD_NAME}`), renamed.stderr);
+});
+
+test("skipped or todo smoke tests pass the tier but are listed as having exercised nothing", async () => {
+  const run = await runTier({}, (options) => {
+    if (options.testNamePatterns === undefined) return wholePasses(options);
+    return scriptedStream([
+      { type: "test:pass", data: { file: tierPath("test/d.e2e.mjs"), name: "d one", nesting: 0, skip: true } },
+      { type: "test:pass", data: { file: tierPath("test/d.e2e.mjs"), name: ODD_NAME, nesting: 0, todo: "later" } },
+      { type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0 } },
+    ]);
+  });
+  assert.equal(run.code, 0, run.stderr);
+  assert.equal(run.stderr, "");
+  assert.ok(
+    run.stdout.includes(
+      "# test tier fast: 2 selected test(s) were skipped or todo here and exercised nothing:\n"
+      + "#   - test/d.e2e.mjs: d one\n"
+      + `#   - test/d.e2e.mjs: ${ODD_NAME}\n`,
+    ),
+    run.stdout,
+  );
+
+  const clean = await runTier({}, (options) => (options.testNamePatterns === undefined
+    ? wholePasses(options)
+    : scriptedStream(FAST_SMOKE_PASSES)));
+  assert.equal(clean.code, 0, clean.stderr);
+  assert.equal(clean.stdout.includes("exercised nothing"), false);
+});
+
+test("a tier prints the counters of both runs added together", async () => {
+  const summary = (counts) => Object.entries(counts).map(([name, count]) => ({
+    type: "test:diagnostic", data: { nesting: 0, message: `${name} ${count}` },
+  }));
+  const run = await runTier({}, (options) => {
+    if (options.testNamePatterns === undefined) {
+      return scriptedStream([
+        ...wholeEvents(options),
+        // A diagnostic written by a test carries its file and is not a run counter.
+        { type: "test:diagnostic", data: { nesting: 0, file: tierPath("test/unit/a.test.mjs"), message: "pass 99" } },
+        ...summary({ tests: 3, suites: 0, pass: 3, fail: 0, cancelled: 0, skipped: 0, todo: 0 }),
+        { type: "test:diagnostic", data: { nesting: 0, message: "duration_ms 12.5" } },
+      ]);
+    }
+    return scriptedStream([
+      ...FAST_SMOKE_PASSES,
+      ...summary({ tests: 3, suites: 1, pass: 2, fail: 0, cancelled: 0, skipped: 1, todo: 0 }),
+    ]);
+  });
+  assert.equal(run.code, 0, run.stderr);
+  assert.ok(
+    run.stdout.includes("# test tier fast totals (all runs): tests 6, suites 1, pass 5, fail 0, cancelled 0, skipped 1, todo 0\n"),
+    run.stdout,
+  );
+});
+
+const FAST_SMOKE_PASSES = [
+  { type: "test:pass", data: { file: tierPath("test/d.e2e.mjs"), name: "d one", nesting: 0 } },
+  { type: "test:pass", data: { file: tierPath("test/d.e2e.mjs"), name: ODD_NAME, nesting: 0 } },
+  { type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0 } },
+];
+
+function wholeEvents(options) {
+  return options.files.map((file) => ({ type: "test:pass", data: { file, name: `whole ${path.basename(file)}`, nesting: 0 } }));
+}
+
+function wholePasses(options) {
+  return scriptedStream(wholeEvents(options));
+}
+
+// Runs the FAST_TIER fixture through main() with a TAP-like reporter that keeps the output.
+async function runTier(extraEnv, runTests) {
+  let stdout = "";
+  let stderr = "";
+  const env = { [TEST_TIER_ENV]: "fast" };
+  for (const [name, value] of Object.entries(extraEnv)) if (value !== undefined) env[name] = value;
+  const code = await main({
+    env,
+    stdout: { write(chunk) { stdout += chunk; return true; } },
+    stderr: { write(chunk) { stderr += chunk; return true; } },
+    findTestFiles: () => TIER_FILES,
+    loadTiers: () => parseTestTiers(tierManifest({ fast: FAST_TIER })),
+    runTests,
+    reporter: async function* (source) {
+      for await (const event of source) yield `${event.type} ${event.data.name ?? event.data.message}\n`;
+    },
+  });
+  return { code, stdout, stderr };
+}
 
 // An event emitter that also replays its events to the reporter, like the node:test stream.
 function scriptedStream(events, onDrained = () => {}) {
