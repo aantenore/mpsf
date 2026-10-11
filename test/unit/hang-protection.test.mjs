@@ -92,6 +92,9 @@ test("optimization run stops a command that prints nothing, with exit code 124",
   const project = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-sdlc-hang-"));
   try {
     childProcess.spawnSync("git", ["init", "-q"], { cwd: project });
+    // Without the output filter: an installed rtk would hold the output back until the command ends.
+    fs.mkdirSync(path.join(project, ".sdlc"));
+    fs.writeFileSync(path.join(project, ".sdlc", "config.json"), JSON.stringify({ context_optimization_policy: { enabled: false } }));
     fs.writeFileSync(path.join(project, "package.json"), JSON.stringify({ name: "x", scripts: { test: "echo started && sleep 20" } }));
     const started = Date.now();
     const result = childProcess.spawnSync(process.execPath, [

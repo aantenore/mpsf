@@ -7406,7 +7406,8 @@ test("test and release traces require real canonical evidence in strict mode", (
   fs.writeFileSync(path.join(project, ...evidence.split("/")), "{\"mutated\":true}\n");
   assert.deepEqual(readJson(evidenceSnapshot), {});
   writeJson(storyPath, { ...storyData, phase: "release", status: "release" });
-  mustRun([
+  // A release trace without evidence is refused at append time: traces are immutable, so the gate never has to reject it later.
+  mustFail([
     "trace",
     "append",
     "--root",
@@ -7419,8 +7420,7 @@ test("test and release traces require real canonical evidence in strict mode", (
     "ready",
     "--summary",
     "Release ready",
-  ]);
-  mustFail(["gate", "check", "--root", project, "--story", "ST-001", "--strict"], /release.*requires at least one evidence path/);
+  ], /release trace requires at least one --evidence path/);
 });
 
 test("strict gates use the latest test outcome while retaining failed attempts", () => {

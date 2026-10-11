@@ -71,6 +71,9 @@ function run(args, project, options = {}) {
   });
 }
 
+// The single-flight guard turns a second start of the same story away at once; waiting lets both reach the inner boundary under test.
+const WAIT_FOR_SINGLE_FLIGHT = { AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS: "60" };
+
 function runConcurrently(args, project, envOverrides = {}) {
   const env = { ...process.env, ...envOverrides };
   for (const key of ["CI", "GITHUB_ACTIONS", "GITHUB_ACTOR", "CODEX_AGENT_NAME", "CODEX_USER_ID", "CLAUDECODE", "AGENTIC_SDLC_AGENT_HOST"]) {
@@ -1749,8 +1752,9 @@ test("concurrent workflow and task starts serialize on the story task-start boun
     "--json",
   ];
   const [taskResult, workflowResult] = await Promise.all([
-    runConcurrently(taskArgs, project),
+    runConcurrently(taskArgs, project, WAIT_FOR_SINGLE_FLIGHT),
     runConcurrently(workflowArgs, project, {
+      ...WAIT_FOR_SINGLE_FLIGHT,
       NODE_OPTIONS: `--import=${pathToFileURL(hookPath).href}`,
       AGENTIC_SDLC_TEST_BOUNDARY_LOCK_PATH: boundaryLockPath,
       AGENTIC_SDLC_TEST_BOUNDARY_MARKER: hookMarkerPath,

@@ -74,11 +74,11 @@ function run(args, project) {
   });
 }
 
-function runAsync(args, project) {
+function runAsync(args, project, env = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [CLI, ...args], {
       cwd: project,
-      env: cliEnvironment(),
+      env: { ...cliEnvironment(), ...env },
       stdio: ["ignore", "pipe", "pipe"],
     });
     const stdout = [];
@@ -565,6 +565,16 @@ function sharedRemote(project, label) {
   return { remote, otherCopy };
 }
 
+/**
+ * Makes the remote refuse every update of the shared records. A hook would not
+ * do: the CLI runs git with core.hooksPath=/dev/null and a local-path remote
+ * inherits it, so the remote's own configuration is what refuses here.
+ */
+function refuseSharedRecords(remote) {
+  const configured = spawnSync("git", ["-C", remote, "config", "receive.hideRefs", "refs/agentic-sdlc/"], { encoding: "utf8" });
+  assert.equal(configured.status, 0, configured.stderr);
+}
+
 function sharedRefs(remote) {
   const result = spawnSync("git", ["ls-remote", remote, "refs/agentic-sdlc/*"], { encoding: "utf8" });
   return result.stdout.split("\n").filter(Boolean).map((line) => line.split("\t")[1]);
@@ -1029,8 +1039,7 @@ test("a remote that refuses the shared records is reported as not shared, never 
   const project = initializeProject("refused");
   const { remote } = sharedRemote(project, "refused");
   const standingId = grantStanding(project, { id: "SA-REFUSED" });
-  const hook = path.join(remote, "hooks", "pre-receive");
-  fs.writeFileSync(hook, "#!/bin/sh\nwhile read old new ref; do case \"$ref\" in refs/agentic-sdlc/*) echo refused >&2; exit 1;; esac; done\n", { mode: 0o755 });
+  refuseSharedRecords(remote);
   const revoked = mustRunJson([
     "autonomy", "standing", "revoke", "--root", project, "--id", standingId,
     "--reason", "Pause delegated work", ...humanApproval("Stop the standing approval"),
@@ -1110,7 +1119,7 @@ test("sync reports attention when the revocation could not be shared, and git's 
   const project = initializeProject("sync-attention");
   const { remote } = sharedRemote(project, "sync-attention");
   const standingId = grantStanding(project, { id: "SA-ATTN" });
-  fs.writeFileSync(path.join(remote, "hooks", "pre-receive"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  refuseSharedRecords(remote);
   mustRunJson([
     "autonomy", "standing", "revoke", "--root", project, "--id", standingId,
     "--reason", "Pause delegated work", ...humanApproval("Stop the standing approval"),
@@ -1177,7 +1186,8 @@ test("concurrent deliveries cannot both consume the last slot", async () => {
   const results = await Promise.all([first, second].map((delivery) => runAsync([
     "autonomy", "delivery", "approve", "--root", project, "--id", delivery.profileId,
     "--phase", "implementation", "--standing-approval", standingId, "--json",
-  ], project)));
+    // The single-flight guard would turn the second away at once; waiting makes both reach the slot count.
+  ], project, { AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS: "120" })));
   const succeeded = results.filter((result) => result.status === 0);
   const refused = results.filter((result) => result.status !== 0);
   assert.equal(succeeded.length, 1, results.map((result) => result.stderr).join("\n"));
