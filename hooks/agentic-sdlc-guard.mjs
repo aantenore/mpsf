@@ -264,6 +264,26 @@ async function standingContext(root) {
   return [sessionStartContext(status)];
 }
 
+/**
+ * Projects whose operational records live on the state branch
+ * (lib/state-branch.mjs) sync them in the background: pull and push on their
+ * own throttles at session start and at each stop, a final push at session
+ * end. Detached, so a slow remote never delays the agent.
+ */
+function syncStateBranch(payload, args) {
+  try {
+    const root = governedRoot(payload.cwd);
+    if (!root) return;
+    // The requirement file `state migrate` commits, or the sdlc-state records adapter in the config.
+    const required = fs.existsSync(path.join(root, ".sdlc", "compatibility", "sdlc-state-records.json"));
+    if (!required && !fs.readFileSync(path.join(root, ".sdlc", "config.json"), "utf8").includes("\"sdlc-state\"")) return;
+    const child = spawn(process.execPath, [CLI, "state", ...args, "--root", root, "--json"], { detached: true, stdio: "ignore", windowsHide: true });
+    child.unref();
+  } catch {
+    // Records stay here and go with the next sync.
+  }
+}
+
 /** Stops this repository's plugin commands that outlived their time limit. Silent, never blocks. */
 async function reapRuns(payload, options = {}) {
   const { findGitCommonDir, reapStaleRuns, reapUnregisteredProcesses } = await import("../lib/runtime/run-registry.mjs");
@@ -318,16 +338,21 @@ try {
   const event = process.argv[2];
   const payload = readPayload();
   if (event === "pre-tool-use") await preToolUse(payload);
-  else if (event === "session-start") await sessionStart(payload);
+  else if (event === "session-start") {
+    syncStateBranch(payload, ["sync", "--if-due"]);
+    await sessionStart(payload);
+  }
   else if (event === "post-tool-use") await coordinationMessages(payload, "PostToolUse");
   else if (event === "stop") {
     await autoUpdate("stop");
+    syncStateBranch(payload, ["sync", "--if-due"]);
     try {
       await reapRuns(payload);
     } finally {
       await keepGoing(payload);
     }
   } else if (event === "session-end") {
+    syncStateBranch(payload, ["push"]);
     releaseInBackground(payload);
     await reapRuns(payload, { killAfterMs: SESSION_END_KILL_AFTER_MS });
   } else if (event === "session-release") {

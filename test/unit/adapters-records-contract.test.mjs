@@ -11,6 +11,7 @@ import { GATE_REQUIREMENTS, missingGuarantees, recordAssuranceLevel } from "../.
 import { recordStoreGuaranteeErrors } from "../../lib/adapters/records/gate.mjs";
 import { createGitSdlcStore } from "../../lib/adapters/records/git-sdlc.mjs";
 import { createLocalFsStore } from "../../lib/adapters/records/local-fs.mjs";
+import { createSdlcStateStore } from "../../lib/adapters/records/sdlc-state.mjs";
 import { openRecordStore, RECORD_STORES } from "../../lib/adapters/records/registry.mjs";
 import { assertRecordStore } from "../../lib/adapters/records/port.mjs";
 import { delegationRecordPath, readDelegationRecord, readDelegationUses } from "../../lib/engine/delegation-records.mjs";
@@ -39,6 +40,11 @@ runRecordStoreContract("git-sdlc", async () => {
 runRecordStoreContract("local-fs", async () => {
   const root = project();
   return { store: createLocalFsStore({ root, sdlcRoot: path.join(root, ".sdlc") }), sharedNamespace: WAITS_NAMESPACE, sharedPayload: waitPayload, publishRequest: {} };
+});
+
+runRecordStoreContract("sdlc-state", async () => {
+  const root = project({ git: true });
+  return { store: createSdlcStateStore({ root, sdlcRoot: path.join(root, ".sdlc") }), sharedNamespace: WAITS_NAMESPACE, sharedPayload: waitPayload };
 });
 
 test("every registered store implements the port", () => {

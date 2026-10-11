@@ -10,12 +10,16 @@
     "merge-drift-open-state": {
       "since": "0.35.0",
       "summary": "Merged stories still open kept apart from ready work",
-      "config_keys": ["orchestration_policy.merge_drift.open_state"]
+      "config_keys": [
+        "orchestration_policy.merge_drift.open_state"
+      ]
     },
     "story-records-policy": {
       "since": "0.35.0",
       "summary": "Story records carried in pull requests and published after merge",
-      "config_keys": ["orchestration_policy.story_records"]
+      "config_keys": [
+        "orchestration_policy.story_records"
+      ]
     },
     "story-closure-unstarted-revoked-delivery": {
       "since": "0.45.0",
@@ -44,17 +48,24 @@
     "pluggable-adapters": {
       "since": "0.147.0",
       "summary": "Messaging and record store adapters, and the coordinator role",
-      "config_keys": ["host_policy.adapters", "host_policy.roles"]
+      "config_keys": [
+        "host_policy.adapters",
+        "host_policy.roles"
+      ]
     },
     "context-module": {
       "since": "0.148.0",
       "summary": "Story context packs, short agent output and budgeted hook text",
-      "config_keys": ["host_policy.context"]
+      "config_keys": [
+        "host_policy.context"
+      ]
     },
     "known-error-database": {
       "since": "0.149.0",
       "summary": "Known error database: recorded fixes shown when the same failure happens again",
-      "config_keys": ["host_policy.known_errors"]
+      "config_keys": [
+        "host_policy.known_errors"
+      ]
     },
     "git-messaging-channel": {
       "since": "0.150.0",
@@ -71,7 +82,13 @@
     "knowledge-role": {
       "since": "0.153.0",
       "summary": "Shared knowledge distilled into .sdlc/knowledge, shown in context packs; per-worker context budget",
-      "config_keys": ["host_policy.knowledge"]
+      "config_keys": [
+        "host_policy.knowledge"
+      ]
+    },
+    "sdlc-state-records": {
+      "since": "0.154.0",
+      "summary": "Operational records (action receipts, executions, gate reports) kept on the sdlc-state branch"
     }
   }
 }

@@ -45,6 +45,7 @@ Choose per computer with `AGENTIC_SDLC_MESSAGING_PROVIDER`, per clone with `mess
 |---|---|---|
 | `git-sdlc` (default) | The `.sdlc/` folder in git, shared state in refs on the remote, one commit per publication | The normal team flow |
 | `local-fs` | Plain files in a folder (`options.dir`, default `.sdlc`), no git involved | A single computer, experiments, projects without a remote |
+| `sdlc-state` | Like `git-sdlc`, but the operational records live on an orphan branch of the same remote (`sdlc-state`) | Busy projects whose base branch fills up with record-only commits |
 
 Code, branches, pull requests and merges stay in git with every store.
 
@@ -57,6 +58,32 @@ Each store declares what it guarantees, and the strictest checks ask for them:
 | `atomic_publish` | yes | no |
 | `base_branch_coupling` (records and code share one history) | yes | no |
 | `shared_state` (claims and waits shared across computers) | yes | no (this computer only) |
+
+`sdlc-state` gives the same guarantees as `git-sdlc`: what the base branch certifies stays there.
+
+### Operational records on the state branch
+
+Delivery action receipts (`autonomy/actions/`), autonomy executions (`autonomy/executions/`) and gate reports (`gates/`, except the final receipts `gates/<story>-final.json`) are written often and read rarely. On a busy project they make most of the commits on the base branch. With the state branch they stay plain files in `.sdlc/`, so every command reads them as before, but git no longer tracks them on the base branch; an orphan branch of the same remote carries them.
+
+Stays on the base branch: requirements, contracts, decisions, baseline, config, stories (`story.json`, claims, steps), dependencies, final gate receipts, and for now traces and workflow checkpoints (one unit with the trace hash chain).
+
+```bash
+agentic-sdlc state migrate --dry-run   # what would move
+agentic-sdlc state migrate             # push the records, ignore them, stop tracking them (files and history stay)
+git commit -m "Operational records on sdlc-state" && git push   # through your usual flow
+agentic-sdlc state status              # where they are, how many are not pushed yet
+```
+
+`state migrate` adds `.sdlc/compatibility/sdlc-state-records.json`. That file switches every computer to the state branch and makes plugins older than 0.154.0 ask for an update instead of missing records. No configuration key is needed. To change the defaults, set `host_policy.adapters.records` to `{ "provider": "sdlc-state", "options": { "branch": "sdlc-state", "remote": "origin", "push_interval_seconds": 120, "pull_interval_seconds": 60 } }` through `config migrate`.
+
+How the records move:
+- The host hooks run `state sync --if-due` in the background at session start and at every stop, and `state push` at session end. `state pull`, `state push` and `state sync` do it by hand.
+- A push is one commit on the remote tip with only the records changed here since the last sync. It is fast-forward only, so a branch moved by another computer is refused and the push is rebuilt on the new tip, with backoff. Records are never deleted by a push.
+- A pull never overwrites a record changed here and not pushed yet.
+- Pushes are throttled (`push_interval_seconds`, default 2 minutes), so many computers together stay well under the forge's push rate (GitHub suggests about 6 pushes a minute per repository).
+- Every state commit says `[skip ci]`, and the branch has no CI files, so no pipeline starts on GitHub, GitLab, Bitbucket, Azure DevOps or Gitea/Forgejo. With CircleCI, filter out `sdlc-state` in the project settings.
+- Paths on the branch are the same as in `.sdlc/`. `state status --json` groups them by story (`shards`), so a branch or ref per story can be switched on later without changing the format.
+- CI jobs that read these records run `agentic-sdlc state pull` after checkout. The Change Observatory fetches the state branch and shows its records together with the base branch.
 
 Assurance level: `full` (all of them), `standard` (hash chain and atomic publish), `local` (less). `gate check` refuses a level the store cannot back: `strict_intermediate` needs `hash_chain`; `lifecycle_complete` needs `hash_chain`, `immutable_history`, `atomic_publish` and `base_branch_coupling`. On `local-fs` the project can work and pass the intermediate gates, but it cannot be certified as lifecycle-complete.
 

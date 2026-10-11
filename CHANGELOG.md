@@ -2,6 +2,14 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.154.0
+
+- **Operational records on the `sdlc-state` branch.** `state migrate` pushes delivery action receipts, autonomy executions and gate reports (final receipts `gates/<story>-final.json` excluded) to an orphan branch of the same remote, ignores them in `.sdlc/.gitignore` and stops tracking them; files and history stay. The base branch keeps requirements, contracts, decisions, baseline, config, stories, dependencies, final receipts, traces and workflow checkpoints. Works with any git host.
+- New commands `state status|push|pull|sync|migrate`. The host hooks sync in the background (`state sync --if-due` at session start and stop, `state push` at session end). Pushes are throttled (2 minutes), fast-forward only with rebuild and backoff when another computer moved the branch, never delete records, and carry `[skip ci]`. A pull never overwrites a record changed here and not pushed.
+- New records adapter `sdlc-state` (options `branch`, `remote`, `push_interval_seconds`, `pull_interval_seconds`); no configuration change is needed, the requirement file added by `state migrate` switches every computer.
+- The Change Observatory fetches the state branch and lays its records over the base branch's.
+- Needs 0.154.0 on every computer once a project runs `state migrate`; older plugins are told to update. See [Adapters and roles](docs/adapters-and-roles.md#operational-records-on-the-state-branch).
+
 ## 0.153.7
 
 - The plugin repository no longer carries its own `.sdlc` folder: the plugin is not used on itself for now. Templates and the code that creates `.sdlc` in projects are unchanged.

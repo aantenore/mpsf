@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.153.7 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.154.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.154.0** — operational records off the base branch: `state migrate` moves action receipts, executions and gate reports (not the final receipts) to an orphan `sdlc-state` branch of the same remote; the hooks sync them in the background (throttled, fast-forward only, `[skip ci]`); the Change Observatory shows them; older plugins are asked to update.
 - **0.153.7** — the repository no longer carries its own `.sdlc` folder; nothing changes for projects using the plugin.
 - **0.153.6** — computers no longer ask each other to update the plugin: each one warns only its own person, with the update command; requests from older plugins are shown as information and nothing reacts to them.
 - **0.153.5** — main-green and knowledge distill run by themselves on the role holder, publishing only records to the base branch.
