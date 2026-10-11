@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.20
+
+- The release package check passes again: the manifest sync script is now `npm run sync-version` instead of an npm `version` lifecycle hook, which the package policy forbids. `npm run release` still syncs every manifest; after a manual `npm version`, run `npm run sync-version`. The GitHub Action example test follows the documented minimum, v0.21.0. Change Observatory: no change. Compatibility: no change for older plugins.
+
 ## 0.159.19
 
 - Fast status no longer leaks into decisions: `gate check` (including `--lifecycle-complete`), workflow transition readiness, `story complete-step` and `autonomy delivery action` verify in full every final receipt they depend on, including other stories'. A stale certification (files changed after it), a voided one (a later trace line or a changed record), or a superseded one no longer unblocks or certifies dependent work. Read-only views (`status`, `orchestrate status|plan`, `story deps`, `dependency status`, `story overlap`) stay fast, but a story counted from a sealed receipt they did not verify again now carries `lifecycle_verification: "not_rechecked"`, and `status` adds `certifications_not_rechecked` with the count; `AGENTIC_SDLC_STATUS_CHECKS=full` still verifies everything. Change Observatory: a certification read from the records only is shown as "Certified, not re-checked" (its model carries `verification: "not_rechecked"`); models from older servers keep the plain "Certified" label. Compatibility: records from older plugin versions are read unchanged; a gate on a story with many certified dependencies takes longer, since each dependency receipt is verified once per check.
@@ -56,7 +60,7 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 
 ## 0.159.6
 
-- Version bumps (`npm version` or `npm run release`) set the version in every plugin manifest, the `agentic-sdlc` bridge included, so it can no longer fall behind. Change Observatory: no change. Compatibility: nothing changes for older plugins.
+- Version bumps (`npm run release`, or `npm run sync-version` after `npm version`) set the version in every plugin manifest, the `agentic-sdlc` bridge included, so it can no longer fall behind. Change Observatory: no change. Compatibility: nothing changes for older plugins.
 
 ## 0.159.5
 

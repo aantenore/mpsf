@@ -192,7 +192,7 @@ test("the CLI revision is a marked placeholder that must be set to a release wit
   // A SHA written here would silently pin a revision that may predate `autonomy delivery checks`.
   assert.equal(job.env.AGENTIC_SDLC_REF, "REPLACE_WITH_RELEASE_TAG");
   assert.match(source, /REQUIRED: replace the placeholder with a release tag/u);
-  assert.match(source, /v0\.20\.0 or later/u);
+  assert.match(source, /v0\.21\.0 or later/u);
   const install = steps.find((step) => /Install the CLI/u.test(step.name));
   assert.match(install.run, /REPLACE_WITH_\*\|""\)/u, "the run refuses to start while the placeholder is unchanged");
   assert.match(install.run, /exit 1/u);
@@ -202,9 +202,9 @@ test("the CLI revision is a marked placeholder that must be set to a release wit
   assert.match(install.run, /test "\$\(git -C "\$dir" rev-parse HEAD\)" = "\$AGENTIC_SDLC_REF"/u);
   // A CLI without the command is reported explicitly, not hidden.
   assert.match(install.run, /help autonomy delivery checks/u);
-  assert.match(install.run, /has no 'autonomy delivery checks' command; use v0\.20\.0 or later/u);
-  assert.match(readme, /v0\.20\.0/u);
-  assert.match(readme, /minimum/iu);
+  assert.match(install.run, /has no 'autonomy delivery checks' command; use v0\.21\.0 or later/u);
+  assert.match(readme, /v0\.21\.0/u);
+  assert.match(readme, /first tagged release/u);
   const checks = steps.find((step) => /Print the recorded checks/u.test(step.name));
   assert.doesNotMatch(checks.run, /2>\s*\/dev\/null/u, "a failing checks command must not be silenced");
   assert.match(checks.run, /could not be generated/u);
