@@ -204,7 +204,7 @@ Configuration: `host_policy.roles.coordinator` with `hosts` (ordered), `lease_mi
 
 **Reserved actions** (default `DEFAULT_RESERVED_ACTIONS`): `autonomy.delivery.action:pull_request.merge`, `story.publish-records`, `baseline.refresh`, `wait.resolve`, `story.assign`, `plugin.release`. With a valid lease held by another host, these are refused locally with the coordinator's name and a hint to hand over; automatic publication on a developer computer becomes "leave it to the coordinator".
 
-Phase 1 ships the schema, validation and the pure resolver (`lib/coordination-roles.mjs`: `coordinatorPolicy`, `resolveRole`, `isReservedAction`). Lease records and enforcement come in phase 2.
+Phase 1 ships the schema, validation and the pure resolver (`lib/coordination-roles.mjs`: `coordinatorPolicy`, `resolveRole`, `isReservedAction`). Since 0.149.1 the leases are refs on the remote shared with the automatic roles (`refs/agentic-sdlc/roles/coordinator/<epoch>`, `lib/engine/role-leases.mjs`); reserved actions are now refused in the CLI dispatch when the coordinator is pinned (`lib/engine/role-guard.mjs`), never with automatic roles, and the role's duties start by themselves on its holder (`lib/engine/role-duties.mjs`, `config/role-duties.json`).
 
 ## 7. Phases
 

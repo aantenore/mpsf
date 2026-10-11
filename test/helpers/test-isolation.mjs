@@ -59,6 +59,8 @@ export function isolationEnv(baseDir = tempRoot()) {
       GIT_TERMINAL_PROMPT: "0",
       // The computer's kept id and key: never the real user's config folder.
       AGENTIC_SDLC_MACHINE_DIR: path.join(dir, "machine"),
+      // Role duties start detached CLI runs: a test asks for them explicitly.
+      AGENTIC_SDLC_ROLE_DUTIES: "off",
       [ISOLATION_MARKER_ENV]: "1",
     },
   };

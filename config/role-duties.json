@@ -1,0 +1,13 @@
+{
+  "schema_version": "agentic-sdlc.role-duties.v1",
+  "principle": "Duties the plugin runs by itself on the computer that holds a role (lease confirmed on the remote), each at most every every_minutes, as a detached CLI run with --json. Only duties with auto true start by themselves; the others are run by hand until a person turns them on (they send messages to other computers, merge into the base branch, or write a story into the checkout). A duty whose command this plugin does not have is skipped. Commands check the role themselves too. AGENTIC_SDLC_ROLE_DUTIES=off stops them on a computer.",
+  "duties": [
+    { "role": "coordinator", "command": ["coordinator", "free-claims"], "every_minutes": 15, "auto": true },
+    { "role": "coordinator", "command": ["coordinator", "settle-waits"], "every_minutes": 15, "auto": true },
+    { "role": "coordinator", "command": ["coordinator", "check-records"], "every_minutes": 60, "auto": true },
+    { "role": "coordinator", "command": ["coordinator", "digest"], "every_minutes": 15, "auto": false },
+    { "role": "coordinator", "command": ["coordinator", "update-requests"], "every_minutes": 30, "auto": false },
+    { "role": "coordinator", "command": ["coordinator", "main-green"], "every_minutes": 30, "auto": false },
+    { "role": "coordinator", "command": ["coordinator", "merge"], "every_minutes": 10, "auto": false }
+  ]
+}

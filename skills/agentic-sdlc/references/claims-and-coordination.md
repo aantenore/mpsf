@@ -235,7 +235,10 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    and a message claiming a role has no effect. A claim's lease is short and
    renewed by working on the story (the presence carries it to the other
    computers); a session that ends hands back its roles, not its claims. The
-   coordinator's duties are the `coordinator digest|check-records|main-green|merge`
-   commands; they do nothing on other computers, so run them only when the
-   user asks or a schedule does. Messaging is
+   coordinator's duties are the `coordinator ...` commands; they do nothing on
+   other computers, and the role's holder starts the automatic ones by
+   itself, so run them only when the user asks. When a command is refused as
+   reserved to the coordinator, leave that step to the coordinator (hand over
+   the pull request or the records) and go on with the rest; never set
+   `AGENTIC_SDLC_ROLES=off` yourself to get past it. Messaging is
    optional (`github`, `local` or `none`): claims and waits never depend on it.
