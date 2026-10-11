@@ -2864,6 +2864,22 @@ for (const topology of [
   });
 }
 
+test("pull-request merge completion accepts a proven merge commit that later commits built upon, even if they revert paths", () => {
+  const fixture = prepareAuthorizedPullRequestMerge("later-commits");
+  const afterMerge = syntheticCommit(
+    fixture.project,
+    fixture.baseSha,
+    [fixture.headSha],
+    "test: advance main after exact merge",
+  );
+  mustGit(fixture.project, ["update-ref", "refs/remotes/origin/main", afterMerge]);
+
+  const completion = completeAuthorizedPullRequestMerge(fixture, fixture.headSha);
+  assert.equal(completion.status, "completed");
+  assert.equal(completion.lifecycle_status, "terminal");
+  assert.equal(completion.action_receipt.action_details.provider_verification.merge_commit_sha, fixture.headSha);
+});
+
 test("pull-request merge completion rejects provider base drift and unproven local base transitions", () => {
   const fixture = prepareAuthorizedPullRequestMerge("transition-rejections");
   const mergedAt = new Date(Date.parse(fixture.authorization.action_receipt.authorized_at) + 1_000).toISOString();
@@ -2886,16 +2902,28 @@ test("pull-request merge completion rejects provider base drift and unproven loc
     env: fakeGitHubEnv(fixture.project, { ...mergedState, baseSha: "e".repeat(40) }),
   });
 
-  // Advance past the merge that touches the story write paths (reverts them): refused.
-  const afterMerge = syntheticCommit(
+  // A base that moved elsewhere and does not descend from the merge commit GitHub proved: refused.
+  const unrelatedBase = syntheticCommit(
+    fixture.project,
+    fixture.baseSha,
+    [fixture.baseSha],
+    "test: base moved without the merge result",
+  );
+  mustGit(fixture.project, ["update-ref", "refs/remotes/origin/main", unrelatedBase]);
+  mustFail(completionArgs, /does not point to the exact merge result proven by GitHub/u, {
+    env: fakeGitHubEnv(fixture.project, mergedState),
+  });
+
+  // Provider has not proven the merge (still open): never completed, whatever the local base looks like.
+  const descendantOfHead = syntheticCommit(
     fixture.project,
     fixture.baseSha,
     [fixture.headSha],
-    "test: advance main after exact merge",
+    "test: advance main past the head",
   );
-  mustGit(fixture.project, ["update-ref", "refs/remotes/origin/main", afterMerge]);
-  mustFail(completionArgs, /does not point to the exact merge result proven by GitHub/u, {
-    env: fakeGitHubEnv(fixture.project, mergedState),
+  mustGit(fixture.project, ["update-ref", "refs/remotes/origin/main", descendantOfHead]);
+  mustFail(completionArgs, /exact PR, source SHA, branches, and merged state/u, {
+    env: fakeGitHubEnv(fixture.project, fixture.openState),
   });
 
   // A concurrent base change inside the story write paths: never an accepted advance before the merge.
