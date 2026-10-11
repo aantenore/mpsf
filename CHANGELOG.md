@@ -2,6 +2,11 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.148.5
+
+- This computer's id is decided once and kept in `~/.config/agentic-sdlc/machine.json` (`AGENTIC_SDLC_MACHINE_DIR` to move it). It is the same id as before (`pc-` and a short hash of the host name), so claims, stories and messages keep pointing at this computer, but it no longer changes when the host name changes (a laptop on another network). Every clone, worktree, session and subagent on the computer uses it; `AGENTIC_SDLC_HOST_LABEL` still wins.
+- Each computer gets an Ed25519 key (`machine-key.pem`, mode 0600) made on first use, for signed coordination messages.
+
 ## 0.148.4
 
 - Waits that need a person (pending approvals, expired delegations, expired waits on a person) are shown once to the person working with the computer that waits, in its own session (agent context and Stop hook note), with the exact command. They are no longer sent to the channel as `[auto] serve una persona`. keep-going never blocks on them, and a story whose next step is that command waits for the person.

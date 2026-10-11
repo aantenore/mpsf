@@ -113,7 +113,7 @@ Projects that set `host_policy.context` need 0.148.0 on every computer; older pl
 ## RTK command gateway
 
 [RTK](https://github.com/rtk-ai/rtk) filters noisy command output before it
-enters model context. Agentic SDLC 0.148.4 integrates RTK 0.43+ behind a
+enters model context. Agentic SDLC 0.148.5 integrates RTK 0.43+ behind a
 configurable, shell-free gateway; RTK remains an optional, separately installed
 binary.
 

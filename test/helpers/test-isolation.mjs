@@ -4,7 +4,8 @@
 //   - records are never published automatically (AGENTIC_SDLC_AUTO_PUBLISH=off);
 //   - git never looks above the temp directory for a repository;
 //   - git config comes from a private file whose pre-push hook refuses any
-//     non-local remote, so a fixture that names a real URL still cannot push.
+//     non-local remote, so a fixture that names a real URL still cannot push;
+//   - the computer's kept id and key live in a private folder.
 // Fixtures live in createFixtureDir() and use createBareOrigin() for a remote.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -56,6 +57,8 @@ export function isolationEnv(baseDir = tempRoot()) {
       GIT_CONFIG_GLOBAL: config,
       GIT_CONFIG_NOSYSTEM: "1",
       GIT_TERMINAL_PROMPT: "0",
+      // The computer's kept id and key: never the real user's config folder.
+      AGENTIC_SDLC_MACHINE_DIR: path.join(dir, "machine"),
       [ISOLATION_MARKER_ENV]: "1",
     },
   };

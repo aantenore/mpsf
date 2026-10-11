@@ -163,7 +163,8 @@ Each setting is taken from the first place that has it:
 | `AGENTIC_SDLC_MESSAGING_POLL_SECONDS` | minimum gap between two reads by the host hook (default 30; each read is one request, so 120 an hour at most per computer against the 5000/hour limit) |
 | `AGENTIC_SDLC_MESSAGING_ESCALATE_MINUTES` | wait before the one reminder for an unanswered question (default 10) |
 | `AGENTIC_SDLC_MESSAGING_OUTBOX_RETRY_MINUTES` | minimum gap between two automatic attempts to send the queued messages (default 5, doubled after each failure) |
-| `AGENTIC_SDLC_HOST_LABEL` | the stable host id of this computer (default: a short hash of the host name); the shown name is set with `message identity --name` |
+| `AGENTIC_SDLC_HOST_LABEL` | the stable host id of this computer (default: the id kept in `~/.config/agentic-sdlc/machine.json`, decided on first use as `pc-` plus a short hash of the host name, so a laptop whose host name changes with the network keeps it; the same for every clone, worktree, session and subagent); the shown name is set with `message identity --name` |
+| `AGENTIC_SDLC_MACHINE_DIR` | folder of the computer's kept id and Ed25519 key (`machine.json`, `machine-key.pem`, mode 0600; default `$XDG_CONFIG_HOME/agentic-sdlc`, `%APPDATA%\agentic-sdlc` on Windows, else `~/.config/agentic-sdlc`) |
 | `AGENTIC_SDLC_MESSAGING_JOIN=off` | no automatic join/welcome on this computer |
 | `AGENTIC_SDLC_MESSAGING_PROVIDER` | `github` (default), `local` (a channel file in a folder: offline, tests, a shared network folder) or `none` (messaging off) |
 | `AGENTIC_SDLC_MESSAGING_LOCAL_DIR` | folder of the `local` provider's channel (default: next to the clone's settings in the git folder) |
