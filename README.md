@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF 0.157.3 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF 0.157.5 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.157.5** — story commit checks read Git once per range instead of several times per commit, so gates and status are faster on long story branches.
 - **0.157.4** — claims renewed by the agent's work in their worktree; presence fetched before judging a claim abandoned.
 - **0.157.3** — repository renamed to `aantenore/mpsf`; old URLs redirect, marketplace `aantenore` unchanged.
 - **0.157.2** — skills brought up to date: several computers (roles, presence, the `sdlc-state` branch, plugin versions without update requests, newer record formats) and the capability catalog.

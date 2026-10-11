@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.5
+
+- Faster story commit checks: working out a story's own commits (base commits, records-only commits, a commit and its revert) and the paths they touch now costs a fixed handful of Git processes per story instead of about five per commit. Nothing changes in the results.
+- Change Observatory: no change needed.
+- Compatibility: nothing changes for older plugins.
+
 ## 0.157.4
 
 - A claim is renewed by the agent's work in the worktree that has its branch: the host hook notes each tool call there (at most once a minute, `<git common dir>/agentic-sdlc/worktree-activity.json`), so editing code before any commit keeps the claim alive. The story folder's own file times no longer count: a checkout or pull rewrote them and brought old claims back to life.
