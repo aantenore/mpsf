@@ -89,9 +89,6 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 - Change Observatory: no change needed; it does not read forges.
 - Compatibility: nothing changes for older plugins; GitHub projects behave as before.
 
- ## 0.157.2
- 
-
 ## 0.157.7
 
 - Faster checks of baseline files that came with the base branch and of secret scans that start after the delivery base: a fixed number of Git processes instead of up to four per file. Nothing changes in the results.

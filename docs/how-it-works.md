@@ -216,8 +216,8 @@ node "$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSIO
 ```
 
 An npm installation may additionally create an npm bin shim. From a source
-checkout, use `node /path/to/agentic-sdlc/bin/mpsf.mjs`.
-All examples below use commands exposed by the `MPSF 0.159.11` help output and assume the shell is in the target project:
+checkout, use `node /path/to/mpsf/bin/mpsf.mjs`.
+All examples below use commands exposed by the `MPSF 0.159.10` help output and assume the shell is in the target project:
 
 ```bash
 cd /path/to/target-project

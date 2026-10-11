@@ -169,8 +169,9 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    ending a turn run `mpsf next` (the Stop hook in Claude Code does
    the same and keeps the turn going; `AGENTIC_SDLC_KEEP_GOING=off` disables
    it). Priority: unanswered questions/requests, unpublished records, plugin
-   update (another computer's messages carry a newer plugin version; `next`
-   and the Stop hook print it with the update command: update first), the
+   update (only when this project needs a newer plugin than the one on this
+   computer: `next` and the Stop hook print the update command; a newer
+   version announced by another computer is not a reason to stop), the
    next step of own claims, parallel work, available stories. When an own
    claim waits (story wait, dependency not merged, records of another
    computer, a human decision), do not stop: claim another available story

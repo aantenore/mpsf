@@ -506,7 +506,7 @@ flowchart TB
 
 ## Change Observatory Presentation Layer
 
-Change Observatory is a read-only projection over canonical project evidence. It is packaged as browser-native assets under `ui/change-observatory/`; no generated bundle, frontend dependency, CDN, telemetry, or hosted component is required.
+Change Observatory is a projection over canonical project evidence: it never edits records; it only fetches from the remote and, with the `sdlc-state` store, brings the records published there into the working tree (`--worktree`) or into a snapshot under `.git/agentic-sdlc/observatory/` (ref mode). It is packaged as browser-native assets under `ui/change-observatory/`; no generated bundle, frontend dependency, CDN, telemetry, or hosted component is required.
 
 ```mermaid
 flowchart LR

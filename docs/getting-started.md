@@ -99,9 +99,9 @@ For implementation work, the agent follows one visible order:
    release and its own autonomy choice. If you want one result for several
    parts, the agent proposes one delivery story whose parts are tasks inside it;
    several stories fit only when each part should ship separately. Agree this
-   shape before approving the breakdown: there is currently no command that
-   retires an approved story that was never started, so it stays in the plan
-   and `status` may keep reporting it as open or blocked work.
+   shape before approving the breakdown. An approved story that will not be
+   delivered after all is closed with `story cancel` (a recorded decision of
+   yours), so `status` stops reporting it as open work.
 
 4. **Agree the output and work brief**
    The agent shows the concrete files, tools, tests, branches or local target, verification, protected actions, and rollback where relevant. “Work brief” is the plain-language view of the formal contract.

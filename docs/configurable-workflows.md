@@ -175,7 +175,7 @@ validates the complete config, creates all eight phase contracts, and pins the
 config hash in the same bootstrap:
 
 ```bash
-PLUGIN_ROOT=/absolute/path/to/agentic-sdlc
+PLUGIN_ROOT=/absolute/path/to/mpsf
 PROJECT_ROOT=/absolute/path/to/project
 
 node "$PLUGIN_ROOT/bin/mpsf.mjs" init \

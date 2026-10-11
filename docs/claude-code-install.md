@@ -34,7 +34,7 @@ To install from a local checkout instead:
 
 ```bash
 git clone https://github.com/aantenore/mpsf.git
-/plugin marketplace add /absolute/path/to/agentic-sdlc
+/plugin marketplace add /absolute/path/to/mpsf
 /plugin install mpsf@aantenore
 ```
 
@@ -47,7 +47,7 @@ git clone https://github.com/aantenore/mpsf.git
 The same check is available without the plugin surface:
 
 ```bash
-node /path/to/agentic-sdlc/bin/mpsf.mjs doctor --json
+node /path/to/mpsf/bin/mpsf.mjs doctor --json
 ```
 
 A failed check exits non-zero and names the concrete fix.
@@ -98,11 +98,10 @@ Slash commands reference the CLI through `${CLAUDE_PLUGIN_ROOT}`, which Claude C
 ## Update
 
 ```bash
-/plugin marketplace update aantenore
-/plugin install mpsf@aantenore
+claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore
 ```
 
-From a shell: `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins` (the same command the plugin prints when a project needs a newer version).
+Then run `/reload-plugins` in the open session (the same command the plugin prints when a project needs a newer version). `/plugin install` only installs a plugin that is not installed yet; it does not update one.
 
 Project behavior does not change silently on update: each initialized project pins its configuration, and a plugin upgrade requires an explicit reviewed migration plan. See [Configuration safety](configuration-safety.md).
 
@@ -112,7 +111,7 @@ If a project already uses settings from a newer release (for example `host_polic
 
 Set `AGENTIC_SDLC_AUTO_UPDATE=1` in the environment of the computer to enable all of the following; without it nothing below runs.
 
-- **Update.** At SessionStart and Stop (at most every 15 minutes), and as soon as a channel message announces a newer mpsf release, the hook starts, detached and non-blocking, `claude plugin marketplace update <marketplace>` then `claude plugin update agentic-sdlc@<marketplace>`, within 120 seconds in total. The marketplace is read from the install path (`plugins/cache/<marketplace>/agentic-sdlc/<version>`), else from the plugin's `marketplace.json`. The throttle timestamp, the remembered session folders and the log (`agentic-sdlc-auto-update.log`) live in `$CLAUDE_PLUGIN_DATA`, or in `~/.claude`. Tunables: `AGENTIC_SDLC_AUTO_UPDATE_INTERVAL_MINUTES` (15), `AGENTIC_SDLC_AUTO_UPDATE_TIMEOUT_SECONDS` (120), `AGENTIC_SDLC_AUTO_UPDATE_CLAUDE_BIN` (`claude`).
+- **Update.** At SessionStart and Stop (at most every 15 minutes), and as soon as a channel message announces a newer mpsf release, the hook starts, detached and non-blocking, `claude plugin marketplace update <marketplace>` then `claude plugin update <plugin>@<marketplace>` (`mpsf`, or `agentic-sdlc` on a computer still on the old name), within 120 seconds in total. The marketplace is read from the install path (`plugins/cache/<marketplace>/<plugin>/<version>`), else from the plugin's `marketplace.json`. The throttle timestamp, the remembered session folders and the log (`agentic-sdlc-auto-update.log`) live in `$CLAUDE_PLUGIN_DATA`, or in `~/.claude`. Tunables: `AGENTIC_SDLC_AUTO_UPDATE_INTERVAL_MINUTES` (15), `AGENTIC_SDLC_AUTO_UPDATE_TIMEOUT_SECONDS` (120), `AGENTIC_SDLC_AUTO_UPDATE_CLAUDE_BIN` (`claude`).
 - **No reload for hooks and CLI.** The hook entry and `bin/mpsf.mjs` look for a newer semver folder next to the plugin root in the cache and run the same file of that version, passing stdin, arguments and exit code through; `AGENTIC_SDLC_FORWARDED` prevents forwarding loops.
 - **Files synced in place.** After an update (and at each SessionStart/Stop), the files of the newer version in `skills/`, `commands/`, `hooks/`, `lib/`, `bin/`, `templates/`, `schemas/` and `docs/` are copied over the folder the session uses (each file is written to a temp file, then renamed; a `.agentic-sdlc-synced-version` marker avoids repeating the copy). This happens only when that folder is inside the plugin cache and the source is a sibling with a higher version. Override the list with `AGENTIC_SDLC_AUTO_UPDATE_SYNC_DIRS` (comma-separated). Skill bodies and slash command texts are meant to be read from disk when invoked, so they should refresh without a reload; new skills or commands and changed descriptions in the listing still need `/reload-plugins` or a new session.
 - **Codex.** Not covered: there is no CLI equivalent of `claude plugin update`, so keep using the transactional installer.
@@ -155,7 +154,7 @@ This removes the plugin only. Every `.sdlc/` record stays in the project reposit
 
 | Symptom | Check | Fix |
 |---|---|---|
-| Slash commands do not appear | `/plugin` lists `agentic-sdlc` as enabled | Reinstall, then start a new conversation so the plugin surface reloads |
+| Slash commands do not appear | `/plugin` lists `mpsf` as enabled | Reinstall, then start a new conversation so the plugin surface reloads |
 | `node: command not found` in a command | `node --version` | Install a supported Node.js runtime and restart the client |
 | A command runs but every record is refused | `/mpsf:status` | The project is probably not initialized; run `init` or `onboard` first |
 | The Observatory URL returns 401 | The full URL including the `#access_token=` fragment was opened | Re-open the exact URL the CLI printed; the token is per-run and lives in the fragment |

@@ -24,7 +24,7 @@ All of it is in `.sdlc/config.json` under `host_policy`:
 }
 ```
 
-- A missing section means the default: GitHub channel, records in git, no roles.
+- A missing section means the default: the channel `message setup` chose for the clone (`git` for a new one, else the GitHub issue already in use), records in git, roles assigned automatically.
 - An unknown provider is refused with a clear error; it is never replaced by the default.
 - Credentials never go in the file. A key that looks like a secret must end in `_env` (name of an environment variable) or `_ref` (reference to a credential store, such as `keychain:team-chat`). Values are scanned for secrets.
 - Older plugins reject these keys, so computers on a plugin before 0.147.0 are told to update before they change the project.
@@ -33,7 +33,8 @@ All of it is in `.sdlc/config.json` under `host_policy`:
 
 | Provider | What it is | When to use it |
 |---|---|---|
-| `github` (default) | One issue of the repository, read and written with `gh` | Teams on GitHub |
+| `git` | One ref per computer on the project's own remote (`refs/agentic-sdlc/channel/<machine-id>`), each message a signed commit; what `message setup` picks for a new channel | Any git host, no other service or account |
+| `github` | One issue of the repository, read and written with `gh`; the fallback when no provider is set | Teams on GitHub, projects that already have a channel issue |
 | `local` | A channel file in a folder (`options.dir`, or `AGENTIC_SDLC_MESSAGING_LOCAL_DIR`) | One computer, tests, a shared network folder |
 | `none` | Messaging off | Anything that must not depend on a channel |
 
@@ -91,7 +92,7 @@ Assurance level: `full` (all of them), `standard` (hash chain and atomic publish
 
 ## Coordinator role
 
-With several computers, one can be the coordinator. It governs and does not develop: it assigns stories, merges pull requests one at a time, publishes records and baselines from one place, settles expired waits and unanswered questions, releases the plugin, triages defects and keeps the base branch green. Developers deliver up to the pull request and hand over.
+With several computers, one can be the coordinator. It governs and does not develop: it merges pull requests one at a time, publishes records and baselines from one place, settles expired waits and unanswered questions, frees abandoned claims, checks record consistency, releases the plugin and keeps the base branch green. It does not assign stories (every computer claims its own) or triage defects. Developers deliver up to the pull request and hand over.
 
 | Setting | Meaning |
 |---|---|

@@ -95,10 +95,14 @@ A held claim is `active`, `waiting`, `idle` (no push for
 (lease ended, no valid wait). When the work legitimately waits, the holder says
 so: `story wait --id <story> --on <dep:<story>|pr:<url>|person:"<question>"> --until <time|3d> [--reason <why>]`
 (and `story wait --id <story> --clear` when it can continue). A valid wait keeps
-the claim from being abandoned on every computer. An abandoned claim is never
-freed by itself: status lists it as needing a person's decision with the
-exact takeover (`story claim ... --force --reason ... --actor-type human`) and
-park commands. `story park --review-at <time|3d>` lists a parked story to
+the claim from being abandoned on every computer. When the project has a
+coordinator (assigned automatically among the computers alive on the remote),
+it frees an abandoned claim by itself (`coordinator free-claims`, every 15
+minutes) when the lease ended with no push, no declared wait and no live
+presence of the holder, and leaves a handoff pack for the next computer. Until
+then, or with `AGENTIC_SDLC_ROLE_DUTIES=off`, status lists it as needing a
+person's decision with the exact takeover (`story claim ... --force --reason
+... --actor-type human`) and park commands. `story park --review-at <time|3d>` lists a parked story to
 review once that time passes.
 
 ### Stories that change the same files

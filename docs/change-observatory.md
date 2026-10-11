@@ -5,10 +5,12 @@ Change Observatory is the visual, local-first lineage reader bundled with MPSF. 
 ## Your First Time
 
 Change Observatory is a small web page that runs on your own computer and only
-reads your project's recorded history. It never changes your project's files
-or recorded history. To stay current it fetches the shared branch from your Git
-remote and, if messaging is on, reads the project channel; it does not upload
-your records. This is what to expect the first time.
+reads your project's recorded history. It never edits your code or your
+records. To stay current it fetches from your Git remote and, if messaging is
+on, reads the project channel; it does not upload your records. With the
+`sdlc-state` record store, `--worktree` copies the records other computers
+published on that branch into your `.sdlc/` folder (never over a record changed
+here), and the ref mode keeps a snapshot under `.git/agentic-sdlc/observatory/`. This is what to expect the first time.
 
 1. **Start it.** Ask your agent to open the Change Observatory for this project,
    or run the command yourself (see below). If your agent offers plugin
