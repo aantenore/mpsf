@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.3
+
+- When the computer holding a role runs a plugin too old for one of its automatic duties (`since` in `config/role-duties.json`), one live computer with a recent plugin, chosen by rendezvous hashing, runs that duty in its place. The holder keeps the role and everything it already does; a pinned role never gets a stand-in.
+- Channel messages waiting for their push window start the detached tick within seconds again, not at the next 5-minute tick.
+- Change Observatory: no change needed. Compatibility: older holders are covered by the stand-in; nothing new is written.
+
 ## 0.159.2
 
 - `coordinator main-green` judges the base branch by the newest commit that ran CI: record commits marked `[skip ci]` (or `skip-checks: true`) no longer hide a red main. A fresh commit whose CI has not started yet is still judged by itself.
