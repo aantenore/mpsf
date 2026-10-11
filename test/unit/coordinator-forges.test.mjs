@@ -116,6 +116,43 @@ test("gitea and forgejo pull requests normalize, filter by base and merge with h
   assert.deepEqual([status.state, status.url, status.failing[0].name], ["red", "https://codeberg.org/o/r/commit/m2", "ci"]);
 });
 
+/** Fake gh runner: answers by the api path (query dropped) and records each call. */
+function fakeGh(routes, calls = []) {
+  return (args) => {
+    calls.push(args);
+    const answer = routes[String(args[1]).split("?")[0]];
+    return answer === undefined ? { status: 1, stdout: "", stderr: "not found" } : { status: 0, stdout: JSON.stringify(answer), stderr: "" };
+  };
+}
+
+test("github base status looks past [skip ci] commits, but not past a commit that only has no runs yet", () => {
+  const commits = [
+    { sha: "tip", url: "u-tip", message: "records of ST-9 [skip ci]" },
+    { sha: "records", url: "u-records", message: "records of ST-8\n\nskip-checks: true" },
+    { sha: "code", url: "u-code", message: "feat: add x" },
+  ];
+  const calls = [];
+  const routes = {
+    "repos/{owner}/{repo}/commits": commits,
+    "repos/{owner}/{repo}/commits/tip/check-runs": [],
+    "repos/{owner}/{repo}/commits/code/check-runs": [{ name: "test", status: "completed", conclusion: "failure", html_url: "j1" }],
+  };
+  const forge = resolveForge("/x", { env: { AGENTIC_SDLC_FORGE: "github" }, url: "/local/path", runner: fakeGh(routes, calls) }).forge;
+  const red = forge.baseStatus("main");
+  assert.deepEqual([red.sha, red.url, red.state, red.failing.map((item) => item.name)], ["code", "u-code", "red", ["test"]]);
+  assert.match(calls[0][1], /commits\?sha=main&per_page=30/u);
+
+  // A just-pushed fix whose CI has not started is judged by itself: unknown, not the older red.
+  const fixed = fakeGh({ ...routes, "repos/{owner}/{repo}/commits": [{ sha: "fix", url: "u-fix", message: "fix: x" }, ...commits], "repos/{owner}/{repo}/commits/fix/check-runs": [] });
+  const pending = resolveForge("/x", { env: { AGENTIC_SDLC_FORGE: "github" }, url: "/local/path", runner: fixed }).forge.baseStatus("main");
+  assert.deepEqual([pending.sha, pending.state], ["fix", "unknown"]);
+
+  // Every recent commit skips CI: the tip is judged.
+  const all = fakeGh({ "repos/{owner}/{repo}/commits": commits.slice(0, 2), "repos/{owner}/{repo}/commits/tip/check-runs": [] });
+  const skipped = resolveForge("/x", { env: { AGENTIC_SDLC_FORGE: "github" }, url: "/local/path", runner: all }).forge.baseStatus("main");
+  assert.deepEqual([skipped.sha, skipped.state], ["tip", "unknown"]);
+});
+
 test("a forge error names the status and the forge message, never the token", () => {
   const http = fakeHttp({ "PUT /api/v4/projects/g%2Fp/merge_requests/2/merge": 405 });
   const forge = resolveForge("/x", { env: { GITLAB_TOKEN: "s3cr3t" }, url: "https://gitlab.com/g/p", http }).forge;

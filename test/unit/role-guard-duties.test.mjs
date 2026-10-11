@@ -21,7 +21,7 @@ test("reserved action ids: a delivery step is named after its action", () => {
 
 test("only a pinned coordinator's reserved actions are refused, and only while another computer holds the role", () => {
   const lease = { host: "pc-a", expires_at: iso(NOW + 10 * MIN) };
-  const base = { actionId: "wait.resolve", host: "pc-b", lease, now: NOW };
+  const base = { actionId: "baseline.refresh", host: "pc-b", lease, now: NOW };
   // Automatic roles block nobody.
   assert.equal(reservedActionDecision({ ...base, config: {} }).allowed, true);
   const refused = reservedActionDecision({ ...base, config: pinned() });

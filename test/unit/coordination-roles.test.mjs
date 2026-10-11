@@ -11,7 +11,7 @@ test("without a coordinator every computer keeps today's flows", () => {
   const role = resolveRole({}, { host: "pc-a", now: NOW });
   assert.equal(role.mode, "everyone");
   assert.equal(role.may_run_reserved, true);
-  assert.equal(isReservedAction({}, "story.publish-records"), false);
+  assert.equal(isReservedAction({}, "baseline.refresh"), false);
 });
 
 test("the lease holder is the coordinator; the others develop", () => {
@@ -39,7 +39,9 @@ test("reserved actions: defaults, a command prefix covers its steps, and the lis
   const settings = config({ hosts: ["pc-a"] });
   assert.equal(isReservedAction(settings, "autonomy.delivery.action:pull_request.merge"), true);
   assert.equal(isReservedAction(settings, "autonomy.delivery.action:git.push"), false);
-  assert.equal(isReservedAction(settings, "story.publish-records"), true);
+  assert.equal(isReservedAction(settings, "baseline.refresh"), true);
+  for (const action of ["story.publish-records", "wait.resolve", "story.assign", "plugin.release"]) assert.equal(isReservedAction(settings, action), false, `${action} is not reserved by default`);
+  assert.equal(isReservedAction(config({ hosts: ["pc-a"], reserved_actions: ["story.publish-records"] }), "story.publish-records"), true, "an explicit list can still add it");
   assert.equal(isReservedAction(config({ hosts: ["pc-a"], reserved_actions: ["release"] }), "release:plugin"), true);
 });
 

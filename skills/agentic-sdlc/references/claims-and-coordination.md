@@ -239,6 +239,6 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    other computers, and the role's holder starts the automatic ones by
    itself, so run them only when the user asks. When a command is refused as
    reserved to the coordinator, leave that step to the coordinator (hand over
-   the pull request or the records) and go on with the rest; never set
+   the pull request) and go on with the rest; never set
    `AGENTIC_SDLC_ROLES=off` yourself to get past it. Messaging is
    optional (`git`, `github`, `local` or `none`): claims and waits never depend on it.
