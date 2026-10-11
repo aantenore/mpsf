@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.149.3 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.150.1 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,7 +37,9 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
-- **0.149.3** — English output: hook texts, channel `[auto]` messages, waits and `roles status` in English (`--locale it` keeps Italian for `wait` and `roles status`); the update request keeps its `[auto] aggiorna il plugin` prefix so older plugins still recognize it. Logo in the README; repository links in `package.json`.
+- **0.150.1** — English output: hook texts, channel `[auto]` messages, waits and `roles status` in English (`--locale it` keeps Italian for `wait` and `roles status`); the update request keeps its `[auto] aggiorna il plugin` prefix so older plugins still recognize it. Logo in the README; repository links in `package.json`.
+- **0.150.0** — messages between computers on git: one signed ref per computer in the project's remote, any git host, default for new channels (projects with a GitHub channel issue keep it); signed messages and computer keys registered in `.sdlc/machines`, untrusted ones marked in `message read` and the Change Observatory.
+- **0.149.3** — first step of the rename to **mpsf** (My Personal Software Factory): `mpsf` command next to `agentic-sdlc`, `MPSF_*` variables as aliases of `AGENTIC_SDLC_*`.
 - **0.149.2** — Codex `SessionEnd` hook within its 3-second limit: no more timeout notice on every run.
 - **0.149.1** — computers and roles without messages: presence refs on the remote, coordinator and knowledge roles held by one alive computer each through create-only leases, handed over at renewal; `roles status`.
 - **0.149.0** — known error database: when a gate, a test record or a command fails, the CLI shows the recorded fix of the same failure (deterministic signature, same on every computer); `known-error add --from-last-failure` records a new fix, `known-error outcome` reports whether it worked, a safe fix accepted by a person runs with `known-error apply`; Change Observatory panel "Known errors".

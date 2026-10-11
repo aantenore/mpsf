@@ -55,6 +55,10 @@
       "since": "0.149.0",
       "summary": "Known error database: recorded fixes shown when the same failure happens again",
       "config_keys": ["host_policy.known_errors"]
+    },
+    "git-messaging-channel": {
+      "since": "0.150.0",
+      "summary": "Signed messages between computers on git refs (provider git) and registered computer keys in .sdlc/machines"
     }
   }
 }
