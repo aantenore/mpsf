@@ -4509,6 +4509,8 @@ test("lifecycle-complete strict gate requires the pre-task workflow and an alter
     AGENTIC_SDLC_TEST_LIFECYCLE_LOCK_MARKER: outputRaceMarkerPath,
   });
   await waitForTextFile(outputRaceMarkerPath, lifecycleLockPath);
+  // The single-flight guard refuses a second command on the same story while
+  // the gate runs; waiting lets the link start once the gate has finished.
   const outputRaceLinkPromise = runConcurrently([
     "output", "link",
     "--root", project,
@@ -4521,7 +4523,7 @@ test("lifecycle-complete strict gate requires the pre-task workflow and an alter
     "--id", certifiedImplementationOutput.id,
     "--authorization", fixture.storyActionAuthorizationId,
     "--json",
-  ], project);
+  ], project, WAIT_FOR_SINGLE_FLIGHT);
   const [outputRaceGate, outputRaceLink] = await Promise.all([
     outputRaceGatePromise,
     outputRaceLinkPromise,
