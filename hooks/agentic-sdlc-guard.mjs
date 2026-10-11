@@ -26,7 +26,7 @@ import {
   sessionStartContext,
   strictMainThreadVerdict,
 } from "../lib/host-hooks/guard.mjs";
-import { isGuardExempt, isUngovernedRepo, mergeAuthorized, storyPushAuthorized } from "../lib/host-hooks/merge-authorization.mjs";
+import { ghAlias, gitAlias, isGuardExempt, isUngovernedRepo, mergeAuthorized, storyPushAuthorized } from "../lib/host-hooks/merge-authorization.mjs";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(PLUGIN_ROOT, "bin", "agentic-sdlc.mjs");
@@ -165,6 +165,8 @@ async function preToolUse(payload) {
     isUngovernedRepo: (attempt) => isUngovernedRepo(payload.cwd, attempt.dirs, process.env) || isGuardExempt(payload.cwd, attempt),
     isMergeAuthorized: (attempt) => mergeAuthorized(root, payload.cwd, attempt),
     isStoryPushAuthorized: (attempt) => storyPushAuthorized(root, payload.cwd, attempt),
+    resolveGitAlias: (name, dirs) => gitAlias(payload.cwd, dirs, name),
+    resolveGhAlias: (name) => ghAlias(name),
   });
   if (verdict?.decision === "deny") {
     process.stderr.write(`${verdict.reason}\n`);

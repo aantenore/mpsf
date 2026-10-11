@@ -1006,3 +1006,95 @@ test("strict main-thread mode denies edits inside the project and worktrees, all
     fs.rmSync(outside, { recursive: true, force: true });
   }
 });
+
+test("un-exporting the session markers, an emptied environment, or a hidden subcommand does not get past the guard", () => {
+  for (const command of [
+    "env -i PATH=$PATH mpsf story claim --id ST-1 --agent x --takeover",
+    "env - PATH=$PATH mpsf status",
+    "export -n CLAUDECODE; mpsf story claim --id ST-1",
+    "declare +x CLAUDECODE && mpsf story claim --id ST-1",
+    "typeset +x CODEX_THREAD_ID",
+    "exec -c mpsf story claim --id ST-1",
+    "sudo mpsf story claim --id ST-1",
+    "node -e \"require('child_process').spawnSync('mpsf',['story','abandon'],{env:{}})\"",
+    "x=standing; mpsf autonomy $x approve --id SA-1",
+    "s=abandon; mpsf story $s --id ST-1",
+    "mpsf autonomy standing $(echo approve) --id SA-1",
+    "echo approve | xargs mpsf autonomy standing",
+    "M=mpsf; $M autonomy standing approve --id SA-1",
+  ]) {
+    assert.equal(evaluatePreToolUse(shell(command))?.decision, "deny", command);
+  }
+  for (const command of [
+    "mpsf message send \"Ready? yes *\"",
+    "mpsf story claim --id $ID",
+    "echo $CLAUDECODE",
+    "xargs -n1 mpsf story show --id < ids.txt",
+  ]) {
+    assert.equal(evaluatePreToolUse(shell(command)), null, command);
+  }
+});
+
+test("a push to the base branch or a merge through an alias, a variable, xargs, a script or the API is refused", () => {
+  const options = {
+    env: {},
+    isMergeAuthorized: (attempt) => (attempt.currentBranchOnly ? true : !attempt.direct && !attempt.unresolved && attempt.number === 7),
+    isStoryPushAuthorized: () => true,
+    resolveGitAlias: (name) => ({ pp: "push origin main", sh: "!git push origin HEAD:master", st: "status" })[name] ?? null,
+    resolveGhAlias: (name) => ({ m: "pr merge" })[name] ?? null,
+  };
+  for (const command of [
+    "git -c alias.p=push p origin HEAD:main",
+    "git -c alias.p='push --force' p origin main",
+    "git -c alias.x='!git push origin main' x",
+    "git pp",
+    "git sh",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p origin main",
+    "b=main; git push origin HEAD:$b",
+    "git push origin HEAD:$BRANCH",
+    "git push origin HEAD:ma$(echo in)",
+    "git push --all origin",
+    "echo push origin main | xargs git",
+    "echo main | xargs git push origin",
+    "python3 -c \"import subprocess; subprocess.run(['git','push','origin','main'])\"",
+    "gh api graphql -f query='mutation { mergePullRequest(input:{pullRequestId:\"x\"}) { clientMutationId } }'",
+    "gh api graphql -F query=@merge.graphql",
+    "gh api -X PATCH repos/o/r/git/refs/heads/main -f sha=abc",
+    "gh api repos/o/r/merges -f base=main -f head=x",
+    "curl -X PUT -H \"Authorization: token $(gh auth token)\" https://api.github.com/repos/o/r/pulls/12/merge",
+    "gh alias set m 'pr merge' && gh m 12",
+    "gh m 12",
+    "gh pr merge $N",
+  ]) {
+    assert.equal(evaluatePreToolUse(shell(command), options)?.decision, "deny", command);
+  }
+  for (const command of [
+    "git push origin feature/x",
+    "b=feature/x; git push origin HEAD:$b",
+    "git push",
+    "gh pr merge 7",
+    "git st",
+    "gh api repos/o/r/pulls/12",
+    "gh api graphql -f query='{ viewer { login } }'",
+    "curl https://api.github.com/repos/o/r/pulls/12",
+    "git log --grep push",
+    "gh alias set v 'pr view'",
+    "node -e \"console.log(1)\"",
+  ]) {
+    assert.equal(evaluatePreToolUse(shell(command), options), null, command);
+  }
+});
+
+test("git aliases are resolved in the repository the command targets", async () => {
+  const { gitAlias, mergeAuthorized } = await import("../../lib/host-hooks/merge-authorization.mjs");
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "hook-alias-"));
+  try {
+    spawnSync("git", ["init", "-q", repo]);
+    spawnSync("git", ["-C", repo, "config", "alias.ship", "push origin main"]);
+    assert.equal(gitAlias(repo, [], "ship"), "push origin main");
+    assert.equal(gitAlias(repo, [], "missing"), null);
+    assert.equal(mergeAuthorized(repo, repo, { unresolved: true, direct: true }), false);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
