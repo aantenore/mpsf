@@ -33,6 +33,7 @@
     "doctor": "node bin/agentic-sdlc.mjs doctor",
     "smoke": "node bin/agentic-sdlc.mjs --help",
     "test": "node scripts/run-test-suite.mjs",
+    "test:fast": "node scripts/run-test-suite.mjs --tier=fast",
     "test:enterprise": "npm test && npm run benchmark:enterprise"
   },
   "keywords": [

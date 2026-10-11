@@ -1,0 +1,184 @@
+{
+  "schema": "agentic-sdlc.test-tiers.v1",
+  "tiers": {
+    "fast": {
+      "description": "Routine local check: cheap unit files run whole, plus selected end-to-end smoke tests per feature area. Releases use the full suite.",
+      "files": [
+        "test/unit/",
+        "test/distribution-surface-contract.e2e.mjs",
+        "test/novice-plugin-metadata.test.mjs",
+        "test/story-backfill.test.mjs",
+        "test/token-efficiency-autoconfiguration.test.mjs"
+      ],
+      "exclude": [
+        "test/unit/approval-delegation.test.mjs",
+        "test/unit/change-observatory-runtime.test.mjs",
+        "test/unit/cli-dispatch.e2e.test.mjs",
+        "test/unit/cli-observability.test.mjs",
+        "test/unit/derived-verification-cli.test.mjs",
+        "test/unit/enterprise-performance-benchmark.test.mjs",
+        "test/unit/governance-mutation-cli.test.mjs",
+        "test/unit/identity-migration.test.mjs",
+        "test/unit/initialization-guidance.test.mjs",
+        "test/unit/internal-lock-reclaim.test.mjs",
+        "test/unit/messaging-auto.test.mjs",
+        "test/unit/messaging-identity.test.mjs",
+        "test/unit/messaging.test.mjs",
+        "test/unit/pr-base-behind.test.mjs",
+        "test/unit/status-sync.test.mjs",
+        "test/unit/story-scope.test.mjs",
+        "test/unit/test-evidence-cli.test.mjs",
+        "test/unit/timed-run.test.mjs",
+        "test/unit/trace-status-observability.test.mjs",
+        "test/unit/trace-supersede.test.mjs",
+        "test/unit/workflow-cli-integrity.test.mjs",
+        "test/unit/workflow-cli.test.mjs",
+        "test/unit/workflow-human-approval.test.mjs"
+      ],
+      "smoke": {
+        "test/autonomy-cli.e2e.mjs": [
+          "task start blocks product work before preflight when approved requirement write scope is empty"
+        ],
+        "test/baseline-refresh-guard.e2e.mjs": [
+          "projects outside git and repositories without a commit refresh as before"
+        ],
+        "test/baseline-refresh-shared.e2e.mjs": [
+          "a refresh on a computer without a reachable remote writes nothing in a shared project"
+        ],
+        "test/baseline-scale.e2e.mjs": [
+          "baseline summaries come from the derived index until a record changes"
+        ],
+        "test/budget-cost-control.e2e.mjs": [
+          "the shipped default budget is soft-only, so a normal project can complete without signing keys"
+        ],
+        "test/capability-inventory.e2e.mjs": [
+          "capability inventory is a catalogued read-only command"
+        ],
+        "test/cli-exit-codes.e2e.mjs": [
+          "a completed command exits 0",
+          "a blocked gate check exits 1 and the documented pipeline example treats it that way"
+        ],
+        "test/cli-self-service.e2e.mjs": [
+          "machine mode returns one stable JSON error envelope"
+        ],
+        "test/cli.e2e.mjs": [
+          "status starts the stock story workflow and routes custom phases to an exact definition",
+          "story create persists acceptance criteria with human-readable alias",
+          "contract create auto-links story contract and requires explicit replacement",
+          "strict gate fails when a story has no contract"
+        ],
+        "test/delegated-approvals.e2e.mjs": [
+          "story.supersede: a delegation lets the agent supersede one story; none or an expired one is refused"
+        ],
+        "test/delegation-publish.e2e.mjs": [
+          "an altered or missing delegation is never published"
+        ],
+        "test/doctor-records.e2e.mjs": [
+          "doctor suggests a readable identity for shared claims and confirms it once set"
+        ],
+        "test/governance-finalization.e2e.mjs": [
+          "the latest failed test or release trace overrides an older passing attempt for steps and final gate"
+        ],
+        "test/identity-migration.e2e.mjs": [
+          "migration identity CLI recovers only the prepared exact physical mutation set"
+        ],
+        "test/merge-decision.e2e.mjs": [
+          "the merge choice is the user's explicit answer and automatic needs merge authority above supervised"
+        ],
+        "test/merged-certification.e2e.mjs": [
+          "documentation committed after the merge and an untracked note leave the merged story completed"
+        ],
+        "test/novice-requirement-journey.e2e.mjs": [
+          "requirement intake is useful before a contract exists",
+          "fresh init hides bootstrap records and points to the first meaningful choice"
+        ],
+        "test/operations-phase.e2e.mjs": [
+          "a story in the operations phase records incidents and feedback against a real release manifest"
+        ],
+        "test/plugin-compatibility.e2e.mjs": [
+          "a project whose records this plugin understands runs normally and its cache follows the plugin version"
+        ],
+        "test/project-archive.e2e.mjs": [
+          "project archive refuses when a remote cannot be checked and when shared refs sit on a remote"
+        ],
+        "test/records-publish-scope.e2e.mjs": [
+          "publishing named record files refuses a path outside the records folder and pushes nothing"
+        ],
+        "test/regression-governance-matrix.test.mjs": [
+          "delivery matrix binds local, new PR, and existing PR targets without widening actions",
+          "workflow matrix preserves v1/v2 and governs v3 with phase-bound evidence",
+          "autonomy and authority matrix resolves all levels and fails closed on unverifiable authority"
+        ],
+        "test/release-package-verifier.e2e.mjs": [
+          "verifies a real npm pack through offline install and installed-package smoke tests"
+        ],
+        "test/requirement-supersede-same-source.e2e.mjs": [
+          "the replacement revision must still be source-fresh"
+        ],
+        "test/review-gate.e2e.mjs": [
+          "a new pull-request delivery needs the user's own answer on code review"
+        ],
+        "test/secret-scan.e2e.mjs": [
+          "an explicit commit range scans only what that range changed"
+        ],
+        "test/standing-approvals.e2e.mjs": [
+          "a project without git still uses its standing approvals on this computer"
+        ],
+        "test/story-claims-shared.e2e.mjs": [
+          "a story claimed on another computer cannot be cancelled from here until its claim ends"
+        ],
+        "test/story-close.e2e.mjs": [
+          "story close on a merged story runs sync, scan and release trace with one shared fetch"
+        ],
+        "test/story-closure.e2e.mjs": [
+          "story abandon closes a started story that delivered nothing and releases its claim"
+        ],
+        "test/story-fix.e2e.mjs": [
+          "a fix story records its link, inherits requirements, starts in design and shows in the Observatory"
+        ],
+        "test/story-prepare.e2e.mjs": [
+          "preparing with an open dependency makes the contract, the worktree from origin/main and the record, and starts nothing"
+        ],
+        "test/story-split-dependencies.e2e.mjs": [
+          "a dependency names the story it effectively waits on and where that story stands"
+        ],
+        "test/story-sync.e2e.mjs": [
+          "story sync rebases freely once the governed commit is on the remote"
+        ],
+        "test/story-waits.e2e.mjs": [
+          "wait conditions, leases, and claim health follow plain rules"
+        ],
+        "test/template-overlay-security.e2e.mjs": [
+          "custom template asset symlinks are rejected before initialization"
+        ],
+        "test/test-triage.e2e.mjs": [
+          "test record keeps the case and the failed-minor outcome in the record and in the trace"
+        ],
+        "test/trace-rebase.e2e.mjs": [
+          "trace rebase also merges the output registry by entry id"
+        ],
+        "test/unit/cli-observability.test.mjs": [
+          "unknown JSON help paths redact GitHub tokens from every error branch"
+        ],
+        "test/unit/derived-verification-cli.test.mjs": [
+          "requirement propose derives secondary criteria and keeps explicit acceptance unchanged"
+        ],
+        "test/unit/governance-mutation-cli.test.mjs": [
+          "CLI init completes through its exact bootstrap mutation profile"
+        ],
+        "test/unit/initialization-guidance.test.mjs": [
+          "an empty project is guided to init"
+        ],
+        "test/unit/test-evidence-cli.test.mjs": [
+          "a story still missing a passing test trace keeps failing, and disabling the policy stops the check"
+        ],
+        "test/unit/trace-status-observability.test.mjs": [
+          "an uninitialized folder puts the initialize instruction in the primary next step"
+        ],
+        "test/unit/workflow-cli-integrity.test.mjs": [
+          "start recovery preserves divergent staging bytes and fails closed"
+        ]
+      }
+    }
+  }
+}
