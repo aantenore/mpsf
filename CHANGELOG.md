@@ -2,6 +2,15 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.2
+
+- `coordinator main-green` judges the base branch by the newest commit that ran CI: record commits marked `[skip ci]` (or `skip-checks: true`) no longer hide a red main. A fresh commit whose CI has not started yet is still judged by itself.
+- The host hook no longer waits for the network: the presence and roles tick runs in a detached process, at most every 5 minutes, so the messages a hook shows are never held up or lost.
+- Duties that publish records keep their last outcome (`<git common dir>/agentic-sdlc/duties/<duty>.result.json`), and `roles status` shows it, including why a push was refused (a protected branch, for example). A base worktree left dirty by a dead run is cleaned before the next duty instead of stopping them for good.
+- A pinned coordinator host with `fallback: hold` or `next_host` takes the free lease when it needs a reserved action, instead of being refused until its next tick.
+- Default reserved actions are now only `autonomy.delivery.action:pull_request.merge` and `baseline.refresh`: reserving `story.publish-records` made `story close` fail on every other computer, `wait.resolve` must stay with each computer, and `story.assign` and `plugin.release` were not commands. `reserved_actions` replaces the list when set.
+- Change Observatory: no change needed. Compatibility: nothing changes for older plugins.
+
 ## 0.159.1
 
 - With `--json`, a failing command no longer appends the known-error hint to stderr, so the JSON error payload stays parseable; the failure is still remembered for `mpsf known-error add --from-last-failure`.

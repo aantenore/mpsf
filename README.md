@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.2** — main-green reads the newest commit that ran CI; roles tick detached from the hook; duty outcomes in roles status; fewer default reserved actions.
 - **0.159.1** — `--json` error output stays parseable (no known-error hint appended); bridge entry version-locked again.
 - **0.159.0** — traces, workflow instances and final gate receipts on the `sdlc-state` branch too (re-run `state migrate`): histories both computers extended are rebased, never overwritten; dependency checks, closing records, the fork warning and story sync read them from there.
 - **0.158.3** — CLI messages and examples say `mpsf <command>`; `agentic-sdlc` stays an alias.
