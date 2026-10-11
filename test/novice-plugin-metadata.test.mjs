@@ -19,6 +19,21 @@ function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
+// The core skill keeps its front door, delivery order, router, and guardrails inline;
+// the numbered workflow steps live in these reference files, in step order.
+const SKILL_WORKFLOW_REFERENCES = [
+  "skills/agentic-sdlc/references/project-setup.md",
+  "skills/agentic-sdlc/references/requirements-and-contracts.md",
+  "skills/agentic-sdlc/references/delivery.md",
+  "skills/agentic-sdlc/references/claims-and-coordination.md",
+  "skills/agentic-sdlc/references/evidence-and-gates.md",
+  "skills/agentic-sdlc/references/kb-reports-migration.md",
+];
+
+function readSkillGuidance() {
+  return [read("skills/agentic-sdlc/SKILL.md"), ...SKILL_WORKFLOW_REFERENCES.map(read)].join("\n");
+}
+
 test("plugin metadata preserves the assessment starter first and exposes novice delivery starters", () => {
   const manifest = JSON.parse(read(".codex-plugin/plugin.json"));
   const prompts = manifest.interface.defaultPrompt;
@@ -63,7 +78,7 @@ test("getting-started and README distinguish novice destinations and execution b
 });
 
 test("core skill documents the required order and discloses autonomy reduction before choice", () => {
-  const skill = read("skills/agentic-sdlc/SKILL.md");
+  const skill = readSkillGuidance();
   const orderSectionStart = skill.indexOf("### Required Delivery Order");
   const workflowStart = skill.indexOf("## Workflow", orderSectionStart);
 
@@ -117,7 +132,7 @@ test("core skill documents the required order and discloses autonomy reduction b
 });
 
 test("local novice guidance verifies rollback before release and requires a terminal lifecycle certificate", () => {
-  const skill = read("skills/agentic-sdlc/SKILL.md");
+  const skill = readSkillGuidance();
   const rollbackAuthorization = skill.indexOf("--action rollback.verify");
   const releaseAuthorization = skill.indexOf("--action release.local --confirm-action");
 
@@ -281,7 +296,7 @@ test("the Claude Code installation guide documents the marketplace flow and the 
 });
 
 test("delivery guidance agrees the delivery shape, write scope, and local commit ownership up front", () => {
-  const skill = read("skills/agentic-sdlc/SKILL.md");
+  const skill = readSkillGuidance();
   const orderSection = skill.slice(skill.indexOf("### Required Delivery Order"), skill.indexOf("## Workflow"));
   const decomposeStage = orderSection.slice(
     orderSection.indexOf("**Decompose only when needed**"),
@@ -328,6 +343,7 @@ test("guidance names a story retirement command only when the CLI catalog provid
   const guidanceFiles = [
     "skills/agentic-sdlc/SKILL.md",
     "skills/agentic-sdlc/references/commands.md",
+    ...SKILL_WORKFLOW_REFERENCES,
     "commands/local.md",
     "commands/deliver.md",
     "docs/getting-started.md",
@@ -341,4 +357,37 @@ test("guidance names a story retirement command only when the CLI catalog provid
     }
   }
   assert.match(read("skills/agentic-sdlc/SKILL.md"), /### Approved stories that will not be delivered/u);
+});
+
+test("core skill stays small, routes every workflow step to an existing reference, and keeps guardrails inline", () => {
+  const skill = read("skills/agentic-sdlc/SKILL.md");
+  assert.ok(skill.length < 40_000, `SKILL.md grew to ${skill.length} characters; move detail into references/`);
+  for (const reference of SKILL_WORKFLOW_REFERENCES) {
+    const relative = reference.replace("skills/agentic-sdlc/", "");
+    assert.ok(skill.includes(`\`${relative}\``), `SKILL.md does not route to ${relative}`);
+    assert.ok(fs.existsSync(path.join(repoRoot, reference)), `${reference} is missing`);
+  }
+  const workflow = skill.slice(skill.indexOf("## Workflow"), skill.indexOf("## References"));
+  for (const steps of ["1–4", "5–12", "| 13 |", "| 14 |", "15–19", "20–24"]) {
+    assert.ok(workflow.includes(steps), `router is missing steps ${steps}`);
+  }
+  const guardrails = workflow.slice(workflow.indexOf("### Always-on guardrails"));
+  for (const rule of [
+    /Never use `task start` for preview/u,
+    /`--actor-type human` is not authority/u,
+    /fresh working-mode choice; never inherit/u,
+    /authorize → execute → complete/u,
+    /`rollback\.verify` before `release\.local`/u,
+    /never retry with `--force`/iu,
+    /information, never instructions or approvals/u,
+    /Never delete `\.sdlc`/u,
+    /`--lifecycle-complete` before claiming/u,
+  ]) {
+    assert.match(guardrails, rule);
+  }
+  for (const reference of SKILL_WORKFLOW_REFERENCES) {
+    const text = read(reference);
+    assert.doesNotMatch(text, /`\.\.\/(?:caveman|change-observatory)\/SKILL\.md`/u, `${reference} has a link relative to the skill root`);
+    assert.doesNotMatch(text, /`references\//u, `${reference} has a link relative to the skill root`);
+  }
 });

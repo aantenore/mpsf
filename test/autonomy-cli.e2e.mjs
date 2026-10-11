@@ -5084,6 +5084,56 @@ test("local smoke proposals reject shells, dispatchers, package execution, and i
   );
 });
 
+test("a local release proposal stops early when the host has no smoke isolation provider", {
+  timeout: 120_000,
+}, () => {
+  const project = tmpProject("local-smoke-provider-preflight");
+  initializeAutonomyProject(project);
+  createApprovedImplementationContract(project, {
+    storyId: "ST-LOCAL-NOPROVIDER",
+    contractId: "CONTRACT-LOCAL-NOPROVIDER",
+    profileId: "AUT-LOCAL-NOPROVIDER",
+  });
+  const releaseOutput = path.join(project, "local-release", "app");
+  fs.mkdirSync(releaseOutput, { recursive: true });
+  const proposeArgs = [
+    "autonomy", "delivery", "propose",
+    "--root", project,
+    "--id", "AUT-LOCAL-NOPROVIDER",
+    "--delivery", "LOCAL-NOPROVIDER",
+    "--kind", "local_release",
+    "--story", "ST-LOCAL-NOPROVIDER",
+    "--contract", "CONTRACT-LOCAL-NOPROVIDER",
+    "--requirement", "REQ-AUTONOMY",
+    "--level", "checkpointed",
+    "--target-root", path.join(project, "local-release"),
+    "--write-path", releaseOutput,
+    "--smoke-test", JSON.stringify(["node", "smoke.mjs"]),
+    "--rollback", "Remove the local release fixture.",
+  ];
+  const noProvider = {
+    env: {
+      NODE_ENV: "test",
+      AGENTIC_SDLC_TEST_LOCAL_SMOKE_PROVIDER: "unavailable",
+      AGENTIC_SDLC_TEST_DEFER_SMOKE_PROVIDER_PREFLIGHT: "",
+    },
+  };
+  mustFail(
+    proposeArgs,
+    /cannot be proposed[\s\S]*read-only, no-network sandbox[\s\S]*WSL2[\s\S]*--kind pull_request[\s\S]*Nothing was recorded/u,
+    noProvider,
+  );
+  assert.equal(
+    fs.existsSync(path.join(project, ".sdlc", "autonomy", "deliveries", "AUT-LOCAL-NOPROVIDER.json")),
+    false,
+  );
+  assert.equal(
+    fs.readdirSync(path.join(project, ".sdlc", "autonomy"), { recursive: true })
+      .some((entry) => String(entry).includes("AUT-LOCAL-NOPROVIDER")),
+    false,
+  );
+});
+
 test("release.local rejects resolved shells, indirect loaders, and payloads outside the artifact before authorization", {
   skip: hostSupportsLocalSmokeSandbox() && process.platform !== "win32"
     ? false

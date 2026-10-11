@@ -184,10 +184,10 @@ test("first-user docs explain compact JSON, governed root creation, and proposal
     path.join(TEST_ROOT, "docs", "configuration-safety.md"),
     "utf8",
   );
-  const skill = fs.readFileSync(
-    path.join(TEST_ROOT, "skills", "agentic-sdlc", "SKILL.md"),
-    "utf8",
-  );
+  // The numbered workflow steps moved verbatim from SKILL.md into its references.
+  const skill = ["SKILL.md", "references/claims-and-coordination.md"]
+    .map((file) => fs.readFileSync(path.join(TEST_ROOT, "skills", "agentic-sdlc", file), "utf8"))
+    .join("\n");
 
   assert.match(
     gettingStarted,

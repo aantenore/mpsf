@@ -193,6 +193,9 @@ export async function main({
     env.AGENTIC_SDLC_STATUS_SYNC ??= "off";
     // Fixtures name the real repository as their remote: finished merges must not publish records to it.
     env.AGENTIC_SDLC_AUTO_PUBLISH ??= "off";
+    // Hosts without a smoke sandbox (Windows, Linux without bwrap) still exercise local-release
+    // fixtures; release.local authorization stays fail-closed there.
+    env.AGENTIC_SDLC_TEST_DEFER_SMOKE_PROVIDER_PREFLIGHT ??= "1";
     testStream = runTests({ concurrency, files });
     testStream.on("test:pass", () => {
       completedTestCount += 1;
