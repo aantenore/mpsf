@@ -20,7 +20,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.148.3 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.148.4 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -30,6 +30,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.148.4** — quieter channel: a step only a person takes goes to the person of the session that waits, never to the channel; update requests only to computers seen in the last 2 hours; phase changes, commits, pushes, pull requests and test results stay in the records and the Change Observatory; alerts are deduplicated by state, not by wording.
 - **0.148.3** — story priorities: one order P1 > P2 > P3 > none, then the oldest, in `next`, keep-going, offers, `status` and the Observatory; a fix from an incident inherits the priority from its severity; a broken main becomes a P1 fix story.
 - **0.148.2** — the channel stops repeating `[auto] stato`: status goes out only when the set of stories or their phase changes, plus one notice per story and phase stalled for 4 h (`AGENTIC_SDLC_MESSAGING_STALL_HOURS`); a claim released on another computer is no longer reported as active from an outdated checkout or worktree.
 - **0.148.1** — fixes: `task start` with an invalid delivery profile returns a blocked decision instead of aborting; an invalid `--autonomy-ceiling` is a user error listing the allowed values; the Codex installer updates a plugin installed under the old package name; docs: hooks work in Codex through `CLAUDE_PLUGIN_ROOT`.

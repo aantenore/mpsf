@@ -2,6 +2,15 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.148.4
+
+- Waits that need a person (pending approvals, expired delegations, expired waits on a person) are shown once to the person working with the computer that waits, in its own session (agent context and Stop hook note), with the exact command. They are no longer sent to the channel as `[auto] serve una persona`. keep-going never blocks on them, and a story whose next step is that command waits for the person.
+- Plugin update requests go only to computers seen on the channel in the last 2 hours (`plugin_update_active_minutes` in the plugin's `config/waits.json`): a computer that is off is no longer asked every hour.
+- A `request` written by the plugin itself (`[auto]`: update request, reminder) no longer counts as an unanswered question; reminders are sent as `info`.
+- Phase changes, commits, pushes, pull requests, test results and strict gates are no longer sent to the channel; the records and the Change Observatory show them. `AGENTIC_SDLC_MESSAGING_TECHNICAL_EVENTS=on` sends them again.
+- Automatic alerts are deduplicated by state (what happened, story, state) instead of by text; a failed gate with the same blocker, numbers and paths aside, is sent once an hour.
+- An unanswered question of this computer now suggests deciding only on its own work, never assigning work to other computers.
+
 ## 0.148.3
 
 - One order for story work everywhere: P1 > P2 > P3 > no priority, then the oldest story. `next`, the end-of-turn hook, the stories unblocked in offers, `orchestrate plan`, `status` and `story park` propose the most urgent story first.
