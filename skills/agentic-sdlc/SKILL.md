@@ -139,6 +139,7 @@ These rules apply at every step, whether or not its reference file is loaded:
 - Never leave unbounded background loops, listeners, or waits; run one heavy plugin command at a time per story; do not wait idle, run `agentic-sdlc next` before ending a turn (step 14).
 - Never delete `.sdlc` or ask the user to run `rm -rf .sdlc`; use `project archive` (step 2).
 - Run the ordinary strict gate after validation, enter `release` before release evidence or terminal delivery, complete `operations`, release the claim, and pass `--lifecycle-complete` before claiming the SDLC complete (steps 18–19).
+- Read a story's context with `context pack --story <id>` and fetch more only with `context get <ref>`; do not open `.sdlc/` records, gate reports or traces one by one (Story Context).
 - Never fabricate lifecycle phases with manual capture, and never cite `.sdlc/cache/` or `.sdlc/indexes/` as evidence (step 20, Core Rule).
 
 ## References
@@ -149,6 +150,7 @@ These rules apply at every step, whether or not its reference file is loaded:
 - Read `references/knowledge-base.md` when initializing, sharing, or auditing `.sdlc/`.
 - Read `references/parallel-work.md` when multiple agents or developers work concurrently.
 - Read `references/commands.md` for CLI command details.
+- Read `references/commands.md`, "Story Context Pack", for the pack sections, refs, budgets and the handoff pack.
 
 ## Validation
 

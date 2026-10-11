@@ -1249,6 +1249,21 @@ installation.
 
 Use `task start` as the operational front door before Codex performs phase work. It runs route decision, finds the applicable story or phase contract, blocks missing/incomplete/unapproved/stale contracts, and returns `ready_to_execute` only when execution is allowed. `--confirm-start` confirms the concrete start of work, but it does not count as formal contract approval. `--revise-contract` deliberately stops for contract revision even when a usable contract exists.
 
+## Story Context Pack
+
+Read a story's context from its pack, not from the records:
+
+```bash
+node <plugin-root>/bin/agentic-sdlc.mjs context pack --story ST-001                      # phase = first open lifecycle step
+node <plugin-root>/bin/agentic-sdlc.mjs context pack --story ST-001 --phase implementation --budget 1200
+node <plugin-root>/bin/agentic-sdlc.mjs context pack --story ST-001 --phase handoff --json  # pass the story to another agent or computer
+node <plugin-root>/bin/agentic-sdlc.mjs context get sec:ST-001/implementation/scope       # a section the budget cut short
+node <plugin-root>/bin/agentic-sdlc.mjs context get rec:.sdlc/requirements/REQ-001.json#/acceptance_criteria
+node <plugin-root>/bin/agentic-sdlc.mjs context get trace:ST-001#TR-20261010120000-abc123
+```
+
+Sections: story, requirement (accepted criteria only), contract, decisions, dependencies, scope (write paths and a file index with symbol names, no file contents), evidence (gates, latest tests, steps), waits, next governed step. Each phase weighs them differently (`host_policy.context.pack.phase_sections`); a cut section ends with `… N more: context get sec:...`. The pack is deterministic (`pack_hash`), redacts secrets, and is cached under `.sdlc/cache/context/` until a record it read changes; `--no-cache` rebuilds it. Inside an agent session every command prints a short form (outcome, next step, ids, exact error); `--verbose` prints the full explanation, `--compact` forces the short one.
+
 ## Handoff And Locks
 
 ```bash

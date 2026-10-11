@@ -92,7 +92,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
      --request-id <unique-phase-transition-id>
    ```
 
-17. Use `story prepare-handoff` when passing work between chats, machines, or phases. Use `--release-claim` only when the next agent should be able to claim the story after pulling the shared KB; the release is also shared through the git remote, and if the output says it was not shared, run `story release --id ST-001` again once the remote can be reached:
+17. Use `story prepare-handoff` when passing work between chats, machines, or phases.Give the receiving agent `context pack --story <id> --phase handoff` (criteria, decisions, scope with file index, evidence, waits, next step) so it does not re-read the records.  Use `--release-claim` only when the next agent should be able to claim the story after pulling the shared KB; the release is also shared through the git remote, and if the output says it was not shared, run `story release --id ST-001` again once the remote can be reached:
 
    ```bash
    node <plugin-root>/bin/agentic-sdlc.mjs story prepare-handoff \

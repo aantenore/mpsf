@@ -2,6 +2,8 @@
 
 Workflow step 14 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
+After `story claim`, load the story's context once with `agentic-sdlc context pack --story <id>` instead of reading its records (see `commands.md`, "Story Context Pack").
+
 14. After the delivery profile is approved and the immutable task-start receipt
    is recorded for the current approved story contract, claim the existing story
    before editing code. A claim is rejected until the story has at least one
