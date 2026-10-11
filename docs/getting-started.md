@@ -13,7 +13,7 @@ Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git.
 In Claude Code:
 
 ```bash
-/plugin marketplace add aantenore/agentic-sdlc
+/plugin marketplace add aantenore/mpsf
 /plugin install mpsf@aantenore
 /mpsf:doctor
 ```

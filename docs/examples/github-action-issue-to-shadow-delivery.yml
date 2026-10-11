@@ -72,7 +72,7 @@ jobs:
             spec="refs/tags/$AGENTIC_SDLC_REF"
           fi
           git init --quiet "$dir"
-          git -C "$dir" fetch --quiet --depth 1 https://github.com/aantenore/agentic-sdlc.git "$spec"
+          git -C "$dir" fetch --quiet --depth 1 https://github.com/aantenore/mpsf.git "$spec"
           git -C "$dir" checkout --quiet --detach FETCH_HEAD
           if [[ "$spec" == "$AGENTIC_SDLC_REF" ]]; then
             test "$(git -C "$dir" rev-parse HEAD)" = "$AGENTIC_SDLC_REF"

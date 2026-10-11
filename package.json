@@ -1,6 +1,6 @@
 {
   "name": "mpsf",
-  "version": "0.157.2",
+  "version": "0.157.3",
   "description": "MPSF (My Personal Software Factory): contract-driven delivery, verified assessments, and visual project lineage for Codex and Claude Code.",
   "type": "module",
   "bin": {
@@ -46,12 +46,12 @@
   ],
   "author": "Antonio Antenore",
   "license": "MIT",
-  "homepage": "https://github.com/aantenore/agentic-sdlc#readme",
+  "homepage": "https://github.com/aantenore/mpsf#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aantenore/agentic-sdlc.git"
+    "url": "git+https://github.com/aantenore/mpsf.git"
   },
   "bugs": {
-    "url": "https://github.com/aantenore/agentic-sdlc/issues"
+    "url": "https://github.com/aantenore/mpsf/issues"
   }
 }

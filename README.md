@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF 0.156.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF 0.157.3 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.157.3** — repository renamed to `aantenore/mpsf`; old URLs redirect, marketplace `aantenore` unchanged.
 - **0.157.2** — skills brought up to date: several computers (roles, presence, the `sdlc-state` branch, plugin versions without update requests, newer record formats) and the capability catalog.
 - **0.157.1** — role duties one at a time on the base worktree; subfolder projects; ticks robust to clock changes.
 - **0.157.0** — capability catalog: an optional `.sdlc/capability-discovery/catalog.json` allowlist limits the installed-tool inventory, recommendations and suggestions to the skills, commands, plugins and MCP servers the project declares.
@@ -98,7 +99,7 @@ Earlier releases in those lines contain an upstream native shutdown livelock.
 ### Claude Code
 
 ```bash
-/plugin marketplace add aantenore/agentic-sdlc
+/plugin marketplace add aantenore/mpsf
 /plugin install mpsf@aantenore
 /mpsf:doctor
 ```
@@ -110,7 +111,7 @@ Then use a starter command — `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-
 Install from the `aantenore` source repository. Keep this checkout separate from the generated personal-plugin directory:
 
 ```bash
-git clone https://github.com/aantenore/agentic-sdlc.git
+git clone https://github.com/aantenore/mpsf.git
 cd agentic-sdlc
 python3 scripts/install-personal-marketplace-v2.py check
 python3 scripts/install-personal-marketplace-v2.py plan --json

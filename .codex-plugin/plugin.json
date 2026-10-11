@@ -1,13 +1,13 @@
 {
   "name": "agentic-sdlc-codex-plugin",
-  "version": "0.157.2",
+  "version": "0.157.3",
   "description": "MPSF (My Personal Software Factory): a Codex plugin for contract-driven delivery, verified assessments, and visual project lineage.",
   "author": {
     "name": "Antonio Antenore",
     "url": "https://github.com/aantenore"
   },
-  "homepage": "https://github.com/aantenore/agentic-sdlc",
-  "repository": "https://github.com/aantenore/agentic-sdlc",
+  "homepage": "https://github.com/aantenore/mpsf",
+  "repository": "https://github.com/aantenore/mpsf",
   "license": "MIT",
   "keywords": [
     "codex",
