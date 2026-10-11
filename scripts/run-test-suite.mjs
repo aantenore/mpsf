@@ -416,15 +416,18 @@ export async function main({
           files: smoke.map(({ file }) => file),
           testNamePatterns: smoke.flatMap(({ names }) => names.map((name) => new RegExp(`^${escapeRegExp(name)}$`, "u"))),
         }));
-        // data.file is the file that called test(). A smoke test defined in a helper module would report the
-        // helper's path and count as missing; test/unit/test-tiers.test.mjs therefore requires every smoke name
-        // to be a literal test() call in its own file.
+        // Smoke tests must be literal top-level test() calls in their own file: data.file is the file that called
+        // test(), so a test defined by a helper module reports the helper's path and would count as missing.
+        // test/unit/test-tiers.test.mjs enforces this for every name in the manifest.
         const record = (data) => {
           if (data?.nesting !== 0 || typeof data.file !== "string") return;
           const key = smokeKey(data.file, data.name);
+          // A skipped or todo test passes without exercising anything, so it counts as missing, not as run.
+          if (data.skip || data.todo) {
+            if (selectedSmokeTests.has(key)) skippedSmokeTests.add(key);
+            return;
+          }
           ranSmokeTests.add(key);
-          // A platform skip still counts as run, but the selected test exercised nothing here.
-          if (selectedSmokeTests.has(key) && (data.skip || data.todo)) skippedSmokeTests.add(key);
         };
         smokeStream.on("test:pass", record);
         smokeStream.on("test:fail", (data) => {
@@ -442,26 +445,15 @@ export async function main({
     for await (const chunk of reporter(source)) {
       if (!stdout.write(chunk)) await once(stdout, "drain");
     }
-    if (tierPlan !== null) {
-      // Each run prints its own plan and counters, so the last block above covers only the smoke run.
-      if (runTotals.size > 0) {
-        stdout.write(`# test tier ${tier} totals (all runs): ${[...runTotals].map(([name, count]) => `${name} ${count}`).join(", ")}\n`);
-      }
-      const skipped = tierPlan.smoke.flatMap(({ file, names }) => names
-        .filter((name) => skippedSmokeTests.has(smokeKey(file, name)))
-        .map((name) => `${projectRelativePath(file)}: ${name}`));
-      if (skipped.length > 0) {
-        stdout.write(
-          `# test tier ${tier}: ${skipped.length} selected test(s) were skipped or todo here and exercised nothing:\n`
-          + skipped.map((line) => `#   - ${line}\n`).join(""),
-        );
-      }
+    // Each run prints its own plan and counters, so the last block above covers only the smoke run.
+    if (tierPlan !== null && runTotals.size > 0) {
+      stdout.write(`# test tier ${tier} totals (all runs): ${[...runTotals].map(([name, count]) => `${name} ${count}`).join(", ")}\n`);
     }
     if (tierPlan !== null && !streamError) {
       // A renamed or deleted smoke test would otherwise match nothing and pass silently.
       const missing = tierPlan.smoke.filter(({ file }) => !failedSmokeFiles.has(path.resolve(file))).flatMap(({ file, names }) => names
         .filter((name) => !ranSmokeTests.has(smokeKey(file, name)))
-        .map((name) => `${projectRelativePath(file)}: ${name}`));
+        .map((name) => `${projectRelativePath(file)}: ${name}${skippedSmokeTests.has(smokeKey(file, name)) ? " (skipped or todo here)" : ""}`));
       if (missing.length > 0) {
         failed = true;
         streamError = new Error(

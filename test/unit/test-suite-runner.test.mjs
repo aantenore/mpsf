@@ -607,8 +607,7 @@ test("a tier runs its whole files first, then only the named smoke tests", async
       return scriptedStream([
         { type: "test:pass", data: { file: tierPath("test/d.e2e.mjs"), name: "d one", nesting: 0 } },
         { type: "test:pass", data: { file: tierPath("test/d.e2e.mjs"), name: ODD_NAME, nesting: 0 } },
-        // A platform skip is still a test that ran under its name.
-        { type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0, skip: "unsupported here" } },
+        { type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0 } },
       ]);
     },
     reporter: async function* (source) {
@@ -773,7 +772,7 @@ test("a smoke file that fails on import is reported as a failure, not as a stale
   assert.ok(renamed.stderr.includes(`  - test/d.e2e.mjs: ${ODD_NAME}`), renamed.stderr);
 });
 
-test("skipped or todo smoke tests pass the tier but are listed as having exercised nothing", async () => {
+test("skipped or todo smoke tests count as missing and fail the tier", async () => {
   const run = await runTier({}, (options) => {
     if (options.testNamePatterns === undefined) return wholePasses(options);
     return scriptedStream([
@@ -782,22 +781,17 @@ test("skipped or todo smoke tests pass the tier but are listed as having exercis
       { type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0 } },
     ]);
   });
-  assert.equal(run.code, 0, run.stderr);
-  assert.equal(run.stderr, "");
-  assert.ok(
-    run.stdout.includes(
-      "# test tier fast: 2 selected test(s) were skipped or todo here and exercised nothing:\n"
-      + "#   - test/d.e2e.mjs: d one\n"
-      + `#   - test/d.e2e.mjs: ${ODD_NAME}\n`,
-    ),
-    run.stdout,
-  );
+  assert.equal(run.code, 1);
+  assert.match(run.stderr, /Test tier fast selected 2 test\(s\) that did not run; update test\/test-tiers\.json:/u);
+  assert.ok(run.stderr.includes("  - test/d.e2e.mjs: d one (skipped or todo here)"), run.stderr);
+  assert.ok(run.stderr.includes(`  - test/d.e2e.mjs: ${ODD_NAME} (skipped or todo here)`), run.stderr);
+  assert.equal(run.stderr.includes("heavy cheap"), false);
 
   const clean = await runTier({}, (options) => (options.testNamePatterns === undefined
     ? wholePasses(options)
     : scriptedStream(FAST_SMOKE_PASSES)));
   assert.equal(clean.code, 0, clean.stderr);
-  assert.equal(clean.stdout.includes("exercised nothing"), false);
+  assert.equal(clean.stderr, "");
 });
 
 test("a tier prints the counters of both runs added together", async () => {

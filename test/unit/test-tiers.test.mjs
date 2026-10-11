@@ -73,7 +73,7 @@ for (const [name, tier] of tiers) {
   });
 
   test(`tier ${name}: no smoke test is declared with test.skip or test.todo`, () => {
-    // Such a test always passes as skipped, so the tier would keep its name but lose its coverage.
+    // Such a test never runs, so the tier run would always report it as missing.
     for (const [file, names] of tier.smoke) {
       for (const { name: testName, modifier } of testsByFile.get(file)) {
         if (names.includes(testName)) {
