@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.10
+
+- Documentation and skill fixes: the skill now points to `story cancel` for an approved story that will not be delivered, and pushes a rewritten story branch only under an approved `git.push` action (the hook denies it otherwise); an abandoned claim is described as freed by the coordinator; a newer plugin announced by another computer no longer reads as "update first". Install docs: `cd mpsf` after cloning, `/path/to/mpsf` placeholders, update with `claude plugin update` (not `/plugin install`). The `git` messaging provider is in the providers table, the coordinator duties match the code, and Change Observatory is described as never editing records rather than read-only (with `sdlc-state` it brings in records published by other computers). Change Observatory: wording of one CLI line only. Compatibility: nothing changes for older plugins.
+
 ## 0.159.9
 
 - Security: a message signed by an unregistered key can no longer read as `trusted` by being re-sent with a registered key fingerprint (the signature cache now checks the claimed key on every read), and a forged copy read first can no longer make the genuine message `untrusted`. Change Observatory: no change. Compatibility: signatures are unchanged; older plugins read new messages as before.
