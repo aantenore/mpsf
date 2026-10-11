@@ -20,7 +20,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.149.3 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.150.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -30,6 +30,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.150.0** — messages between computers on git: one signed ref per computer in the project's remote, any git host, default for new channels (projects with a GitHub channel issue keep it); signed messages and computer keys registered in `.sdlc/machines`, untrusted ones marked in `message read` and the Change Observatory.
 - **0.149.3** — first step of the rename to **mpsf** (My Personal Software Factory): `mpsf` command next to `agentic-sdlc`, `MPSF_*` variables as aliases of `AGENTIC_SDLC_*`.
 - **0.149.2** — Codex `SessionEnd` hook within its 3-second limit: no more timeout notice on every run.
 - **0.149.1** — computers and roles without messages: presence refs on the remote, coordinator and knowledge roles held by one alive computer each through create-only leases, handed over at renewal; `roles status`.
