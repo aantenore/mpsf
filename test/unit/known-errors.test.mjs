@@ -5,7 +5,9 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import { computeStableHash } from "../../lib/canonical.mjs";
 import { buildObservatoryViewModel } from "../../lib/change-observatory/normalizer.mjs";
+import { knownErrorApplyCommand } from "../../lib/known-errors/cli.mjs";
 import { knownErrorHints } from "../../lib/known-errors/hints.mjs";
 import { matchKnownErrors, readKnownErrors, readLastFailures } from "../../lib/known-errors/registry.mjs";
 import { computeSignature } from "../../lib/known-errors/signature.mjs";
@@ -22,7 +24,7 @@ function write(root, relative, value) {
 }
 
 function knownError(signature, extra = {}) {
-  return {
+  const record = {
     kind: "known_error",
     schema_version: "known-error:v1",
     id: signature.id,
@@ -34,14 +36,18 @@ function knownError(signature, extra = {}) {
     scope: { repo: null, plugin_versions: { min: "0.1.0", max: null } },
     created_by: { type: "agent", id: "codex" },
     created_at: "2026-10-11T10:00:00.000Z",
-    record_hash: "x",
     hash_algorithm: "sha256:stable-json:v1",
     ...extra,
   };
+  return { ...record, record_hash: computeStableHash(record) };
 }
 
-function event(id, type, at) {
-  return { kind: "known_error_event", schema_version: "known-error-event:v1", known_error_id: id, type, actor: { type: "human" }, at };
+function event(id, type, at, extra = {}) {
+  return { kind: "known_error_event", schema_version: "known-error-event:v1", known_error_id: id, type, actor: { type: "human" }, at, ...extra };
+}
+
+function accepted(record, extra = {}) {
+  return event(record.id, "accepted", "2026-10-11T11:00:00.000Z", { actions: record.fix.actions, record_hash: record.record_hash, ...extra });
 }
 
 test("the same failure in different stories and commits has one signature", () => {
@@ -80,8 +86,9 @@ test("a failed gate shows the known fix and remembers the failure for known-erro
   const root = createFixtureDir("known-errors-hints");
   const sdlc = path.join(root, ".sdlc");
   const signature = computeSignature({ check: "gate.check", exit_code: 1, message: VITEST_FAILURE("ST-A-001", "abc1234") });
-  write(root, `.sdlc/known-errors/${signature.id}.json`, knownError(signature));
-  write(root, `.sdlc/known-errors/events/${signature.id}/1-accepted.json`, event(signature.id, "accepted", "2026-10-11T11:00:00.000Z"));
+  const record = knownError(signature);
+  write(root, `.sdlc/known-errors/${signature.id}.json`, record);
+  write(root, `.sdlc/known-errors/events/${signature.id}/1-accepted.json`, accepted(record));
   const lines = knownErrorHints({
     action: "gate.check",
     options: { story: "ST-B-002" },
@@ -113,4 +120,50 @@ test("a failed gate shows the known fix and remembers the failure for known-erro
   assert.equal(view.knownErrors.length, 1);
   assert.equal(view.knownErrors[0].id, signature.id);
   assert.equal(view.knownErrors[0].autoApplicable, true);
+});
+
+test("only a person's acceptance of the record's exact actions makes a fix applicable", () => {
+  const root = createFixtureDir("known-errors-acceptance");
+  const sdlc = path.join(root, ".sdlc");
+  const signature = computeSignature({ check: "gate.check", exit_code: 1, message: VITEST_FAILURE("ST-A-001", "abc1234") });
+  const record = knownError(signature);
+  const now = Date.parse("2026-10-12T00:00:00Z");
+  const file = `.sdlc/known-errors/events/${signature.id}/1-accepted.json`;
+  write(root, `.sdlc/known-errors/${signature.id}.json`, record);
+  const applicable = () => readKnownErrors(sdlc, { now })[0].auto_applicable;
+  write(root, file, accepted(record, { actor: { type: "agent", id: "codex" } }));
+  assert.equal(applicable(), false, "an agent's acceptance does not count");
+  write(root, file, event(signature.id, "accepted", "2026-10-11T11:00:00.000Z"));
+  assert.equal(applicable(), false, "an acceptance without the actions does not count");
+  write(root, file, accepted(record, { actions: [{ type: "remove_path", path: "src" }] }));
+  assert.equal(applicable(), false, "an acceptance of other actions does not count");
+  write(root, file, accepted(record, { record_hash: "other" }));
+  assert.equal(applicable(), false, "an acceptance of another record does not count");
+  write(root, file, accepted(record));
+  assert.equal(applicable(), true);
+  write(root, `.sdlc/known-errors/${signature.id}.json`, { ...record, fix: { safe: true, actions: [{ type: "remove_path", path: "src" }] } });
+  write(root, file, accepted({ ...record, fix: { safe: true, actions: [{ type: "remove_path", path: "src" }] } }));
+  assert.equal(applicable(), false, "a record edited after it was written does not auto-apply");
+});
+
+test("known-error apply never removes through a symlink, so nothing outside the project goes", () => {
+  const base = createFixtureDir("known-errors-symlink");
+  const root = path.join(base, "project");
+  const outside = path.join(base, "outside");
+  fs.mkdirSync(outside, { recursive: true });
+  fs.writeFileSync(path.join(outside, "secret"), "keep");
+  fs.mkdirSync(root, { recursive: true });
+  try {
+    fs.symlinkSync(outside, path.join(root, "link"), "dir");
+  } catch {
+    return; // No symlinks on this system.
+  }
+  const sdlc = path.join(root, ".sdlc");
+  const signature = computeSignature({ check: "gate.check", exit_code: 1, message: VITEST_FAILURE("ST-A-001", "abc1234") });
+  const record = knownError(signature, { created_at: new Date().toISOString(), fix: { safe: true, actions: [{ type: "remove_path", path: "link/secret" }] } });
+  write(root, `.sdlc/known-errors/${signature.id}.json`, record);
+  write(root, `.sdlc/known-errors/events/${signature.id}/1-accepted.json`, accepted(record));
+  assert.equal(readKnownErrors(sdlc)[0].auto_applicable, true);
+  assert.throws(() => knownErrorApplyCommand({ root, sdlcRoot: sdlc, config: null }, { id: signature.id, json: true }), /symlink/u);
+  assert.equal(fs.readFileSync(path.join(outside, "secret"), "utf8"), "keep");
 });

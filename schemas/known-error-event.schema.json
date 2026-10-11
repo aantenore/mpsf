@@ -14,6 +14,7 @@
     "note": { "type": ["string", "null"] },
     "superseded_by": { "type": ["string", "null"] },
     "actions": { "type": "array" },
+    "record_hash": { "type": ["string", "null"] },
     "actor": { "type": "object" },
     "plugin_version": { "type": "string" },
     "at": { "type": "string", "minLength": 1 }
