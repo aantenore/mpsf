@@ -2,6 +2,11 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.4
+
+- Fix: Known Error Database, machine identity, fresh state, `MPSF_*` env aliases, context budget and auto-pack, knowledge CLI and role duties/guard read the clock, process, files, git and hashing through the runtime host, so the host-seam unit test passes on main again. No behavior change.
+- Compatibility: no new configuration keys. Change Observatory unaffected.
+
 ## 0.153.3
 
 - Role duties that write records (`coordinator main-green`, `knowledge distill`) run in the dedicated worktree on the base branch, never in the person's checkout, and push what they wrote under `.sdlc` to the base branch with `[skip ci]`, never forced (on top of the base when it moved meanwhile). They stay manual until turned on in `config/role-duties.json` (`auto: true`).
