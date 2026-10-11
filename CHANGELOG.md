@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.158.1
+
+- Test fix only: the outbox note test expects the English keep-going text. Change Observatory: no change. Compatibility: nothing changes.
+
 ## 0.158.0
 
 - `coordinator merge` and `coordinator main-green` work on GitLab and Gitea/Forgejo too, not only GitHub. The forge comes from the remote URL (gitlab.com, codeberg.org, hosts named gitlab, gitea or forgejo) or from `AGENTIC_SDLC_FORGE=github|gitlab|gitea|forgejo`; `AGENTIC_SDLC_FORGE_URL` sets the web address for another port or a path prefix.

@@ -170,7 +170,7 @@ test("a queued answer settles its question for keep-going and attention", () => 
   const outbox = { count: 1, reason: "HTTP 429", notified: false };
   const decision = decideKeepGoing({ questions: [], outbox });
   assert.equal(decision.block, false);
-  assert.match(decision.note, /1 messaggi in coda, non ancora inviati \(HTTP 429\).*gh auth status/u);
+  assert.match(decision.note, /1 messages queued, not yet sent \(HTTP 429\).*gh auth status/u);
   assert.equal(decideKeepGoing({ questions: [], outbox: { ...outbox, notified: true } }).note, null);
 });
 
