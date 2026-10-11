@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+    <img src="assets/logo.png" alt="Agentic SDLC" width="480">
+  </picture>
+</p>
+
 # Agentic SDLC
 
 One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **Claude Code** (`.claude-plugin/`). Both load the same skills, schemas, templates, and Node.js CLI.

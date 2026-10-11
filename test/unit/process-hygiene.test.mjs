@@ -34,7 +34,7 @@ test("without the opt-in Stop only warns, naming count, limit and the command to
       return reapProcesses({ ...options, platform: "linux", worktrees: [], selfPid: 1 });
     } });
     assert.deepEqual(stopped, [true], "dry run only");
-    assert.match(result.message, /^1 processi oltre 10 min: 4242 npm test --prefix .*, esegui `agentic-sdlc processes reap`\.$/u);
+    assert.match(result.message, /^1 processes older than 10 min: 4242 npm test --prefix .*, run `agentic-sdlc processes reap`\.$/u);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
     fs.rmSync(common, { recursive: true, force: true });
@@ -47,13 +47,13 @@ test("the warning is throttled to one every 5 minutes and handed to the agent on
   const reap = async () => ({ older_than_minutes: 10, processes: [{ pid: 7, age_minutes: 12, command: "node slow" }] });
   try {
     const first = await processHygieneAtStop(dir, { env: {}, commonDir: common, now: NOW, reap });
-    assert.match(first.message, /1 processi oltre 10 min/u);
+    assert.match(first.message, /1 processes older than 10 min/u);
     const again = await processHygieneAtStop(dir, { env: {}, commonDir: common, now: NOW + 4 * 60_000, reap });
     assert.equal(again.message, "");
     const later = await processHygieneAtStop(dir, { env: {}, commonDir: common, now: NOW + 5 * 60_000 + 1, reap });
-    assert.match(later.message, /1 processi/u);
+    assert.match(later.message, /1 processes/u);
 
-    assert.match(takePendingReapWarning(dir, { commonDir: common }), /1 processi oltre 10 min: 7 node slow/u);
+    assert.match(takePendingReapWarning(dir, { commonDir: common }), /1 processes older than 10 min: 7 node slow/u);
     assert.equal(takePendingReapWarning(dir, { commonDir: common }), "", "shown once");
     assert.ok(fs.existsSync(path.join(common, "agentic-sdlc", WARNING_STATE_FILE)));
   } finally {
@@ -86,7 +86,7 @@ test("the opt-in (env or config) reaps for real at Stop and reports what it stop
         return { older_than_minutes: 10, processes: [{ pid: 7, age_minutes: 12, command: "x", outcome: "terminated" }, { pid: 8, age_minutes: 12, command: "y", outcome: "failed" }] };
       } });
       assert.deepEqual(calls, [false]);
-      assert.equal(result.message, "Fermati 1 processi oltre 10 min: 7.");
+      assert.equal(result.message, "Stopped 1 processes older than 10 min: 7.");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -118,15 +118,15 @@ test("the hook warns once at Stop, hands the warning to the next prompt, and rea
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const stop = hook("stop");
     assert.equal(stop.status, 0);
-    assert.match(JSON.parse(stop.stdout).systemMessage, /^1 processi oltre 0(?:\.\d)? min: \d+ .*esegui `agentic-sdlc processes reap`/u);
+    assert.match(JSON.parse(stop.stdout).systemMessage, /^1 processes older than 0(?:\.\d)? min: \d+ .*run `agentic-sdlc processes reap`/u);
     assert.equal(process.kill(child.pid, 0), true, "not stopped without the opt-in");
     assert.equal(hook("stop").stdout.trim(), "", "throttled");
     const prompt = hook("user-prompt-submit");
-    assert.match(JSON.parse(prompt.stdout).hookSpecificOutput.additionalContext, /1 processi oltre/u);
+    assert.match(JSON.parse(prompt.stdout).hookSpecificOutput.additionalContext, /1 processes older than/u);
     assert.equal(hook("user-prompt-submit").stdout.trim(), "", "handed over once");
 
     const reaped = hook("stop", { AGENTIC_SDLC_REAP_ON_STOP: "1" });
-    assert.match(JSON.parse(reaped.stdout).systemMessage, new RegExp(`^Fermati 1 processi .*: ${child.pid}\\.$`, "u"));
+    assert.match(JSON.parse(reaped.stdout).systemMessage, new RegExp(`^Stopped 1 processes .*: ${child.pid}\\.$`, "u"));
     await new Promise((resolve) => (child.exitCode !== null || child.signalCode ? resolve() : child.once("exit", resolve)));
     assert.equal(child.signalCode, "SIGTERM");
   } finally {
