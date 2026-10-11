@@ -7,13 +7,28 @@ The project KB lives under `<target-project>/.sdlc/`. It is the durable source o
 ```text
 .sdlc/
   project.json
+  config.json
+  config.lock.json
+  bootstrap-manifest.json
   README.md
+  .gitattributes
+  .gitignore
   baseline/
+  assessments/
+  budgets/
+  context-optimization/
   contracts/
   autonomy/
+  authorizations/
+  authorization-uses/
+  receipts/
+  capability-discovery/
   output-contracts/
   requirements/
   stories/
+  work-items/
+  work-breakdown/
+  dependencies/
   orchestration/
   locks/
   handoffs/
@@ -28,7 +43,11 @@ The project KB lives under `<target-project>/.sdlc/`. It is the durable source o
   cache/
   indexes/
   reports/
+  reviews/
+  operations/
 ```
+
+See `docs/kb-structure.md` for the full layout, including directories created on demand such as `workflows/`.
 
 ## Source Of Truth
 
@@ -103,7 +122,7 @@ Before producing a durable output, inspect `.sdlc/output-contracts/registry.json
 
 ## Cache Policy
 
-`.sdlc/cache/` is local and regenerable. It may store full-text indexes, story-requirement graphs, artifact fingerprints, compact summaries, dependency graphs, and `output resolve` results.
+`.sdlc/cache/` is local and regenerable. It may store full-text indexes, story-requirement graphs, artifact fingerprints, compact summaries, dependency graphs, `output resolve` results, and context packs under `.sdlc/cache/context/`; `cache clear` removes all of it.
 
 Never cite cache files as canonical evidence. Cite the source paths recorded in the cache entry instead.
 

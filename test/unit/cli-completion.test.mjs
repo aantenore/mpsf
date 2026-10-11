@@ -82,7 +82,7 @@ test("completion offers the current command options and bounded option values", 
   );
   assert.deepEqual(
     completionCandidates(["trace", "append", "--outcome"]),
-    ["blocked", "failed", "passed", "ready", "skipped"],
+    ["blocked", "failed", "failed-minor", "passed", "ready", "skipped"],
   );
   assert.deepEqual(completionCandidates(["status"], { current: "--loc" }), ["--locale"]);
   assert.deepEqual(completionCandidates([], { current: "--locale=i" }), ["--locale=it"]);

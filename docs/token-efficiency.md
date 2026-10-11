@@ -8,11 +8,11 @@ evidence.
 
 | High-volume boundary | Default optimization | Exact/full escape hatch |
 | --- | --- | --- |
-| KB search results | Compact ranked metadata and snippets; omit duplicated `search_text` | `kb search --json --full` |
-| Cache diagnostics | Counts, drift, and fingerprints; omit the serialized derived cache | `cache status --json --full` |
-| Configuration migration preview | Reviewable semantic diff and opaque plan reference; omit the complete target configuration | `config migrate --json --full` for a self-contained v1 plan |
+| KB search results | Compact ranked metadata and snippets; omit duplicated `search_text` | `kb search --json --full --json-profile full` |
+| Cache diagnostics | Counts, drift, and fingerprints; omit the serialized derived cache | `cache status --json --full --json-profile full` |
+| Configuration migration preview | Reviewable semantic diff and opaque plan reference; omit the complete target configuration | `config migrate --json --full --json-profile full` for a self-contained v1 plan |
 | Test output | RTK test summary only for fixed, known-safe test vectors | `optimization run --exact` for the same allowlisted vector |
-| Git status/diff/log/show | RTK read-only profile; machine formats stay native and mutations are rejected | `optimization run --exact` |
+| Git status/diff/log/show/shortlog | RTK read-only profile; machine formats stay native and mutations are rejected | `optimization run --exact` |
 | `rg` search output | RTK search profile; JSON/NUL output stays native and external preprocessors are rejected | `optimization run --exact` |
 | User-facing explanations | Bundled Caveman `v1.9.1` adaptive compression | Normal wording automatically returns for safety, approvals, exact commands, and ambiguity |
 | Budget correlation | Native exact-task Codex `token_count` snapshots and deltas | Explicit `--thread-id` outside the Codex host |
@@ -40,6 +40,9 @@ bundled Caveman and meter remain usable.
 
 ## Compact derived JSON
 
+With the full JSON profile (`--json-profile full`, or `--json` outside an agent
+session):
+
 `kb search --json` omits the internal `search_text` copy of each matched file.
 The response retains the ranked score, path, title, extension, byte size,
 source hash, and snippet, plus `context_optimization` metrics. Read the source
@@ -47,6 +50,11 @@ path only when its full content is needed.
 
 `cache status --json` reports cache validity, drift, collection counts, and the
 same optimization metrics without serializing the complete derived cache.
+
+Inside an agent session the default agent profile also omits
+`context_optimization` (and replaces `kb search` `results` with an omission
+marker); pass `--json-profile full` or set `AGENTIC_SDLC_JSON_PROFILE=full` to
+get them.
 
 `config migrate --json` retains the exact apply reference and semantic changes,
 but marks the nested plan summary with `plan_complete: false` and
@@ -57,10 +65,14 @@ omitted, that summary is not independently validatable as a complete
 The commands expose their complete machine payloads explicitly:
 
 ```bash
-mpsf kb search "checkout risk" --json --full
-mpsf cache status --json --full
-mpsf config migrate --json --full
+mpsf kb search "checkout risk" --json --full --json-profile full
+mpsf cache status --json --full --json-profile full
+mpsf config migrate --json --full --json-profile full
 ```
+
+Inside an agent session `--json` defaults to the compact agent profile, and
+`--full` alone does not change it. Add `--json-profile full` (or set
+`AGENTIC_SDLC_JSON_PROFILE=full`) whenever the complete payload is required.
 
 Use `--full` only when an omitted machine field is required. It never changes
 canonical `.sdlc` files. For configuration migration, the full preview reports
@@ -84,7 +96,7 @@ mpsf context get rec:.sdlc/requirements/REQ-001.json#/acceptance_criteria
 
 The pack holds the accepted criteria, the contract essentials, decisions, dependencies, the write scope with a file index (paths and symbol names, no file contents), recent tests and gates, waits and the next governed step. Each section has its own budget and a cut section ends with a `context get` reference. The same input gives the same `pack_hash`; secrets are redacted; the cache lives in `.sdlc/cache/context/` and is rebuilt when a record it read changes (`--no-cache` forces it). Records are read through the record store, with the filesystem as fallback. Under the title, `base: N commits behind origin/main` says how far the checkout is from the base branch, after a bounded fetch at most once a minute (`AGENTIC_SDLC_FRESH_FETCH=off` skips it); it is not part of the hash.
 
-**Short command output.** Inside an agent session commands print the outcome, the next step, ids and the exact error instead of the long explanation. `--verbose` restores the full text, `--compact` forces the short form, `AGENTIC_SDLC_OUTPUT=auto|compact|full` sets it for a computer.
+**Short command output.** Inside an agent session commands print the outcome, the next step, ids and the exact error instead of the long explanation. `--verbose` restores the full text, `--compact` forces the short form, `AGENTIC_SDLC_OUTPUT=compact|full` sets it for a computer (and also picks the matching JSON profile). If the variable is unset or has any other value, `auto` included, the setting comes from `host_policy.context.output.mode`, and if that is not set either, the agent-session default applies.
 
 **Agent JSON profile.** `--json` inside an agent session returns outcome, ids, essential hashes, next step and errors, with nested records replaced by `rec:` references. Scripts that need everything pass `--json-profile full` or set `AGENTIC_SDLC_JSON_PROFILE=full`. Typical effect: `delivery approve` 5,206 to 453 tokens, `requirement approve` 4,397 to 426.
 

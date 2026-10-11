@@ -23,7 +23,7 @@ Workflow steps 1–4 of the MPSF skill (`../SKILL.md`). Step numbers are shared 
 
    The same `--template-dir` works with `onboard existing-project` when the
    repository has useful code but no `.sdlc/`. It validates and pins the
-   seven-phase config and creates its phase contracts in the initial
+   eight-phase config and creates its phase contracts in the initial
    bootstrap.
 
    **Starting over a project that was never published.** Never delete `.sdlc` and never ask the user to run `rm -rf .sdlc`: the host hooks refuse it because `.sdlc` holds permanent approvals and consumption records. Run `project archive` (read-only plan) and show the user what it reports. It moves `.sdlc` aside, never deleting it, and only when nothing shows the records were published or shared (shared refs, a remote, delivery records, pushes or merges in the trace); otherwise it refuses and explains why, and you continue with the governed commands instead. Only the user applies it, from their own terminal, with the plan hash, a reason, and `--actor-type human --approval-source explicit-user --summary "<their words>"`; add `--reinit` to start a fresh project that keeps a trace of the archive. See `commands.md`, "Archive And Restart A Never-Published Project".
@@ -44,4 +44,4 @@ Workflow steps 1–4 of the MPSF skill (`../SKILL.md`). Step numbers are shared 
 
 3. When the user invokes MPSF for project context, discovery, analysis, design, implementation, validation, release, or other generic phase work, normalize the request into canonical route intent JSON as a read-only preview. Do not call `task start` yet. Explain the intended outcome, delivery destination, known boundaries, and missing decisions in ordinary language. Do not keyword-match inside the CLI. For an assessment, follow the dedicated skill instead: approve the baseline, prepare and approve the immutable combined proposal, apply it idempotently, then make its one proposal-bound start decision. Do not treat natural-language requests such as "initial technical assessment" as permission to analyze directly.
 
-4. Select the SDLC phase: `discovery`, `analysis`, `design`, `implementation`, `validation`, `release`, or `operations`.
+4. Select the SDLC phase from the project's configured `phase_order` (shipped defaults: `discovery`, `analysis`, `design`, `implementation`, `validation`, `release`, `operations`; the integration-review overlay adds `integration-review` between `implementation` and `validation`).

@@ -56,7 +56,7 @@ Avoid generic brainstorming questions when the KB already contains enough eviden
 
 The agent may recommend `supervised`, `checkpointed`, or `bounded-autonomous` from requirement clarity, unresolved questions, deterministic acceptance tests, reversibility, known tools and write paths, environment, data/security impact, external dependencies, and budget. Give deterministic reason codes and explain the recommendation in plain language. Do not use an opaque trust score, and never treat the number of previous successful runs as authority.
 
-The user selects the level for each delivery. The effective result is the most restrictive of host, project, requirement, delivery, contract, capability, environment, and budget. A contract can narrow its phase but cannot expand any upstream boundary. Multiple requirements use the lowest ceiling.
+The user selects the level for each delivery, unless an active standing approval the user created and approved covers it: that delivery uses `checkpointed` with `--standing-approval <id>`, and anything outside its limits asks again. The effective result is the most restrictive of host, project, requirement, delivery, contract, capability, environment, and budget. A contract can narrow its phase but cannot expand any upstream boundary. Multiple requirements use the lowest ceiling.
 
 `bounded-autonomous` requires `host_verified` authority or trusted CI; `audit_only` is capped at `checkpointed`. Any material requirement or delivery drift, new PR, new path/tool/environment, budget extension, secret/external/production access, destructive action, protected-branch merge, or remote deployment stops for a new explicit decision.
 

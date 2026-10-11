@@ -14,6 +14,7 @@ Target project
         -> baseline
         -> assessments
         -> budgets
+        -> context-optimization
         -> contracts
         -> autonomy
         -> authorizations
@@ -21,21 +22,27 @@ Target project
         -> receipts
         -> capability-discovery
         -> output-contracts
-     -> work-items
-     -> work-breakdown
-     -> dependencies
-     -> stories
-     -> orchestration
-     -> locks
-     -> handoffs
-     -> decisions
-     -> traces
-     -> tests
-     -> releases
-     -> manifests
-     -> archive
-     -> cache
-     -> indexes
+        -> requirements
+        -> stories
+        -> work-items
+        -> work-breakdown
+        -> dependencies
+        -> orchestration
+        -> locks
+        -> handoffs
+        -> decisions
+        -> assumptions
+        -> risks
+        -> tests
+        -> traces
+        -> releases
+        -> manifests
+        -> archive
+        -> cache
+        -> indexes
+        -> reports
+        -> reviews
+        -> operations
 ```
 
 ```mermaid
@@ -100,10 +107,10 @@ The CLI is layered so that every rule can be tested without spawning a process.
 |---|---|---|
 | Entry point | `bin/mpsf.mjs` | Composition root only: `main`, the command registry, and the observatory launcher that needs the script's own path. |
 | Engine | `lib/engine/*.mjs` | Command implementations, storage, git, delivery, workflow and gate code: everything that reads or writes. |
-| Rules | `lib/lifecycle/*.mjs` | Pure validators, normalizers and decision helpers with no I/O anywhere in their reference closure. |
+| Rules | `lib/lifecycle/*.mjs` | Validators, normalizers and decision helpers. Mostly pure; the clock, hashing and the few file-system and process probes they need (project paths, query sessions, session metering, process liveness) go through the host seam. |
 | Host seam | `lib/runtime/host.mjs` | The only route to the outside world. |
 
-No module other than the host seam imports `node:fs`, `node:fs/promises`, `node:child_process`, `node:os` or `node:crypto`, or reads the `process`, `console` or `Date` globals directly: the entry point, the engine, the rules and the feature modules under `lib/` (observatory, delivery providers, metering adapters, release verification, trace integrity) all import those names from the host. Each member forwards to the real implementation unless a test replaces it with `setHost()`, which returns a restore function. Methods are resolved when they are called, so a function taken from a member at load time (`const { readFileSync } = fs`) follows the replacement too. A test can therefore run any function against a fixed clock, a fixed random source or a recording file system without changing it; `test/unit/runtime-host.test.mjs` shows the pattern and fails if a module bypasses the seam.
+Modules reach `node:fs`, `node:fs/promises`, `node:child_process`, `node:os`, `node:crypto` and the `process`, `console` and `Date` globals through the host seam. A shrinking list of known exceptions is recorded in `test/fixtures/host-seam-baseline.json`. Each member forwards to the real implementation unless a test replaces it with `setHost()`, which returns a restore function. Methods are resolved when they are called, so a function taken from a member at load time (`const { readFileSync } = fs`) follows the replacement too. A test can therefore run any function against a fixed clock, a fixed random source or a recording file system without changing it; `test/unit/runtime-host.test.mjs` shows the pattern and fails when a module not on that list bypasses the seam, or when a listed module no longer does.
 
 Constants and classes shared by the engine live in `lib/engine/definitions.mjs` in the order they are initialized, so no value is read before it exists, whichever module is loaded first. `lib/runtime/paths.mjs` provides `PLUGIN_ROOT`.
 
@@ -236,7 +243,7 @@ flowchart TD
 
 The assessment journey is a dedicated state machine with exactly two normal checkpoints. Checkpoint 1 approves only the project baseline. `assessment proposal prepare` then builds a complete immutable approval payload containing baseline hash, requirement/story reservation, deliverable, capabilities, contract draft, route intent, write-set, execution budget, security, approval boundary, and idempotent application plan.
 
-Checkpoint 2 approves the `proposal_hash`, not a free-text intention. `assessment proposal approve` records host/CI authority and creates a proposal-bound content authorization. `assessment proposal apply` applies only the displayed write-set and can resume after a partial failure without duplicating records. Runtime state lives in `assessment_workflow:v1`; it is not part of the immutable approval payload.
+Checkpoint 2 approves the `proposal_hash`, not a free-text intention. `assessment proposal approve` records host/CI authority and creates a proposal-bound content authorization. `assessment proposal apply` applies only the displayed write-set and can resume after a partial failure without duplicating records. Runtime state lives in `assessment-workflow:v1`; it is not part of the immutable approval payload.
 
 ```mermaid
 flowchart LR
@@ -397,6 +404,10 @@ flowchart LR
   UseReceipt --> Gate["Strict gate"]
 ```
 
+### Host hook guard
+
+In a repository with `.sdlc/project.json` (in the working tree, the index or the committed base branch), the PreToolUse hook blocks `gh pr merge`, a `gh api` PUT on a pull request's `/merge` endpoint, and `git push` to `main` or `master` when they run outside the governed delivery chain (a local `git merge` is not blocked by this rule). Agent edits to `host_policy.guard` are denied. A person can lift the block with `host_policy.guard.protect_base_branch: false`, which must be committed to the base branch. It counts only when read from the remote base branch at a URL that a person recorded with `mpsf guard trust-remote`. That URL lives in a user-level file under `~/.config/agentic-sdlc/`, and the command is refused inside an agent session. See [Base-branch guard](claude-code-install.md#base-branch-guard).
+
 ## Capability Discovery Layer
 
 Capability discovery is a project-specific architect step before technical analysis or high-impact contract creation. The plugin stays agnostic: Codex or another LLM can normalize context into profile and recommendation JSON, while the CLI only validates and persists canonical records with evidence and approvals.
@@ -417,7 +428,7 @@ flowchart TB
   ProfileApproval --> Recommend
   Recommend --> RecApproval["Recommendation approval"]
   RecApproval --> InstallGate{"Install required?"}
-  InstallGate -->|yes| InstallApproval["approve --approve-install"]
+  InstallGate -->|yes| InstallApproval["capability approve --approve-install"]
   InstallGate -->|no| Contract["contract create --capability-recommendation"]
   InstallApproval --> Contract
   Contract --> CapabilityPolicy["capability_policy + bindings + execution_policy"]
@@ -522,7 +533,9 @@ Optional `trace-narrative:v1` records contain only shareable inputs, outputs, ra
 
 `.sdlc/cache/` contains regenerable lookup data such as full-text entries, story-requirement graphs, artifact fingerprints, template resolution, compact KB summaries, dependency graphs, and output resolution results.
 
-Cache entries carry `source_paths`, `source_hashes`, `generated_at`, and `schema_version`. A hash mismatch marks the cache stale. Stale or missing cache never blocks work because the CLI can fall back to canonical KB files; `gate check` rebuilds it in place and warn only when it cannot be written. In italiano: la cache è un dato locale derivato, quindi viene ricostruita da sola quando manca o è vecchia. `.sdlc/cache/git-objects.json` keeps Git answers about commits named by full object IDs (existence, ancestry, paths a commit touched, tree contents), which never change, so later runs ask Git only about new commits; failed answers are never kept. `status`, `orchestrate status`, `orchestrate plan`, `story deps`, `dependency status`, and `story overlap` trust a sealed final receipt whose own hash holds instead of re-verifying every certified file and commit; set `AGENTIC_SDLC_STATUS_CHECKS=full` for the full re-verification, which `gate check` always performs. In italiano: le risposte git sui commit restano in cache tra un comando e l’altro, e status, `story deps`, `dependency status` e `story overlap` non riverificano le storie già certificate. A canonical artifact under `.sdlc/cache/` or `.sdlc/indexes/` is a strict gate error because derived files cannot become source of truth. Cached output resolutions are compared with canonical KB resolution before use; if they differ, the CLI asks for `cache rebuild` instead of trusting the cache.
+Cache entries carry `source_paths`, `source_hashes`, `generated_at`, and `schema_version`. A hash mismatch marks the cache stale. Stale or missing cache never blocks work because the CLI can fall back to canonical KB files; `gate check` rebuilds it in place and warns only when it cannot be written. In italiano: la cache è un dato locale derivato, quindi viene ricostruita da sola quando manca o è vecchia. `.sdlc/cache/git-objects.json` keeps Git answers about commits named by full object IDs (existence, ancestry, paths a commit touched, tree contents), which never change, so later runs ask Git only about new commits; failed answers are never kept. `status`, `orchestrate status`, `orchestrate plan`, `story deps`, `dependency status`, and `story overlap` trust a sealed final receipt whose own hash holds instead of re-verifying every certified file and commit; set `AGENTIC_SDLC_STATUS_CHECKS=full` for the full re-verification, which `gate check` always performs. In italiano: le risposte git sui commit restano in cache tra un comando e l’altro, e status, `orchestrate status`, `orchestrate plan`, `story deps`, `dependency status` e `story overlap` non riverificano le storie già certificate. A canonical artifact under `.sdlc/cache/` or `.sdlc/indexes/` is a strict gate error because derived files cannot become source of truth. Cached output resolutions are compared with canonical KB resolution before use; if they differ, the CLI asks for `cache rebuild` instead of trusting the cache.
+
+`.sdlc/cache/context/<story>/<phase>-<budget>.json` holds derived context packs (`context pack`, `context get`). They are written only while `cache` is listed in `cache_policy.derived_directories`. They are rebuilt when a record they read changes, or with `--no-cache`. Inside an agent session commands print a compact form and `--json` uses the agent profile. Host hooks deduplicate and budget their text per event, and keep a per-session ledger under the Git common directory. Defaults are in the plugin's `config/context.json`; projects override them in `host_policy.context`. See [Token efficiency](token-efficiency.md#context-packs-and-compact-output).
 
 ```mermaid
 flowchart LR
@@ -565,7 +578,7 @@ Each ref is created with a push that the remote accepts only if the ref does not
 
 A story whose latest claim ended as `completed` or `closed` is finished for every computer, even one whose checkout does not have its closing records yet: `orchestrate status` and `status` list it as `closed` and never offer it, `story claim` and `story reserve` are refused with `STORY_COMPLETED_ON_REMOTE`, and only a person may claim it again (`--force --reason`, human or CI actor). Versions before 0.32.0 do not know `completed` and report those records as untrustworthy, so they refuse the claim too. `gate check --lifecycle-complete` warns while the story's final receipt is not on the remote base branch.
 
-A story's records travel with its code: governed commits and pull requests accept the story's own `.sdlc` records outside the code's write scope (`orchestration_policy.story_records`), and `pull_request.create`/`update` warn (or refuse) when the head lacks the story's claim and steps. Records written after the merge (final receipt, claim release) are published with `story publish-records`, which pushes a branch carrying only those records, built on the remote base branch without touching the checkout. A story merged while this branch has none of its work records is listed as `merged_open`, never as ready, and `story claim` refuses it (`STORY_ALREADY_MERGED`) and names who merged it and from which branch.
+A story's records travel with its code: governed commits and pull requests accept the story's own `.sdlc` records outside the code's write scope (`orchestration_policy.story_records`), and `pull_request.create`/`update` warn (or refuse) when the head lacks the story's claim and steps. Records written after the merge (final receipt, claim release) are published with `story publish-records`, which pushes a branch carrying only those records, built on the remote base branch without touching the checkout. A rejected publication is retried up to three more times (4 attempts in all), after waits of 1s, 2s and 4s, and each retry is rebuilt on the fresh remote base tip. `AGENTIC_SDLC_PUBLISH_BACKOFF_MS` sets the first wait (default 1000), and each later wait doubles it. A story merged while this branch has none of its work records is listed as `merged_open`, never as ready, and `story claim` refuses it (`STORY_ALREADY_MERGED`) and names who merged it and from which branch.
 
 Releases are written on this computer first and then shared, so a release that cannot reach the remote only keeps the story reserved for everyone else a little longer; `story release` run again shares it. Taking over a story held elsewhere is a person's decision: `story claim --force --reason <why>` with a human or CI actor, refused inside an agent's session. The takeover is recorded in the release record, so the previous holder's `orchestrate status` and `status` say who took the story over, when, and why.
 
@@ -695,5 +708,7 @@ The CLI accepts a custom template directory through `--template-dir`. Teams can 
 `autonomy_policy` is also project-local configuration: rollout mode, allowed levels, legacy ceiling, host-verification requirement, delivery kinds, preset checkpoints, and exception triggers are data rather than product-specific branches. The evaluator remains generic and consumes the configured policies plus hash-bound records.
 
 The schemas can be used by CI, pre-merge checks, or future MCP tools.
+
+`host_policy.adapters` selects the messaging provider (`github`, `local`, `none`) and the record store (`git-sdlc`, the default, or `local-fs`). Each store declares the guarantees it gives, and a gate fails when the store cannot give the guarantees its certification level requires. `host_policy.roles.coordinator` names the coordinator computers. That setting is validated, but enforcement is planned and not active yet. Delivery and verification providers are resolved through `lib/delivery/provider-registry.mjs`. See [Adapters and roles](adapters-and-roles.md).
 
 For the full project knowledge base layout, see [Knowledge Base Structure](kb-structure.md).

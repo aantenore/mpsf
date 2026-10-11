@@ -6,7 +6,7 @@ You do not need to create record IDs, write JSON, choose CLI commands, or unders
 
 ## Try It In Five Minutes
 
-Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git.
+Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git. The local-only trial in step 4 also needs the smoke-test sandbox. It is built into macOS; on Linux, install bubblewrap at `/usr/bin/bwrap`. On Windows, run the CLI inside WSL2 (see [Windows](portable-install.md#windows)) or use a pull-request delivery instead.
 
 **1. Install the plugin.**
 
@@ -19,8 +19,7 @@ In Claude Code:
 ```
 
 In Codex, follow the installer steps in the [README Quick Start](../README.md#codex).
-`doctor` should report a usable runtime; see
-[Claude Code Installation](claude-code-install.md) if it does not.
+`doctor` should report a usable runtime; see [Claude Code Installation](claude-code-install.md) or [Portable Codex Install](portable-install.md#doctor) if it does not.
 
 **2. Create a disposable project.** Nothing touches a real repository while you
 experiment:
@@ -64,7 +63,7 @@ created lives in its `.sdlc/` directory.
 
 Open the target project in a new Codex task or Claude Code session and use the request that matches your intended result.
 
-| I want to... | Ask Codex... |
+| I want to... | Ask your agent... |
 | --- | --- |
 | Understand an existing project | `Contextualize this project and prepare an initial technical assessment.` |
 | Agree and deliver a new requirement as a new PR | `Turn this new requirement into an agreed work brief, implement it, verify it, and open a new pull request.` |
@@ -72,13 +71,13 @@ Open the target project in a new Codex task or Claude Code session and use the r
 | Build and verify only on this machine | `Build and verify this result only on my local machine. Do not push, open a pull request, deploy, or use production.` |
 | Inspect recorded delivery history | `Open the Change Observatory and explain this project's recorded delivery lineage.` |
 
-Add the real requirement, PR URL, desired local destination, constraints, exclusions, or success criteria after the starter. Codex should preserve values you already supplied and ask only for material gaps.
+Add the real requirement, PR URL, desired local destination, constraints, exclusions, or success criteria after the starter. The agent should preserve values you already supplied and ask only for material gaps.
 
 ## Conversation And Control Have Different Jobs
 
 | Part | Its job |
 | --- | --- |
-| Codex conversation | Understand your request, inspect evidence, distinguish fact from inference, explain the proposed work, and ask for decisions in plain language. |
+| Claude Code or Codex conversation | Understand your request, inspect evidence, distinguish fact from inference, explain the proposed work, and ask for decisions in plain language. |
 | Deterministic CLI | MPSF validates structured intent, approved records, permissions, limits, hashes, state transitions, and evidence. It does not interpret your prose. |
 | Project `.sdlc/` directory | Keep the project-specific decisions and evidence with the project. |
 
@@ -86,10 +85,10 @@ Internal names may appear under **Technical details (optional)**. They are audit
 
 ## The Delivery Journey
 
-For implementation work, Codex follows one visible order:
+For implementation work, the agent follows one visible order:
 
 1. **Preview and normalize**
-   Codex restates the outcome, project, destination, evidence boundary, and missing facts. This is read-only planning. The task has not started.
+   The agent restates the outcome, project, destination, evidence boundary, and missing facts. This is read-only planning. The task has not started.
 
 2. **Agree the requirement**
    You review the desired outcome, observable success criteria, non-goals, constraints, integrations, the project paths that may change, and the most independence this requirement may permit.
@@ -98,37 +97,37 @@ For implementation work, Codex follows one visible order:
    A small bounded change can remain one story. Larger work receives a proposed breakdown and dependencies before they become part of the plan.
    Every story is delivered on its own, with its own pull request or local
    release and its own autonomy choice. If you want one result for several
-   parts, Codex proposes one delivery story whose parts are tasks inside it;
+   parts, the agent proposes one delivery story whose parts are tasks inside it;
    several stories fit only when each part should ship separately. Agree this
    shape before approving the breakdown: there is currently no command that
    retires an approved story that was never started, so it stays in the plan
    and `status` may keep reporting it as open or blocked work.
 
 4. **Agree the output and work brief**
-   Codex shows the concrete files, tools, tests, branches or local target, verification, protected actions, and rollback where relevant. “Work brief” is the plain-language view of the formal contract.
+   The agent shows the concrete files, tools, tests, branches or local target, verification, protected actions, and rollback where relevant. “Work brief” is the plain-language view of the formal contract.
 
 5. **Choose autonomy for this one delivery**
    Every new pull request, existing pull request, or local release gets a fresh choice. A choice from an earlier delivery is never reused.
 
 6. **Start the story workflow, then start once**
-   Codex first binds the exact configured phase order to the story. This must
+   The agent first binds the exact configured phase order to the story. This must
    happen before task start and before the first completed step. Only then does
-   Codex make the task-start decision. An explicit start confirmation, when
+   the agent make the task-start decision. An explicit start confirmation, when
    required, completes that same start; it is not a second planning phase. A
    worker can claim the story only after this start succeeds for the current
    approved contract.
 
 7. **Implement and test**
-   Codex claims the started story, changes only the displayed paths, runs the
+   The agent claims the started story, changes only the displayed paths, runs the
    agreed checks, records evidence, completes each phase, and enters the next
    phase only after the previous one is complete.
 
 8. **Validate, then enter release**
-   After validation is complete, Codex seals the intermediate strict receipt
+   After validation is complete, the agent seals the intermediate strict receipt
    and moves the bound workflow into `release`.
 
 9. **Finish and certify at the named destination**
-   Only after entering `release`, Codex creates or updates the one approved PR
+   Only after entering `release`, the agent creates or updates the one approved PR
    and, when merge is not included, closes that delivery as `ready_for_review`,
    or completes the local-only release, release trace, release step, and smoke
    test. It then moves the workflow to `operations` and completes the
@@ -137,13 +136,13 @@ For implementation work, Codex follows one visible order:
    deployment, and production remain separate unless explicitly included and
    approved.
 
-If a material requirement, branch, path, tool, budget, environment, or destination changes, Codex shows the changed boundary before continuing.
+If a material requirement, branch, path, tool, budget, environment, or destination changes, the agent shows the changed boundary before continuing.
 
 ### Declare paths before work starts
 
 For implementation, validation, or release, the requirement records every
 project area that may receive a durable change. Source, tests, documentation,
-and evidence are separate areas, so Codex should show all that apply before
+and evidence are separate areas, so the agent should show all that apply before
 asking you to approve the requirement. The stored requirement paths are
 sorted, deduplicated, and Git-relative, for example `src`, `test`, `docs`, and
 `evidence`. The project root, paths outside the project, and `.git` repository
@@ -187,10 +186,10 @@ local-only release. It must reject trips above a configurable cost limit, includ
 tests, and avoid network, production, and machine-global changes.
 ```
 
-Use `ST-TRIP-POLICY-001` as the stable story identifier. Codex should make each
+Use `ST-TRIP-POLICY-001` as the stable story identifier. The agent should make each
 stage understandable before moving to the next:
 
-| Stage | What Codex should show | What makes the stage ready |
+| Stage | What the agent should show | What makes the stage ready |
 | --- | --- | --- |
 | Discovery | Observed project facts, inferences, relevant files, assumptions, and missing decisions | You correct or accept the displayed context; no implementation has started |
 | Requirement | Configurable limit behavior, observable acceptance checks, non-goals, constraints, maximum autonomy, and Git-relative source/test/docs/evidence scope | One exact requirement revision with every needed project path is approved |
@@ -202,11 +201,11 @@ stage understandable before moving to the next:
 | Local release | Exact local destination, passing release trace, completed release step, terminal `released` status, successful smoke evidence, usable rollback, and released story claim | All release evidence occurs after entry into `release`; no active claim can race final certification; push, PR, deployment, and production remain excluded |
 | Final certification | One strict lifecycle result bound to this story and its terminal delivery | Every configured phase and current canonical record passes together |
 
-After validation is complete, Codex runs the ordinary strict check and uses its
+After validation is complete, the agent runs the ordinary strict check and uses its
 distinct intermediate receipt to move the story-bound workflow into its
 terminal `release` phase. Only then does it perform the local release, append
 the passing release trace, complete the release step, and close the delivery.
-After those records exist, Codex releases the completed story claim and runs:
+After those records exist, the agent releases the completed story claim and runs:
 
 ```bash
 node <plugin-root>/bin/mpsf.mjs gate check \
@@ -218,7 +217,7 @@ node <plugin-root>/bin/mpsf.mjs gate check \
 A strict check without `--lifecycle-complete` is the intermediate readiness
 receipt, not the final delivery certificate. The lifecycle command must fail
 before required phases, current test evidence, the named release, and the
-current workflow's terminal state are complete. On success, ask Codex to show
+current workflow's terminal state are complete. On success, ask the agent to show
 the final receipt, delivered path, checks run, exclusions, and residual risks
 in plain language.
 
@@ -246,19 +245,19 @@ Approval is attached to the content just shown, not to a vague permanent permiss
 | Breakdown, only when needed | The displayed stories and dependencies | Implementation or a delivery target |
 | Work brief | The displayed output, paths, tools, tests, contract, and protected actions | Another contract, wider paths, installs, secrets, production, or another delivery |
 | Delivery autonomy | The selected working mode for exactly one named PR or local release | Another PR, protected-branch merge, deployment, production, or unrelated work |
-| Action checkpoint | The exact paused action and target shown by Codex | Any other action or target |
+| Action checkpoint | The exact paused action and target shown by the agent | Any other action or target |
 
 The guided assessment is intentionally shorter: it has two normal checkpoints—project context, then one complete assessment proposal. Internal assessment records are applied from that approved bundle rather than becoming extra questions.
 
 ## Autonomy Is Explained Before You Choose
 
-Before listing the choices, Codex first tells you whether the most independent option is actually available in the current installation.
+Before listing the choices, the agent first tells you whether the most independent option is actually available in the current installation.
 
-1. **Guided** — Codex asks before important steps.
-2. **Autonomy with checkpoints** — Codex works between agreed review moments and stops at the displayed sensitive actions.
-3. **Full autonomy inside these limits** — Codex completes this one delivery without routine pauses, but only when the installation can digitally verify the approver for that exact delivery.
+1. **Guided** — The agent asks before important steps.
+2. **Autonomy with checkpoints** — The agent works between agreed review moments and stops at the displayed sensitive actions.
+3. **Full autonomy inside these limits** — The agent completes this one delivery without routine pauses, but only when the installation can digitally verify the approver for that exact delivery.
 
-If the installation records the approver but cannot digitally verify that identity, Codex says **before the choice** that option 3 will be reduced to **Autonomy with checkpoints**. You can then choose with the real effective behavior visible.
+If the installation records the approver but cannot digitally verify that identity, the agent says **before the choice** that option 3 will be reduced to **Autonomy with checkpoints**. You can then choose with the real effective behavior visible.
 
 Even the strongest mode never silently includes a different PR, protected-branch merge, remote deployment, production, secrets, destructive work, new external services, new paths, or extra budget.
 
@@ -270,7 +269,7 @@ Use:
 Turn this new requirement into an agreed work brief, implement it, verify it, and open a new pull request.
 ```
 
-Add the requirement below it. Before starting, Codex shows:
+Add the requirement below it. Before starting, the agent shows:
 
 - the requirement and observable success criteria;
 - the repository and base branch;
@@ -290,9 +289,9 @@ Use:
 Continue this existing pull request, verify the requested changes, and update the PR without creating a new one.
 ```
 
-Include the PR URL or exact repository and PR number. Codex resolves and displays the existing repository, base, head, current SHA, requested delta, allowed files, checks, and update actions. It must update that PR and must not create a second one. The delivery choice is recorded with `--pr-mode existing` and the exact PR number and URL, so the CLI refuses an update aimed at a different PR or at a head that does not descend from the reviewed commit.
+Include the PR URL or exact repository and PR number. The agent resolves and displays the existing repository, base, head, current SHA, requested delta, allowed files, checks, and update actions. It must update that PR and must not create a second one. The delivery choice is recorded with `--pr-mode existing` and the exact PR number and URL, so the CLI refuses an update aimed at a different PR or at a head that does not descend from the reviewed commit.
 
-A changed PR head, base, repository, or material requirement is drift. Codex pauses and shows the new boundary instead of applying an old approval to changed work.
+A changed PR head, base, repository, or material requirement is drift. The agent pauses and shows the new boundary instead of applying an old approval to changed work.
 
 ## Local-Only Result Or Release
 
@@ -302,7 +301,7 @@ Use:
 Build and verify this result only on my local machine. Do not push, open a pull request, deploy, or use production.
 ```
 
-Before starting, Codex shows:
+Before starting, the agent shows:
 
 - the exact absolute local destination and absolute allowed write paths inside it;
 - build and test actions;
@@ -312,7 +311,7 @@ Before starting, Codex shows:
 
 The local-only journey does not commit your code. Changed files stay
 uncommitted in your working tree, and you decide when to commit them. After
-the lifecycle-complete gate passes, Codex offers the exact command, built from
+the lifecycle-complete gate passes, the agent offers the exact command, built from
 the approved requirement paths that exist plus `.sdlc`, for example:
 
 ```bash
@@ -335,7 +334,7 @@ files.
 
 The destination may be absent while the delivery is being planned, approved,
 or started. Before `rollback.verify`, `data.migrate`, `data.rollback`, or
-`release.local`, Codex follows this governed build sequence:
+`release.local`, the agent follows this governed build sequence:
 
 1. Request `build.local` once without `--confirm-action`.
 2. If, and only if, the response is `checkpoint_required`, show you the exact
@@ -353,7 +352,7 @@ release: the creation itself belongs to the approved build boundary.
 
 ### When you update a release that already exists
 
-Codex installs the new version only while a `build.local` authorization is
+The agent installs the new version only while a `build.local` authorization is
 open: it first copies the current release into an approved backup directory,
 then replaces the destination with the new build and completes `build.local`.
 The CLI records the exact content it found (paths, modes, sizes, SHA-256).

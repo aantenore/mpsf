@@ -28,7 +28,7 @@ build its answer weigh ~3.8 MB (~959k tokens, mostly the project trace and gate 
 | Write scope | `pathMatchesApprovedWriteScope` (`lib/lifecycle/project.mjs`), delivery profile `constraints.allowed_write_paths` | Used for the `scope` section and the file index. |
 | Secret detection | `lib/secret-scan.mjs` (`scanFiles`, project `gate_policy.secret_scan.rules`), `lib/observability/redaction.mjs` (operational policy) | Both layers applied to every line the module prints. |
 | Derived cache folders | `cache_policy.derived_directories` (`cache`, `indexes`), `.sdlc/.gitignore` (`cache/**/*`) | The pack cache lives in `.sdlc/cache/context/` and is written only when `cache` is a derived folder. |
-| Compact JSON profiles | `buildContextOptimizationMetadata` (`lib/context-optimization.mjs`) | Same idea (omit, then point to `--full`); the text output reuses the pattern with `--verbose`. |
+| Compact JSON profiles | `buildContextOptimizationMetadata` (`lib/lifecycle/project.mjs`) | Same idea (omit, then point to `--full`); the text output reuses the pattern with `--verbose`. |
 | Policy defaults + `host_policy.<name>` overrides | `config/waits.json` + `resolveWaitsPolicy` | Same pattern: `config/context.json` + `resolveContextPolicy`. |
 
 ## Design
@@ -38,12 +38,13 @@ build its answer weigh ~3.8 MB (~959k tokens, mostly the project trace and gate 
 ```
 lib/context/
   policy.mjs          defaults (config/context.json) + host_policy.context, estimateTokens
-  reader.mjs          read port (list/readJson/readText/readLines/hash/observed) + fs implementation
+  reader.mjs          read port (list/readJson/readText/readLines/hash/observed): fs and RecordStore-backed implementations, cache validity check
   pack.mjs            facts -> sections -> budgeted pack (pure apart from the reader and git ls-files)
   redact.mjs          redaction + secret scan rules on every printed line
   service.mjs         buildContextPack (with cache), getContextRef
   cli.mjs             context pack / context get
   compact-output.mjs  agent form of the CLI human output
+  compact-json.mjs    agent JSON profile of --json payloads (compactJsonPayload, record locator)
 lib/host-hooks/injection-budget.mjs   dedupe + caps for hook injections
 ```
 
@@ -85,7 +86,9 @@ Sections, always in this order (a phase may omit some):
 | waits | open story waits, pointer to `wait list` for channel-derived waits | message history |
 | next | the next governed step and its command (same as the Stop hook) | |
 
-Phases: the project's `phase_order` plus `handoff`. Without `--phase` the pack follows the
+Phases: the project's `phase_order` (the lifecycle steps when it is empty), any phase named in
+`host_policy.context.pack.phase_sections`, plus `handoff`; a phase without its own weights
+uses the implementation weights. Without `--phase` the pack follows the
 first open lifecycle step. Each phase weights the sections (`host_policy.context.pack.phase_sections`):
 analysis has no file index and no evidence; implementation weighs scope and requirement;
 validation weighs evidence; release weighs evidence and dependencies.
@@ -110,13 +113,13 @@ to narrow with a pointer).
 
 **Determinism.** No timestamps of the run, sorted listings, fixed section order, canonical
 hash (`computeStableHash`) of the pack body: same records + same policy + same
-phase/budget ⇒ byte-identical text and the same `pack_hash`.
+phase/budget + same plugin version ⇒ byte-identical text and the same `pack_hash`.
 
 **Cache and invalidation.** `.sdlc/cache/context/<story>/<phase|auto>-<budget>.json` stores
 the pack plus what the reader observed: the sha256 of every file read and the listing of
 every folder listed, and the hash of the `git ls-files` listing of the write scope. An
 entry is reused only when the cache key (builder revision, policy, plugin version,
-phases) matches, every observed file has the same hash, every listed folder has the same
+phases, reader kind) matches, every observed file has the same hash, every listed folder has the same
 entries and the scope listing is unchanged. A new test run, a changed requirement or a
 new file in scope rebuilds the pack. The cache is derived data: never canonical, never
 committed (`cache/**/*` is ignored), not written when the project treats `cache` as
@@ -148,10 +151,12 @@ never affected. The test isolation helper pins `AGENTIC_SDLC_OUTPUT=full`.
 ### Agent JSON profile
 
 With `--json` an agent gets the `agent` profile (`lib/context/compact-json.mjs`):
-`status`, `outcome`, `next`, `ids` (keys `*_id`/`*_ids`, ids of listed records),
-`hashes` (keys `*_hash`), `records` (per nested record only id, kind, status, levels and
-its `*_hash` fields, plus `ref: rec:<path>` found by id under `.sdlc/`), `warnings`/`errors`
-(first 5), `error`, `refs` (`context get rec:...` for the `*_path` fields), `omitted` and
+`profile: "agent"`, `status`, `correlation_id`, `outcome`, `next`, `ids` (keys
+`*_id`/`*_ids`, ids of listed records), `hashes` (keys `*_hash`), `records` (per nested
+record only id, kind, status, levels and its `*_hash` fields, plus `ref: rec:<path>` found
+by id under `.sdlc/`), `warnings`/`errors`/`human_blockers`/`blockers` (first 5), other
+short scalar fields (booleans, numbers, strings up to 80 characters), `error`, `refs`
+(`context get rec:...` for the `*_path` fields), `omitted` and
 `full: "--json-profile full"`. `assistant_message` and `decide` stay only when a person
 must decide (approval requests or a real required decision). Keys are sorted.
 
@@ -204,7 +209,8 @@ records one by one.
 ## Phases
 
 1. **Done (0.148.0):** `context pack`, `context get`, cache, redaction, phase and handoff
-   packs, compact CLI output, hook dedupe/caps, pointers in hooks, skill and `story` hints.
+   packs, compact CLI output and the agent JSON profile (`--json-profile agent|full`), hook
+   dedupe/caps, pointers in hooks, skill and `story` hints.
 2. Story commands (`story claim`, `task start`) print the pack hash and the
    `context pack` command as their next step; `next` and the Stop hook add the pack ref of
    the active claim.

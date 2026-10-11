@@ -87,6 +87,7 @@ This page is the documentation map. Start with the goal that matches what you wa
 5. [Token efficiency](token-efficiency.md)
 6. [Knowledge-base structure](kb-structure.md)
 7. [Portable install](portable-install.md)
+8. [Design notes](plans/), meaning design documents rather than user guides: [context module](plans/context-module.md), [pluggable adapters](plans/pluggable-adapters.md), [Windows local release](plans/windows-local-release.md), [skill context diet](plans/skill-context-diet.md), [engine onboarding](plans/engine-onboarding.md)
 
 ## The core idea in one diagram
 

@@ -66,7 +66,10 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    node <plugin-root>/bin/mpsf.mjs story claim --root <target-project> --id ST-001 --agent <host-agent> --branch feature/ST-001 --thread-id <thread-id> --authorization AUTH-ST-001-CLAIM
    ```
 
-   Before `task start`, run `story availability --id ST-001 --json`. If
+   Before `task start`, run `story availability --id ST-001 --json --json-profile full`
+   (inside an agent session, plain `--json` returns the short agent profile,
+   which keeps `safe_to_start` and `verdict` but drops the holder, branch and
+   pull request details). If
    `safe_to_start` is false, stop and tell the user who holds or reserved the
    story, or which branch or pull request names it and how recently, and ask
    whether to proceed; never decide for them and never retry with `--force`.
@@ -166,12 +169,15 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    ending a turn run `mpsf next` (the Stop hook in Claude Code does
    the same and keeps the turn going; `AGENTIC_SDLC_KEEP_GOING=off` disables
    it). Priority: unanswered questions/requests, unpublished records, plugin
-   update (a message from another computer carries a newer `v:<version>`:
-   update first with the printed command), the next step of own claims,
-   parallel work, available stories. When an own claim waits (story wait,
-   dependency not merged, records of another computer, a human decision), do
-   not stop: claim another available story whose dependencies are satisfied
-   (`story claim`) or do pending plugin/maintenance work. When the own story
+   update (another computer's messages carry a newer plugin version; `next`
+   and the Stop hook print it with the update command: update first), the
+   next step of own claims, parallel work, available stories. When an own
+   claim waits (story wait, dependency not merged, records of another
+   computer, a human decision), do not stop: claim another available story
+   whose dependencies are satisfied (`story claim`) from its own worktree
+   (inside an agent session a worktree holds one claimed story, and a second
+   claim from the same worktree is refused with
+   `STORY_CLAIM_ONE_PER_WORKTREE`), or do pending plugin/maintenance work. When the own story
    reaches release/operations, reserve the next available story
    (`story reserve --id <id>`) so work continues right after certification.
    When the story worktree is behind origin/main, run `story sync` before
@@ -185,8 +191,9 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    **One heavy command at a time per story.** Never start the same plugin
    command twice in parallel, and run one heavy command at a time per story
    (gate check, story complete-step, workflow transitions, delivery actions,
-   test record, ...); trace rebase, baseline refresh/approve and story
-   publish-records run one at a time per repository. A duplicate start is
+   test record, ...); trace rebase, workflow instance repair-traces, baseline
+   refresh/approve, story sync and story publish-records run one at a time per
+   repository. A duplicate start is
    refused with exit code 5 and names the running pid: wait for it to finish
    (or set `AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS`), use `runs stop --pid <pid>`
    only if it is stuck. Read-only commands are never blocked.

@@ -70,7 +70,7 @@ The product presents one concrete proposal containing:
 - canonical format, extension, media type, path, delivery mode, generator, and verifier;
 - concrete tools, permissions, and targets;
 - exact write-set, subject IDs/hashes, contract draft, and route intent;
-- exact active-time and step defaults, an estimated token soft threshold with no hard limit, warning thresholds, verification reserve, and stop/extension policy; cost is unavailable and non-binding unless backed by a trustworthy pricing adapter, pricing reference, and currency;
+- concrete active-time, step, and token defaults (all estimated soft limits with no hard limit), warning thresholds, verification reserve, and stop/extension policy; cost is unavailable and non-binding unless backed by a trustworthy pricing adapter, pricing reference, and currency;
 - assumptions, missing information, limits, and escalation boundaries;
 - the exact records and actions that approval will authorize;
 - the execution start and final delivery behavior.

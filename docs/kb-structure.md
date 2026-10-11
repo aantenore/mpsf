@@ -8,11 +8,19 @@ The sample records below use neutral placeholders. The structure is generic and 
 <target-project>/
   .sdlc/
     project.json
+    config.json                   # pinned project configuration
+    config.lock.json              # hash lock that binds config.json
+    bootstrap-manifest.json       # seal of the completed initial bootstrap
+    bootstrap-journal.json        # hash-bound bootstrap journal, used to recover an interrupted init
+    messaging.json                # optional; committed messaging settings shared by every clone
+    .gitignore                    # ignores cache contents, indexes/*.json, and reports/*.tmp
+    .gitattributes                # LF line endings for text records, binary output formats
     README.md
     baseline/
     assessments/
     workflows/
     budgets/
+    context-optimization/         # command-output optimization observations per assessment proposal
     contracts/
     autonomy/
     authorizations/
@@ -43,6 +51,10 @@ The sample records below use neutral placeholders. The structure is generic and 
     indexes/
     reports/
     operations/
+    gates/                        # story gate receipts, including the final lifecycle receipt <story>-final.json
+    migrations/                   # config/ and identity/ migration receipts
+    evidence-redaction-policies/  # trace evidence redaction policies, one file per content hash
+    test-triage/                  # test triage decisions for failed test cases
 ```
 
 ## Source Of Truth
@@ -203,8 +215,9 @@ Example:
   "project_id": "my-product",
   "project_name": "My Product",
   "schema_version": "0.1.0",
-  "sdlc_version": "0.1.0",
+  "sdlc_version": "<plugin version>",
   "locale": "en",
+  "created_at": "<ISO-8601 timestamp>",
   "knowledge_base": {
     "storage": "git",
     "canonical_path": ".sdlc",
@@ -214,12 +227,27 @@ Example:
     "derived_artifacts": ["cache", "indexes"],
     "output_contracts_registry": ".sdlc/output-contracts/registry.json",
     "cache_policy_path": ".sdlc/cache/kb-cache.json"
-  }
+  },
+  "bootstrap_manifest": {
+    "path": ".sdlc/bootstrap-manifest.json",
+    "schema_version": "project-bootstrap-manifest:v1"
+  },
+  "bootstrap_journal": {
+    "path": ".sdlc/bootstrap-journal.json",
+    "schema_version": "project-bootstrap-journal:v1",
+    "request_hash": "<sha256>"
+  },
+  "phase_order": [...],
+  "audit": { "created_by": ..., "updated_by": ..., "git": ..., "run": ... }
 }
 ```
 
-`locale` is optional and recorded only when `init` receives `--locale`. It is a
-presentation preference: `observe` uses it when `--locale` is omitted.
+`sdlc_version` records the plugin version that created the project and is not updated on upgrade.
+
+`locale` is optional and recorded only when the bootstrap (`init`, or
+`onboard existing-project` on a repository without `.sdlc`) receives
+`--locale`. It is a presentation preference: `observe` uses it when `--locale`
+is omitted.
 
 ## `baseline/`
 
@@ -271,8 +299,10 @@ Assessment proposal and workflow control records. Paths are configured in `.sdlc
 ```text
 .sdlc/assessments/proposals/ASSESSMENT-001.json
 .sdlc/assessments/workflows/ASSESSMENT-001.json
-.sdlc/budgets/ASSESSMENT-001/BUDGET-ASSESSMENT-001.json
-.sdlc/budgets/ASSESSMENT-001/AMEND-ASSESSMENT-001-01.json
+.sdlc/budgets/ASSESSMENT-001/effective-budget.json
+.sdlc/budgets/ASSESSMENT-001/amendments/BAMEND-ASSESSMENT-001-<suffix>.json
+.sdlc/budgets/ASSESSMENT-001/usage/USAGE-ASSESSMENT-001-<suffix>.json
+.sdlc/budgets/ASSESSMENT-001/metering/<adapter>/
 ```
 
 The proposal is the immutable checkpoint 2 approval payload (`assessment-proposal:v1`). Its hash binds the approved baseline, scope/requirement, story reservation, deliverable, capabilities, contract draft, route intent, write-set, budget, security, and application plan. Mutable progress, failure, retry, exception, and receipt references live in `assessment-workflow:v1`. Storage roots are configured through `assessment_workflow.storage_root` and `budget_policy.storage_root`; the paths above are defaults.
@@ -322,11 +352,13 @@ The four built-in definitions are software project, change request, technical as
 Immutable evidence of authority and execution. Exact paths are configurable; categories include:
 
 ```text
-.sdlc/receipts/host-approvals/
+.sdlc/receipts/host/                      # example location; host receipt files are passed with --host-receipt-file
 .sdlc/authorization-uses/
+.sdlc/receipts/authorization-lifecycle/
 .sdlc/receipts/generation/
 .sdlc/receipts/verification/
-.sdlc/receipts/execution-usage/
+.sdlc/budgets/<proposal>/usage/           # assessment execution-usage receipts
+.sdlc/autonomy/metering/<profile>/usage/  # delivery execution-usage receipts
 ```
 
 - `host-approval-receipt:v2` binds the question, subject hash, constraints, answer, actor, and host/CI message, then authenticates the canonical payload hash with an Ed25519 key configured in `authority_policy.trusted_host_keys`.
@@ -351,7 +383,7 @@ Examples:
 .sdlc/contracts/contract-ST-001-implementation.json
 ```
 
-Contracts are generated from `templates/sdlc-config.json` and follow the shape documented in `templates/contract-template.json`.
+Contracts are generated from the project's pinned `.sdlc/config.json` (`phases.<phase>` and `contract_generation`). `init` creates that file from `templates/sdlc-config.json` or from the `--template-dir` overlay. Contracts are validated against `schemas/contract.schema.json`. `templates/contract-template.json` is a reference starter only.
 
 Every generated contract is bound to the current project and records contextualization data:
 
@@ -609,6 +641,9 @@ Examples:
 .sdlc/autonomy/standing/SA-FLAGS/approval.json
 .sdlc/autonomy/standing/SA-FLAGS/revocation.json
 .sdlc/autonomy/standing/SA-FLAGS/uses/0001.json
+.sdlc/autonomy/delegations/DLG-<id>/delegation.json
+.sdlc/autonomy/delegations/DLG-<id>/revocation.json
+.sdlc/autonomy/delegations/DLG-<id>/uses/
 .sdlc/autonomy/metering/AUT-PR-184/plans/DELIVERY-METER-AUT-PR-184-USD.json
 .sdlc/autonomy/metering/AUT-PR-184/usage/USAGE-AUT-PR-184-....json
 .sdlc/autonomy/metering/AUT-PR-184/ledger.json
@@ -650,6 +685,8 @@ Local smoke commands are JSON argv arrays, never shell strings. Shells, indirect
 
 `standing/<id>/` holds one standing approval: a user-approved, bounded, revocable delegation for repeated low-risk deliveries. `proposal.json` (`standing-approval:v1`) records the recipe and description, requirement profile hashes, project-relative paths or globs, per-delivery file and line limits, the single destination (local release, or pull request create/update without merge, which for a pull request also records the user's `code_review` answer, `required` or `not-required`, for every pull request it covers), the number of deliveries, the mandatory expiry, a budget field that is always `null` for new records (records from earlier versions may carry a budget, which then fails closed at every step), the project, configuration, and policy hashes it binds, the authority mode it was proposed under (`authority_mode`; under `host_verified` its approval must be signed), and the CLI-fixed list of what is never covered. `approval.json` and `revocation.json` (`standing-approval-decision:v1`) hold the person's formal approval or revocation; when the trusted host signed the decision they also embed its verified receipt (`assurance` and `host_receipt`), which is checked again against `authority_policy.trusted_host_keys` whenever the standing approval is read, and which a `host_verified` project requires for the approval. Each `uses/<slot>.json` (`standing-approval-use:v1`) is one consumed delivery slot bound to one delivery profile; the slot number is the file name, so two deliveries can never share a slot. Every record is immutable and hash-sealed; an edited record makes the standing approval invalid. Derived approvals on contracts, delivery profiles, and action receipts carry `approval_source: standing-approval` with the standing approval id, hashes, and slot (plus `host_receipt_ref` when its approval was signed), and the strict gate checks they were created while it was approved, unexpired, and unrevoked, and that any receipt they name is the one that signed it.
 
+`delegations/<id>/` holds one approval delegation a person granted with `autonomy delegation grant` (`approval-delegation:v1`: delegable actions such as `delivery.approve`, `baseline.approve`, `story.supersede`, plus scope and expiry). Its revocation (`revocation.json`) and use receipts (`uses/`, `approval-delegation-use:v1`) sit beside it. Approvals made under it carry `approval_source: delegated` with the delegation id, and `autonomy delegation publish` puts the delegation on the base branch so other computers can see it.
+
 ## `stories/`
 
 Story-scoped workspaces. This is the main parallel work unit.
@@ -662,7 +699,12 @@ Example:
   claim.json
   plan.md
   implementation-log.md
+  task-start.json
+  steps/
+  handoffs/
 ```
+
+`task-start.json` is the single task-start receipt; `steps/` holds the records written by `story complete-step`; `handoffs/` holds `<handoff-id>-package.json` packages from `story prepare-handoff`.
 
 `story.json` stores structured story data:
 
@@ -786,7 +828,7 @@ Examples:
 ```text
 .sdlc/tests/ST-001-test-strategy.md
 .sdlc/tests/ST-001-run.log
-.sdlc/tests/ST-001-test-run-20260916T101500-a1b2c3.json
+.sdlc/tests/ST-001-test-run-20260916101500000-a1b2c3.json
 .sdlc/tests/ST-001-validation-summary.md
 ```
 
@@ -799,7 +841,7 @@ Plans, runner output, and summaries are free-form files. A `.json` file whose
 {
   "kind": "test_run",
   "schema_version": "test-run:v1",
-  "id": "ST-001-test-run-20260916T101500-a1b2c3",
+  "id": "ST-001-test-run-20260916101500000-a1b2c3",
   "story_id": "ST-001",
   "phase": "validation",
   "summary": "Full suite on the reviewed implementation branch",
@@ -827,10 +869,15 @@ Plans, runner output, and summaries are free-form files. A `.json` file whose
 
 The record binds the command that ran, the exit status it returned, the result
 counts, and at least one hashed output file. `outcome` is derived from
-`exit_code` and `totals`, not supplied: the schema admits `passed` only
-together with exit status `0`, zero failed cases, and at least one passing
-case, so a run cannot be recorded as successful by assertion alone. Each record
-is immutable; a new run produces a new file.
+`exit_code` and `totals`; `--outcome` may only refine a failure to
+`failed-minor` or mark the run `blocked`, never turn a failure into a pass:
+the schema admits `passed` only together with exit status `0`, zero failed
+cases, and at least one passing case, so a run cannot be recorded as successful
+by assertion alone. Each record is immutable; a new run produces a new file.
+
+`--case <id>` stores `case_id`. Failed and failed-minor cases are decided with
+`test triage` (records under `.sdlc/test-triage/`), and the strict gate refuses
+a story with undecided failures.
 
 Writing a record also appends a `test` trace event whose evidence names the
 record and its output files, so the run appears in the story history and in the
@@ -847,14 +894,14 @@ Credential-scan records for the files a delivery changed. A `.json` file whose
 `secret scan`:
 
 ```text
-.sdlc/security/ST-001-secret-scan-20260916T101500-a1b2c3.json
+.sdlc/security/ST-001-secret-scan-20260916101500000-a1b2c3.json
 ```
 
 ```json
 {
   "kind": "secret_scan",
   "schema_version": "secret-scan:v1",
-  "id": "ST-001-secret-scan-20260916T101500-a1b2c3",
+  "id": "ST-001-secret-scan-20260916101500000-a1b2c3",
   "story_id": "ST-001",
   "phase": "validation",
   "summary": "Scanned 12 changed file(s) of ST-001 for credentials",
@@ -905,14 +952,14 @@ validated against `schemas/code-review.schema.json` (`code-review:v1`), written
 only by `review record`:
 
 ```text
-.sdlc/reviews/ST-001-code-review-20260916T101500-a1b2c3.json
+.sdlc/reviews/ST-001-code-review-20260916101500000-a1b2c3.json
 ```
 
 ```json
 {
   "kind": "code_review",
   "schema_version": "code-review:v1",
-  "id": "ST-001-code-review-20260916T101500-a1b2c3",
+  "id": "ST-001-code-review-20260916101500000-a1b2c3",
   "story_id": "ST-001",
   "delivery_id": "PR-ST-001",
   "delivery_profile_id": "AUT-PR-ST-001",
@@ -955,14 +1002,14 @@ record: `passed` for an approval by a reviewer independent of every author,
 A change, after a delivery was approved, to whether its merge needs a review:
 
 ```text
-.sdlc/reviews/requirement-changes/ST-001-review-requirement-20261008T101500-d4e5f6.json
+.sdlc/reviews/requirement-changes/ST-001-review-requirement-20261008101500000-d4e5f6.json
 ```
 
 ```json
 {
   "kind": "code_review_requirement_change",
   "schema_version": "code-review-requirement-change:v1",
-  "id": "ST-001-review-requirement-20261008T101500-d4e5f6",
+  "id": "ST-001-review-requirement-20261008101500000-d4e5f6",
   "story_id": "ST-001",
   "delivery_id": "PR-ST-001",
   "delivery_profile_id": "AUT-PR-ST-001",
@@ -1165,7 +1212,7 @@ Valid trace types:
 assumption, decision, gate, claim, handoff, implementation, lock, release, risk, sync, test
 ```
 
-Use `sync` traces for push, pull, merge, rebase, branch, and PR events so parallel chats can see what moved in Git.
+Use `sync` traces for push, commit, pull, merge, rebase, branch, handoff, and PR events (`sync record --event <event>`) so parallel chats can see what moved in Git.
 
 ## `releases/`
 
@@ -1178,6 +1225,7 @@ Examples:
 .sdlc/releases/observability-plan.md
 .sdlc/releases/feedback-loop.md
 .sdlc/releases/manifests/REL-001.json
+.sdlc/releases/gates/<gate-id>.json   # release gate receipts (release-gate-receipt:v1)
 ```
 
 A `release-manifest:v1` inventories source revision, proposal/requirement/story hashes, delivered artifacts, authorization-use receipts, execution usage, verification receipts, gates, and rollback instructions. It is release evidence, distinct from the compact KB manifest below.
@@ -1222,7 +1270,7 @@ Two intentionally distinct archive records live here:
 Example:
 
 ```text
-.sdlc/archive/ARCH-20260701123000.json
+.sdlc/archive/ARCH-20260701123000000-a1b2c3.json
 ```
 
 Create a plan with:
@@ -1273,7 +1321,10 @@ Example:
 
 ```text
 .sdlc/cache/kb-cache.json
+.sdlc/cache/context/
 ```
+
+`context pack` caches story packs under `.sdlc/cache/context/` when the cache folder is ignored (derived), and reuses a pack only while every record it read is unchanged; `cache clear` removes all derived cache data.
 
 Rebuild and inspect with:
 
@@ -1282,7 +1333,7 @@ node bin/mpsf.mjs cache rebuild --root <target-project>
 node bin/mpsf.mjs cache status --root <target-project>
 ```
 
-The cache may contain full-text lookup entries, story-requirement graphs, artifact fingerprints, template resolution, compact summaries, dependency graphs, and previous `output resolve` results. Each cache build records source hashes so a changed requirement, story, output registry, or trace makes the cache stale. Stale cache is a warning; using cache or index files as canonical output evidence is a strict gate error. Cached output resolution is verified against canonical KB files before use, so a cache entry cannot override the registry or story files by itself.
+The cache may contain full-text lookup entries, story-requirement graphs, artifact fingerprints, template resolution, compact summaries, dependency graphs, and previous `output resolve` results. Each cache build records source hashes so a changed requirement, story, output registry, or trace makes the cache stale. A gate that finds the cache missing or stale rebuilds it in place and warns only when the rebuild fails; using cache or index files as canonical output evidence is a strict gate error. Cached output resolution is verified against canonical KB files before use, so a cache entry cannot override the registry or story files by itself.
 
 ## Query Reports
 
@@ -1324,15 +1375,15 @@ file whose `kind` is `incident` or `feedback` is a canonical record, written
 only by `incident record` and `feedback record`:
 
 ```text
-.sdlc/operations/ST-001-incident-20260916T101500-a1b2c3.json
-.sdlc/operations/ST-001-feedback-20260916T101500-a1b2c3.json
+.sdlc/operations/ST-001-incident-20260916101500000-a1b2c3.json
+.sdlc/operations/ST-001-feedback-20260916101500000-a1b2c3.json
 ```
 
 ```json
 {
   "kind": "incident",
   "schema_version": "incident:v1",
-  "id": "ST-001-incident-20260916T101500-a1b2c3",
+  "id": "ST-001-incident-20260916101500000-a1b2c3",
   "story_id": "ST-001",
   "release_manifest_id": "RELEASE-ASSESS-001",
   "phase": "operations",
@@ -1370,3 +1421,5 @@ Review `.sdlc/` changes with code changes. A pull request should show:
 - the contract, story, autonomy decision, authorization receipt, trace, and test evidence that explain the implementation.
 
 This keeps agent work auditable after the chat session is gone. Never copy a delivery profile from a previous PR as authority for a new one. Merge to a protected branch remains a separate explicit decision unless that exact merge action and target were authoritatively approved.
+
+The story's own records travel in its pull request. After a passing `pull_request.merge` and after a passing `gate check --lifecycle-complete`, the records left on this computer (final receipt, claim release, later steps) are published straight to the base branch as one commit containing only `.sdlc` files: up to 4 attempts, waiting 1s, 2s and 4s, each on a fresh base tip (`AGENTIC_SDLC_PUBLISH_BACKOFF_MS` sets the first delay). `AGENTIC_SDLC_AUTO_PUBLISH=off` turns this off; `story publish-records --id <story>` publishes manually to the `sdlc-records/<story>` branch.

@@ -320,6 +320,7 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 - **Record stores.** `git-sdlc` (default: the `.sdlc` folder in git with shared refs) and `local-fs` (plain files, no git). Every store declares what it guarantees; a gate refuses a certification level the store cannot back.
 - **New configuration.** `host_policy.adapters.messaging` / `.records` (credentials only by reference) and `host_policy.roles.coordinator` (hosts, lease, fallback, reserved actions). Role resolution exists; enforcement is planned.
 - Fixed: a refused announcement in `story prepare` no longer ends in an unhandled rejection.
+- Needs 0.147.0 on every computer once a project sets `host_policy.adapters` or `host_policy.roles`; older plugins are told to update.
 
 ## 0.146.17
 
@@ -340,7 +341,7 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 
 ## 0.146.13
 
-- The merge and push guard on the base branch applies to every repository that has `.sdlc/project.json` in the working tree, the index or the committed base branch; deleting the file locally does not lift it. Agent edits to `host_policy.guard` are denied.
+- The merge and push guard on the base branch applies to every repository that has `.sdlc/project.json` in the working tree, the index or the committed base branch; deleting the file locally does not lift it. `host_policy.guard.protect_base_branch` (default `true`) turns the rule off only when set to `false` in the committed base branch, never from the working tree or the index. Agent edits to `host_policy.guard` are denied.
 - Here-document bodies are treated as data, not as commands, by the guard.
 - Records publication makes up to 4 attempts, so up to 3 retries after waits of 1s, 2s and 4s, each on a fresh base tip; the failure reason is the remote's own line. `AGENTIC_SDLC_PUBLISH_BACKOFF_MS` sets the first delay in milliseconds (default 1000, doubled each time).
 - Three more actions can be delegated by a person with `autonomy delegation grant --actions`: `delivery.approve`, `baseline.approve`, `story.supersede`.

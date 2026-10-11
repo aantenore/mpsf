@@ -102,8 +102,8 @@ sovereign.
 
 The implementation uses Node.js file APIs and streaming JSONL parsing on
 macOS, Linux, and Windows. It accepts LF and CRLF, compares Windows paths
-case-insensitively, never invokes a platform shell, and stores project-relative
-session paths rather than user-home absolute paths.
+case-insensitively, never invokes a platform shell, and stores the session path
+relative to `CODEX_HOME` rather than as a user-home absolute path.
 
 CodeBurn remains a disabled legacy adapter for projects that explicitly enable
 it. It is never installed or selected by autoconfiguration.

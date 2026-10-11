@@ -14,9 +14,12 @@ Workflow steps 20–24 of the MPSF skill (`../SKILL.md`). Step numbers are share
    ```
 
    Keep retrieval token-efficient: prefer the human-readable CLI view when it
-   contains enough information. JSON from `kb search` and `cache status` is
-   compact by default; add `--full` only when the omitted derived payload is
-   genuinely needed.
+   contains enough information. Inside an agent session `--json` returns the
+   agent profile (outcome, ids, hashes, `context get` refs), which leaves out
+   the `kb search` result list; add `--json-profile full` (or `--verbose`) when
+   the results are needed. Outside an agent session JSON from `kb search` and
+   `cache status` is compact by default; add `--full` only when the omitted
+   derived payload is genuinely needed.
 
    For supported noisy test, Git, and `rg` commands, use the project-configured
    RTK gateway rather than invoking an assumed global wrapper directly:
@@ -61,8 +64,10 @@ Workflow steps 20–24 of the MPSF skill (`../SKILL.md`). Step numbers are share
 
    ```bash
    node <plugin-root>/bin/mpsf.mjs report activity --root <target-project> --since 3d --view business --out .sdlc/reports/activity.md
-   node <plugin-root>/bin/mpsf.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json
+   node <plugin-root>/bin/mpsf.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json --json-profile full
    ```
+
+   Inside an agent session, plain `--json` returns the compact agent profile, which keeps only ids and omits `source_paths`, `source_hashes` and `summary`. Pass `--json-profile full` whenever the answer must cite sources.
 
 22. When upgrading an existing KB, migrate only a manifest-defined active release. Run `migration active --release-manifest <id>` first without `--apply`, explain the planned config changes and exact historical evidence set, then apply only after the release manifest and every referenced immutable record validate. The command may add missing configuration defaults and a logical `archive-record:v1`; it must never rewrite approved records or move historical files. Use `archive closed --apply` separately only for an explicitly requested filesystem move.
 

@@ -2,7 +2,7 @@
 
 Agents on different computers working on the same project can exchange short notes. A new channel lives in the project's own git remote (`git` provider): one ref per computer, each message a small signed commit, any git host, no other service or account. A project that already uses a GitHub issue as its channel keeps it (`github` provider, read and written with the [`gh`](https://cli.github.com) CLI you are signed in with). `local` (a folder) and `none` (off) are the other providers, see [Working without messaging](#working-without-messaging).
 
-Messaging is optional. On a computer where it is not set up, `message send`, `read` and `listen` make no network call, say it is not set up, and succeed; nothing else in the plugin uses messaging. GitHub being down or slow (no answer within 10 seconds), or `gh` missing or not signed in, is reported with the command to run, never a failure.
+Messaging is optional. On a computer where it is not set up, `message send`, `read` and `listen` make no network call, say it is not set up, and succeed; nothing else in the plugin uses messaging. GitHub being down or slow (no answer within 10 seconds), or `gh` missing or not signed in, is reported with the command to run, never as an error: `read` and `listen` succeed, and `send` keeps the note in the local outbox and exits 75 (see [the outbox](#when-github-refuses-the-outbox)).
 
 ## Turn it on
 
@@ -35,7 +35,7 @@ Every message the plugin writes, on the git channel and on the GitHub issue, car
 
 ### GitHub channel
 
-The repository defaults to the `origin` remote. The channel issue is the one given with `--issue`; otherwise the plugin looks for the issue labelled `agentic-sdlc-channel` (or titled "MPSF · canale tra computer") and, only if there is none, creates it once. Two computers running setup at the same moment end up on the lowest issue number (the extra one is closed). Repository and issue number are stored in the clone's git folder (`.git/agentic-sdlc/messaging.json`), which git never commits; all worktrees of that clone share it. People can read and write in the same issue from github.com or the GitHub app: a comment without the plugin's hidden trailer reads as an `info` message from the author's GitHub login.
+The repository defaults to the `origin` remote. The channel issue is the one given with `--issue`; otherwise the plugin looks for the issue labelled `agentic-sdlc-channel` (or titled "Agentic SDLC · canale tra computer") and, only if there is none, creates it once. Two computers running setup at the same moment end up on the lowest issue number (the extra one is closed). Repository and issue number are stored in the clone's git folder (`.git/agentic-sdlc/messaging.json`), which git never commits; all worktrees of that clone share it. People can read and write in the same issue from github.com or the GitHub app: a comment without the plugin's hidden trailer reads as an `info` message from the author's GitHub login.
 
 A clone that was still set up with the removed ntfy topic is converted by itself the first time any messaging command or hook runs: same repository (the `origin` remote), channel issue found or created, outbox sent through GitHub, automatic-message state kept except the old server's read positions. Nothing to do; if `origin` is not on GitHub, run `message setup --repo owner/name`.
 
@@ -51,8 +51,10 @@ setx AGENTIC_SDLC_HOST_LABEL PC1            # Windows (new terminals)
 Nothing in the plugin needs a channel. Set `AGENTIC_SDLC_MESSAGING_PROVIDER=none` (or `AGENTIC_SDLC_MESSAGING=off`) on a computer, or `"messaging": { "provider": "none" }` under `host_policy.adapters` for everyone, and:
 
 - `message send`, `read` and `listen` make no network call, say messaging is off, and succeed;
-- claims, waits, delegations, reviews and records publication work exactly the same, because they live in the record store, not in messages;
+- claims (git refs on the remote), explicit waits, dependency waits, approval and delegation waits, delegations, reviews and records publication work exactly the same; the waits derived from the channel (unanswered questions, plugin update requests, freezes) are not computed, because there is no channel to read them from;
 - no automatic notices are sent and none are expected.
+
+The team-wide `host_policy.adapters` choice applies only where nothing more specific picks a provider; the order is below.
 
 For a channel without GitHub use the `local` provider: a folder holds the channel file, so one computer (or a shared network folder) can still exchange notes.
 
@@ -68,6 +70,8 @@ The same choice for the whole team, in `.sdlc/config.json`:
 { "host_policy": { "adapters": { "messaging": { "provider": "local", "options": { "dir": "../team-channel" } } } } }
 ```
 
+This applies only where nothing more specific picks a provider. The order is: `AGENTIC_SDLC_MESSAGING_PROVIDER`, then the clone's `.git/agentic-sdlc/messaging.json`, then the committed messaging file, then `host_policy.adapters.messaging`. `message setup` writes the provider it set up (`git`, `github` or `local`) into the clone's file. On a clone that has run it, remove that key, or set `AGENTIC_SDLC_MESSAGING_PROVIDER`.
+
 More on providers, record stores and the coordinator role: [Adapters and roles](adapters-and-roles.md).
 
 ## Use it
@@ -76,7 +80,7 @@ More on providers, record stores and the coordinator role: [Adapters and roles](
 mpsf message send --story ST-UX-001 --text "Tests on this story still take 30 minutes here"
 mpsf message read --since 2h --skip-own
 mpsf message read --unread                  # only what this clone has not read yet, then marked read
-mpsf message listen --skip-own --json      # stays open; run it in the background
+mpsf message listen --skip-own --json      # stays open (stopped after 8 hours by default, see AGENTIC_SDLC_LISTEN_MAX_HOURS); run it in the background
 mpsf watch --timeout 30m                    # background alarm: exits at the first relevant message, story or release (see how-it-works)
 mpsf message outbox [--flush | --drop <id>] # messages waiting to be sent
 mpsf message identity [--name "Antonio · PC3"] # who this computer is in the channel
@@ -89,7 +93,7 @@ mpsf wait list [--all] [--json]             # who waits for what (see "Waits reg
 
 Every message has one recognisable author: the **name** of the computer, shown in bold with the GitHub login (`**Antonio · PC3** (antonio) · question · ...`); the hidden trailer also carries the host id and the login. The name is unique in the channel. `message identity` shows it (name, host id, git user, GitHub login); `message identity --name "..."` sets it (stored in `.git/agentic-sdlc/messaging.json` under `identity`). Without a name it is `<git user.name> · <host id>`, or the host id when git has no user name. A name another computer already uses is refused. `--sender` is deprecated: it is accepted only when it equals the name or the host id, any other value is an error (rename with `message identity`). Automatic `[auto]` messages use the same name. `--to` takes a name, a host id or a GitHub login. Older messages without a name show the host id they carry.
 
-The first messaging command on a clone (and again after a change of name or plugin version) publishes one `join` message with name, host, GitHub login, plugin version and the stories in progress. The host hook of the other computers answers each join once with a `welcome` (reply to the join) carrying the same facts, so the newcomer learns who is there; the hook shows "<name> si è unito al canale (versione X)". `join` and `welcome` are written by the plugin, never with `message send`. `AGENTIC_SDLC_MESSAGING_JOIN=off` turns the handshake off on one computer.
+The first messaging command on a clone (and again after a change of name or plugin version) publishes one `join` message with name, host, GitHub login, plugin version and the stories in progress. The host hook of the other computers answers each join once with a `welcome` (reply to the join) carrying the same facts, so the newcomer learns who is there; the hook shows "<name> joined the channel (version X)". `join` and `welcome` are written by the plugin, never with `message send`. `AGENTIC_SDLC_MESSAGING_JOIN=off` turns the handshake off on one computer.
 
 Right after joining, the command shows on stderr a short recap, built locally without asking the other agents (they may be off): the last 5 messages of the other computers and the stories in progress, parked or waiting as this clone last saw the shared claims (run `status` for the current state).
 
@@ -103,7 +107,7 @@ If GitHub answers a rate limit (HTTP 429, or 403 with a retry-after or "secondar
 
 The queue is sent, oldest first, by the next `message send` (a new message waits behind the queued ones to keep the order), by `message read` and `listen`, and by the host hook (short timeout), at most once every 5 minutes (`AGENTIC_SDLC_MESSAGING_OUTBOX_RETRY_MINUTES`); each new failure doubles the wait, up to 12 times, and a `retry-after` from GitHub is always respected, so the rate limit is not hammered. Messages that go out leave the queue and are remembered as this computer's own, with their `reply_to`. `message outbox --flush` retries now; `--drop <id>` discards one; `message status` shows the queue. A queued message that GitHub later refuses for good is dropped with a notice.
 
-A queued answer (`--reply-to X`) counts as an answer in progress: question X no longer appears as unanswered in the host hook and does not block the Stop hook. The Stop hook instead mentions once, without blocking: "N messaggi in coda, non ancora inviati (reason); controlla 'gh auth status' e la rete".
+A queued answer (`--reply-to X`) counts as an answer in progress: question X no longer appears as unanswered in the host hook and does not block the Stop hook. The Stop hook instead mentions once, without blocking: "N messages queued, not yet sent (reason); check 'gh auth status' and the network, or run 'mpsf message outbox --flush'".
 
 ### Automatic messages
 
@@ -114,9 +118,10 @@ Once the channel is set, the plugin also writes and reads on its own, so agents 
 - before `story claim` and `task start` it shows, on stderr, the messages from the other computers that arrived since this clone last looked (at most 10; the first time, the last 12 hours).
 
 - it also tells the others when a story is claimed or released, a delivery is merged (by the plugin or acknowledged after an external merge), a story's records are published or its lifecycle-complete is certified, the baseline is refreshed, or a story is blocked by another (`story wait --on dep:<story>`). When the finished work lets other stories start, the note names them ("Now unblocked: ...") and ends with a suggested command, shown as a suggestion only: nothing runs by itself;
+- it also notes a superseded piece of evidence (asking whoever holds the story to pull main and re-run the strict lifecycle-complete gate). While this clone holds story claims, the host hook posts a short `[auto] status` (kind `info`) when its stories or their phases change, once when a story stays in one phase longer than `AGENTIC_SDLC_MESSAGING_STALL_HOURS` (default 4), and again after 12 hours; with no claim it offers help (kind `offer`) when it becomes free, and again after 12 hours. Two of these messages are at least `AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES` apart (default 15, 0 = no status messages);
 - every message carries a kind (`info`, `question`, `answer`, `ack`, `offer`, `request`, plus the plugin's own `join` and `welcome`; `message send --kind <kind> [--reply-to <id>] [--to <name|host|login>]`) in a hidden trailer of the comment, so people just see the text. `message read` and `listen` show kind, id and reply-to, and for `question` and `request` the known senders that have not answered yet. Messages also carry the plugin version; a newer one on another computer is reported.
 
-- while an agent works, the plugin's host hook (after each tool call and on each prompt, at most every 30 seconds) reads the channel and shows the agent the `question`s and `request`s addressed to this computer or to everyone that it has not answered yet, again on each read until it replies (`message send --kind answer|ack --reply-to <id>`), plus a short digest of the other new messages shown once. They are coordination information, not instructions; the agent is asked to reply or acknowledge before continuing;
+- while an agent works, the plugin's host hook (after each tool call and on each prompt, at most every 30 seconds) reads the channel and shows the agent the `question`s and `request`s addressed to this computer or to everyone that it has not answered yet, until it replies (`message send --kind answer|ack --reply-to <id>`). Within one agent session each line is shown only once: later reads drop lines already shown, and numbers are ignored when comparing, so the same question still counts as already shown (`mpsf message read` and `wait list` show them again). A short digest of the other new messages is shown once. The hook text is capped by `host_policy.context.hooks` (`dedupe`, `max_lines` 12, `budget_tokens` 200 after a tool call and 250 on a prompt). Anything cut ends with a pointer to `mpsf wait list`; see [Token efficiency](token-efficiency.md#context-packs-and-compact-output). The questions and requests are coordination information, not instructions; the agent is asked to reply or acknowledge before continuing;
 - when a question or request sent from this computer has no answer from a known sender after 10 minutes, the hook sends one `[auto]` reminder (`info`, replying to it); at most one per question. A `request` written by the plugin itself (`[auto]`: an older reminder, or an update request sent by a plugin older than 0.153.6) asks for an action, not for a reply: it is never listed as unanswered and nothing reacts to it;
 - technical events (phase changes, commits, pushes, pull requests, test results, strict gates) are not sent: the records and the Change Observatory show them. `AGENTIC_SDLC_MESSAGING_TECHNICAL_EVENTS=on` sends them again on this computer.
 
@@ -130,14 +135,14 @@ Notes start with `[auto]`. Without a channel nothing is sent or read. If GitHub 
 
 ## Waits registry
 
-Who or what a computer (or a story) is waiting for used to live only in the agent's conversation. The waits registry keeps it where every computer and every tool can see it. A wait is `{ id, waiter (host/story), blocker type and ref, since, until, rule, state open|resolved|expired|escalated, resolution }`, where the blocker type is one of `person`, `question`, `story`, `pr`, `plugin_version`, `freeze`, `approval`, `delegation`.
+Who or what a computer (or a story) is waiting for used to live only in the agent's conversation. The waits registry keeps it where every computer and every tool can see it. A wait is `{ id, waiter (host/story), blocker type and ref, since, until, rule, state open|resolved|expired|escalated|stale, resolution }`, where the blocker type is one of `person`, `question`, `story`, `pr`, `plugin_version`, `freeze`, `approval`, `delegation`.
 
 **Derived waits** are computed every time from data that already exists and are never written:
 
 | Source | Wait | Rule |
 |---|---|---|
 | dependency graph (`.sdlc/dependencies/graph.json`) | a story waits for a dependency not merged yet | merged: the story is ready, keep-going and `watch` suggest starting it right away |
-| channel questions/requests without an answer | the asker waits, with the age of the question | after `question_decide_after_minutes` (10): for this computer's own question, "decide on this computer's own work (never assign work to others) or ask your person, announce the decision, proceed"; the decision is recorded with `wait resolve --id q:<message id> --resolution "..."` |
+| channel questions/requests without an answer | the asker waits, with the age of the question | after `question_decide_after_minutes` (10): for this computer's own question, "decide on this computer's own work (never assign work to others) or ask your person, announce the decision, proceed"; the decision is recorded with `wait resolve --id q:<message id> --resolution "..."`; after `question_max_age` (2h) the question is `stale`: it is listed but never blocks |
 | `message who` roster | a computer of the channel runs an older plugin | information only: nothing is sent to it. Each computer checks its own version against what the project needs (`config/plugin-compatibility.json`, the records' minimum version) and against the newest version announced on the channel, and tells its own person in its session, with the update command |
 | channel freezes (off by default: `host_policy.waits.freezes_enabled`; while off, `message send --kind freeze` is refused and freeze messages are ignored) | everyone waits for the end of the freeze | `message send --kind freeze --until <duration>` carries the end explicitly; an announcement such as "30 minuti senza merge/push su main" is recognised too (`freeze_patterns`). During the freeze keep-going does not ask to publish records; when it ends it suggests resuming the suspended actions |
 | pending human approvals (breakdown, dependency, contract, requirement, autonomy profile...) | this computer waits for a person | shown once to the person working with this computer, in its own session (agent context and Stop hook note), with the exact command, never on the channel; then the wait is `escalated` and never repeated; keep-going does not block on it |
@@ -168,7 +173,7 @@ Where the waits show up:
 - the host hook that reads the channel applies the automatic rules and shows each suggestion once, including the waits that need this computer's own person; `AGENTIC_SDLC_WAIT_RULES=off` turns the rules off on this computer.
 - Change Observatory: panel "Chi aspetta chi" (Who waits for whom) in the Now panel, with ages and deadlines.
 
-The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defaults in the plugin's `config/waits.json`): `question_decide_after_minutes`, `freezes_enabled`, `freeze_default_minutes`, `explicit_default_until`, `explicit_max_until`, `escalate_approvals`, `escalate_delegations`, `list_limit`, `freeze_patterns`. What has been shown already (escalations, suggestions) is remembered per clone in `.git/agentic-sdlc/waits-state.json`.
+The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defaults in the plugin's `config/waits.json`): `question_decide_after_minutes`, `question_max_age`, `freezes_enabled`, `freeze_default_minutes`, `explicit_default_until`, `explicit_max_until`, `escalate_approvals`, `escalate_delegations`, `list_limit`, `freeze_patterns`. What has been shown already (escalations, suggestions) is remembered per clone in `.git/agentic-sdlc/waits-state.json`.
 
 ## Computers and roles
 
@@ -216,7 +221,7 @@ Each setting is taken from the first place that has it:
 |---|---|
 | `AGENTIC_SDLC_MESSAGING_REPO`, `AGENTIC_SDLC_MESSAGING_ISSUE` | environment variables, for this computer (`owner/name`, issue number) |
 | `.git/agentic-sdlc/messaging.json` | written by `message setup`: `{"provider": "github", "repo": "owner/name", "issue": 12}`, for this clone, never committed |
-| `.sdlc/messaging.json` | optional, committed: `repo` and `issue` for everyone (nothing secret) |
+| `.sdlc/messaging.json` | optional, committed, for everyone (nothing secret): `repo`, `issue`, `provider` (`github`, `local`, `none`), `dir` (the local provider's folder), or `"enabled": false` (only used when the clone has no local file) |
 | `AGENTIC_SDLC_MESSAGING=off` | turns messaging off on this computer |
 | `AGENTIC_SDLC_MESSAGING_AUTO=off` | keeps the `message` commands but stops the automatic messages on this computer |
 | `AGENTIC_SDLC_MESSAGING_AUTO_TIMEOUT_SECONDS` | network limit for one automatic step (default 3) |
@@ -228,6 +233,10 @@ Each setting is taken from the first place that has it:
 | `AGENTIC_SDLC_MACHINE_DIR` | folder of the computer's kept id and Ed25519 key (`machine.json`, `machine-key.pem`, mode 0600; default `$XDG_CONFIG_HOME/agentic-sdlc`, `%APPDATA%\agentic-sdlc` on Windows, else `~/.config/agentic-sdlc`) |
 | `AGENTIC_SDLC_MESSAGING_JOIN=off` | no automatic join/welcome on this computer |
 | `AGENTIC_SDLC_ROLES=off` | this computer publishes no presence and takes no role; it does every duty itself, and the other computers see its claims renewed only by its pushes |
+| `AGENTIC_SDLC_MESSAGING_HEARTBEAT_MINUTES` | minimum gap between two automatic status or offer messages (default 15, 0 = no status messages); set explicitly, a status is also sent every gap |
+| `AGENTIC_SDLC_MESSAGING_STALL_HOURS` | one status notice per story and phase that stays unchanged this long (default 4, 0 = off) |
+| `AGENTIC_SDLC_LISTEN_MAX_HOURS` | `message listen` is stopped after this many hours (default 8, 0 = no limit) |
+| `AGENTIC_SDLC_WAIT_RULES=off` | no automatic wait-rule messages on this computer |
 | `AGENTIC_SDLC_MESSAGING_PROVIDER` | `github` (default), `local` (a channel file in a folder: offline, tests, a shared network folder) or `none` (messaging off) |
 | `AGENTIC_SDLC_MESSAGING_LOCAL_DIR` | folder of the `local` provider's channel (default: next to the clone's settings in the git folder) |
 | `.sdlc/config.json` -> `host_policy.adapters.messaging` | `{"provider": "local", "options": {"dir": "..."}}` for everyone, below the files above; credentials only by reference (`<name>_env`) |

@@ -138,7 +138,7 @@ Gate requirements (`GATE_REQUIREMENTS`), enforced in `gate check` through `recor
 - `strict_intermediate`: `hash_chain`;
 - `lifecycle_complete`: `hash_chain`, `immutable_history`, `atomic_publish`, `base_branch_coupling`.
 
-Claims and waits across computers additionally need `shared_state`; on a store without it they work for one computer only, and the command says so (`note`). Phase 2 makes multi-computer coordination refuse to start (fail closed) when `shared_state` is missing and more than one host is configured.
+Explicit waits across computers additionally need `shared_state`; on a store without it they work for one computer only, and the wait commands say so (`note`). Claims still use the git claim refs directly until phase 2 registers the `claims` namespace with the store. Phase 2 also makes multi-computer coordination refuse to start (fail closed) when `shared_state` is missing and more than one host is configured.
 
 Contract for future stores (wiki/issue tracker, database):
 

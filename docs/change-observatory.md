@@ -5,8 +5,10 @@ Change Observatory is the visual, local-first lineage reader bundled with MPSF. 
 ## Your First Time
 
 Change Observatory is a small web page that runs on your own computer and only
-reads your project's recorded history. It never changes a file and sends
-nothing anywhere. This is what to expect the first time.
+reads your project's recorded history. It never changes your project's files
+or recorded history. To stay current it fetches the shared branch from your Git
+remote and, if messaging is on, reads the project channel; it does not upload
+your records. This is what to expect the first time.
 
 1. **Start it.** Ask your agent to open the Change Observatory for this project,
    or run the command yourself (see below). If your agent offers plugin
@@ -23,16 +25,18 @@ nothing anywhere. This is what to expect the first time.
    copy the full link from the terminal again. The key is kept only for the
    current browser tab (session storage), so a **new tab or window needs the
    full link again**.
-4. **Press Refresh to see new records, or turn on Live updates.** By default the
-   page does not update by itself: after your agent records something new, use
-   the **Refresh** button at the top. **Live updates** re-reads the records
-   every 30 seconds while the tab is visible, without losing your place.
+4. **Press Refresh, or turn on Live updates.** In the default (single-project)
+   view, the page checks the shared base branch every 30 seconds and reloads by
+   itself when the branch moves. **Refresh** reloads the records now. **Live
+   updates** re-reads the records every 8 seconds while the tab is visible,
+   without losing your place. You can change the interval with
+   `AGENTIC_SDLC_OBSERVE_LIVE_SECONDS` (minimum 2).
 5. **Find your way around.** Each view answers one question:
 
    | View | What it is for |
    | --- | --- |
    | Overview | A dashboard that opens with one sentence (for example "9 of 27 stories delivered"), a progress bar split by status, and the stories moving right now. Below it: activity over time (by hour, day, or week depending on the history), check results, and the latest activity. Every tile, bar, and status opens the matching filtered view. |
-   | Stories | Every piece of work as one row with its six steps and its ID; a pulsing dot means it was worked on in the last few hours. Search, filter by status, sort, and open a row to see what it needs first, what it unlocks, its activity, and links to the map, timeline, or dossier. |
+   | Stories | Every piece of work as one row with its seven steps (discovery to operations) and its ID; a pulsing dot means it was worked on in the last few hours. Search, filter by status, sort, and open a row to see what it needs first, what it unlocks, its activity, and links to the map, timeline, or dossier. |
    | Timeline | Everything that was recorded, newest first and grouped by day. Search, filter by type or story, and click a bar of the activity chart to focus on one period. Selecting an entry shows its evidence. |
    | Map | When `.sdlc/dependencies/graph.json` exists, the map opens on the **project plan**: every story in waves from left to right, with a line from each story to the work it unlocks. Selecting a story lights up its whole chain. **One story in detail** shows the lineage of one story from the request to the checks; related records are drawn for the selected box only. |
    | Story dossier | Each piece of work step by step, from the request to verification, plus the phase-by-phase lineage matrix. Old `#timeline` links open this view. |
@@ -43,9 +47,11 @@ nothing anywhere. This is what to expect the first time.
    | Verification | The checks and gates that were run, and what they showed. |
 
    The visual views only read the recorded history. A story's state comes from
-   its recorded steps (in progress, blocked, started, delivered, not started, or
-   stopped). The steps are the phases of the software-project workflow,
-   operations included. A story with an active claim is in progress; a story
+   its recorded steps (in progress, blocked, needs a decision, started, parked,
+   delivered, not started, or closed). The steps are the phases of the
+   software-project workflow, operations included. A story with an active claim
+   is in progress; a story whose claim expired is shown as needing a decision;
+   a story a person set aside is shown as parked until it is resumed; a story
    that has not started and depends on work that is not delivered yet is
    shown as waiting; a story closed with `story supersede` is shown as
    replaced, with a link to the story that took over. These are the same
@@ -64,7 +70,11 @@ nothing anywhere. This is what to expect the first time.
    addresses are refused on purpose so that the page is never reachable from
    another computer. If the project settings file (`.sdlc/config.json`) is
    changed while the page is running, the page asks you to stop the command
-   (Ctrl+C) and start it again; refreshing the page will not help.
+   (Ctrl+C) and start it again; refreshing the page will not help. In the
+   default shared-branch view, this is the `.sdlc/config.json` on that branch: a
+   change merged there stops the running viewer once it is fetched, and a local
+   edit takes effect only with `--worktree`, or after it is published to the
+   branch.
 
 ## Launch After Installation
 
@@ -89,14 +99,19 @@ choice is carried to the browser in the local URL; it does not weaken the
 per-run token or the loopback-only boundary.
 
 By default the observatory shows the records published on the shared base
-branch (`origin/<base>` from the project configuration, `origin/main`
-otherwise), read from Git objects, so a checkout that sits on a story branch or
-has not been pulled still shows what other computers published. It fetches that
+branch (`<remote>/<base_branch>`, where `<remote>` is
+`orchestration_policy.coordination.remote` and defaults to `origin`, and
+`<base_branch>` is `orchestration_policy.merge_drift.base_branch` and defaults
+to the remote's default branch), read from Git objects, so a checkout that sits
+on a story branch or has not been pulled still shows what other computers
+published. It fetches that
 one ref every 60 seconds (`AGENTIC_SDLC_OBSERVE_FETCH_SECONDS`, `0` turns the
 fetch off) and refreshes the view when the ref moves; the header shows the ref
 and the time of the last update. `--ref <ref>` shows another ref and
-`--worktree` shows the local files instead. Without Git or a remote, the local
-files are shown.
+`--worktree` shows the local files instead; with `--worktree` the header warns
+when the checkout is behind the base branch. Without Git or a remote, the local
+files are shown. Portfolio mode never uses the shared branch: it reads each
+project's local files, and `--ref` and `--worktree` have no effect there.
 
 ## Open An Explicit Project Portfolio
 
@@ -252,7 +267,10 @@ false-ready process.
 
 All routes accept only `GET` and `HEAD` and are available only on the loopback
 server. “Bearer token” below means the random per-run token that the browser
-reads from the URL fragment and keeps in session memory.
+reads from the URL fragment and keeps in browser session storage (this tab
+only). The project routes without the `portfolio/` prefix, `/api/v1/observatory`
+and `/api/v1/source` plus the six from `/api/v1/claims` to `/api/v1/now`, are
+served only in single-project mode.
 
 | Endpoint | Authentication | What it answers |
 | --- | --- | --- |
@@ -261,9 +279,16 @@ reads from the URL fragment and keeps in session memory.
 | `/api/v1/ready` | Bearer token | Can the pinned project/UI boundaries and current canonical read model be validated now? Returns `503` when not ready. |
 | `/api/v1/observatory` | Bearer token | Returns the normalized read model, with `ETag` and conditional `304` support. Clients that send `Accept-Encoding: gzip` (every browser) receive it compressed, usually at a tenth of its size or less. |
 | `/api/v1/source?path=...` | Bearer token | Returns one allowed, bounded, presentation-redacted source record. |
+| `/api/v1/claims` | Bearer token | The shared claims as last read, the same ones `status` and the claim commands use (single-project mode). |
+| `/api/v1/dependencies` | Bearer token | Compact dependency edges between stories. |
+| `/api/v1/remote-stories` | Bearer token | Stories on the shared base branch that are missing locally. |
+| `/api/v1/source-ref` | Bearer token | Which ref or local working tree is shown, plus `liveSeconds` when live refresh is on. |
+| `/api/v1/refresh[?fetch=0]` | Bearer token | Makes the record source catch up now. Without the parameter it fetches the remote; with `fetch=0` it re-syncs only from refs already present locally. Any other query returns `400`. |
+| `/api/v1/now` | Bearer token | Data for the Now panel. |
 | `/api/v1/portfolio` | Bearer token | In explicit portfolio mode, returns the bounded manifest-order summary without project paths or raw-source references. |
 | `/api/v1/portfolio/project?project=...` | Bearer token | Lazily returns one selected project view from the loaded manifest. |
 | `/api/v1/portfolio/source?project=...&path=...` | Bearer token | Returns one bounded source record scoped to the selected manifest project. |
+| `/api/v1/portfolio/claims?project=...`, `/api/v1/portfolio/dependencies?project=...`, `/api/v1/portfolio/remote-stories?project=...` | Bearer token | The same three views for one manifest project in portfolio mode. |
 | `/api/v1/metrics` | Bearer token | Returns the current process-local metric snapshot. |
 | `/api/v1/slo` | Bearer token | Evaluates advisory availability and readiness objectives over samples from this process. |
 | `/api/v1/support-bundle` | Bearer token | Returns allowlisted, redacted diagnostic sections plus a content-integrity digest. |
@@ -318,20 +343,28 @@ details and the raw-evidence drawer.
 ### Everyday Views, Search, And Large Projects
 
 The sidebar shows four everyday views: Overview, Stories, Timeline, and Map.
-The record-level views (requests, agreements, decisions, changes, checks, agent
-notes, and the step-by-step story record) sit under **More details**, which
-stays open once chosen.
+The record-level views (Story dossier, Contracts, Decisions, Changes, Intent
+evidence, and Verification) sit under **More details**, which stays open once
+chosen.
 
+- **Now.** The Overview opens with who is doing what across computers: active
+  claims with their holder, phase and freshness, the latest status from each
+  computer, open questions and requests, free computers, and who waits for
+  whom (open, expired and escalated waits). It refreshes every 30 seconds and
+  stays hidden when there is nothing to show. When project messaging is on, it
+  reads the last 12 hours of the channel in one read capped at 2.5 seconds and
+  cached for 30 seconds, so the panel never waits on it. With messaging off it
+  shows only the shared claims.
 - **Work on other computers.** Stories claimed on the shared remote appear as
   in progress, with who holds them. The Observatory reads only the local copies
   that `status` and the claim commands keep (`GET /api/v1/claims`); it never
   contacts the remote. A delivered story that a change request is changing
   says so ("Being changed by ...").
-- **Stories not pulled yet.** Stories another computer recorded on the shared
-  base branch, but missing from this copy, are listed as "New on another
-  computer" (`GET /api/v1/remote-stories`). They are read from the
-  remote-tracking branch that `status` fetches; nothing is fetched or changed
-  by the Observatory.
+- **Stories not pulled yet.** With `--worktree`, stories that another computer
+  recorded on the shared base branch but that are missing from this checkout
+  are listed as "New on another computer" (`GET /api/v1/remote-stories`), read
+  from the remote-tracking branch. The default view already shows that branch
+  (and fetches it periodically), so the list is empty there.
 - **Search** ignores accents, case, and ID punctuation (`st replan 001` finds
   `ST-REPLAN-001`), ranks ID and title matches first, and highlights matches.
 - **Large projects.** Lists render a page at a time with **Show more**. A plan
@@ -443,11 +476,11 @@ The stored explanation scope is always `recorded-evidence-only`. Valid kinds are
 ## Security And Privacy Boundary
 
 - The server binds only to `127.0.0.1`; non-loopback hosts are rejected.
-- Every run creates a random capability token. It travels in the URL fragment, is held in browser session memory, and is sent as a bearer token only to the same-origin evidence APIs.
+- Every run creates a random capability token. It travels in the URL fragment, is removed from the address bar, is kept in browser session storage (this tab only), and is sent as a bearer token only to the same-origin evidence APIs.
 - The project root and bundled UI directory identities are pinned for the run. Root replacement and symlink swaps are rejected.
 - `.sdlc` must be a real directory, not a symlink. Symlink components, cache/index paths, traversal, unsupported extensions, oversized responses, and malformed structured raw content fail closed.
 - Only `GET` and `HEAD` are accepted. Responses use no-store caching, same-origin resource policy, a restrictive CSP, and no CORS permission.
-- The application and server do not write to the target project.
+- The application and server never change the working tree or the `.sdlc` records. In the default shared-branch view they keep a private copy of the records under `<git-common-dir>/agentic-sdlc/observatory/` and fetch that one branch from the remote, which updates its remote-tracking ref. This happens every 60 seconds by default and on Refresh; set `AGENTIC_SDLC_OBSERVE_FETCH_SECONDS` to change the interval, and `0` turns it off. With project messaging on, the Now panel also reads the project channel.
 
 Before a trace is persisted, the operational redactor removes values under
 sensitive keys, known token formats, bearer values, configured secret/PII
@@ -515,13 +548,17 @@ is added, removed, changed, made invalid, or replaced by a symlink while the
 server is running, liveness stays available but readiness and project-data
 routes stop. Restart Change Observatory to review and apply the new settings;
 the existing process never mixes evidence produced under two privacy policies.
+In the default shared-branch view, this is the `.sdlc/config.json` on that
+branch. A change merged there stops the running viewer once it is fetched. A
+local edit takes effect only with `--worktree`, or after it is published to the
+branch.
 
 ## Troubleshooting
 
 | What you see | What it means and what to do |
 | --- | --- |
 | The page says it is not allowed to read the local observatory (HTTP 401) | The page was opened without its access key. Open the full link printed in the terminal, including the part after `#`. A new tab needs the full link again. |
-| The page asks you to stop and start the command again | `.sdlc/config.json` changed while the page was running. Press Ctrl+C in the terminal, run `observe` again, and open the new link. |
+| The page asks you to stop and start the command again | `.sdlc/config.json` changed while the page was running (in the default shared-branch view, the one on that branch, once fetched; a local edit counts only with `--worktree`). Press Ctrl+C in the terminal, run `observe` again, and open the new link. |
 | The page says it lost its connection | The terminal that runs the observatory was closed or stopped. Start it again and open the new full link. |
 | "Port N on 127.0.0.1 is already in use" | Another program uses that port. Choose another with `--port <number>` or use `--port 0` for any free port. |
 | "Records are changing right now" | Something is writing to `.sdlc` continuously. The observatory already retried a few times; wait a few seconds and press **Refresh**. |

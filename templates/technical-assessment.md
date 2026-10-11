@@ -55,7 +55,7 @@ excel_worksheets:
 
 Use `Observed`, `Inferred`, or `Not evidenced` for material claims. Do not turn missing evidence into a positive or negative conclusion.
 
-**Executive Verdict**
+## Executive Verdict
 
 **Verdict:** {{VERDICT}}
 

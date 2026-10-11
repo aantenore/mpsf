@@ -14,7 +14,9 @@ The run observes and proposes; it never decides. It has no approval, no write ac
 
 ### Minimum CLI version
 
-The example uses `autonomy delivery checks`, so the CLI revision it installs must be v0.20.0 or later, the first release that has it (the minimum; any later release tag also works). Edit `AGENTIC_SDLC_REF` in the copied workflow from `REPLACE_WITH_RELEASE_TAG` to that tag, or to the full commit SHA of a revision you reviewed. The example deliberately ships a placeholder instead of a SHA: a SHA written here would pin one revision forever, and an older one would fail at the checks step.
+The example uses `autonomy delivery checks`, so the CLI revision it installs must be v0.21.0 or later, the first tagged release that has it. Release tags currently stop at v0.27.1, so for any newer release set `AGENTIC_SDLC_REF` to the full commit SHA of a revision you reviewed. Edit `AGENTIC_SDLC_REF` in the copied workflow from `REPLACE_WITH_RELEASE_TAG` to such a tag or SHA. The example deliberately ships a placeholder instead of a SHA: a SHA written here would pin one revision forever, and an older one would fail at the checks step.
+
+The workflow also sets `AGENTIC_SDLC_JSON_PROFILE: full`, because its scripts read fields of the complete `--json` payload. From 0.148.0 a project (`host_policy.context.output.json_profile: "agent"`) or the runner (`AGENTIC_SDLC_OUTPUT=compact`) can ask for the shorter agent profile, which has no `requirement` object; the variable keeps the complete payload, and older CLIs ignore it.
 
 ### What happens, in order
 
@@ -33,7 +35,7 @@ The example offers two alternatives and picks one with the repository variable `
 | `AGENT_HOST` | Command in the workflow | Read-only because |
 |---|---|---|
 | `codex` | `codex exec --sandbox read-only --skip-git-repo-check --output-last-message <file> <prompt>` | the sandbox is read-only |
-| `claude-code` | `claude -p <prompt> --permission-mode dontAsk --tools "Read,Grep,Glob" --allowedTools "Read,Grep,Glob" --disallowedTools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch"` | only read tools exist, anything not pre-approved is denied instead of asked, and every other tool is refused |
+| `claude-code` | `claude -p <prompt> --permission-mode dontAsk --tools "Read,Grep,Glob" --allowedTools "Read,Grep,Glob" --disallowedTools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch" --max-turns 8` | only read tools exist, anything not pre-approved is denied instead of asked, and every other tool is refused |
 
 The `claude` alternative lists its tools with `--tools`, which older releases may not have; it then fails and falls back. Both agent steps use `continue-on-error`, so a failed or slow draft falls back instead of failing the run. The flags above are those the example was written against; check them against `--help` of the exact release you pin, because host CLIs change their options between releases.
 

@@ -23,13 +23,14 @@ MPSF supports parallel work through story-scoped ownership and append-only trace
 - Cache and indexes can be rebuilt locally by each chat, but derived files must not become handoff evidence.
 - Teams should merge `.sdlc/` artifacts with the code changes they explain.
 
-## Multiple Codex Chats
+## Multiple Chats (Codex or Claude Code)
 
 1. Confirm the approved requirement ceiling and the explicit profile for this exact pull request or local release and its one story/contract pair.
-2. Run `orchestrate status --json`.
+2. Run `orchestrate status --json --json-profile full`.
+   Inside an agent session, plain `--json` defaults to the compact agent profile (ids and refs only). Pass `--json-profile full`, or set `AGENTIC_SDLC_JSON_PROFILE=full`, to see lane states, holders and branches.
 3. Pick an `available` story lane whose approved contract reserves its own profile ID and whose current profile binds that contract hash.
 4. Verify that the exact story-bound workflow is active and that the immutable task-start receipt matches the current approved contract and profile.
-5. Claim it with `story claim --thread-id <codex-thread-id>`.
+5. Claim it with `story claim --id <story> --agent <host-agent> --branch <story-branch> --thread-id <thread-id>`, plus the authorization flag described in `claims-and-coordination.md`. `--thread-id` can be left out; when it is, the CLI takes the thread id from the host environment.
 6. Work only on that story branch and story KB files.
 7. Resolve required outputs with `output resolve`; link artifacts with `output link`.
 8. Append autonomy-decision, implementation, test, sync, and handoff traces.
@@ -70,10 +71,12 @@ closures, and takeovers add `.../<epoch>/release`, after which the story can be
 claimed again.
 
 1. Publish the approved specs: requirements, story breakdown, contracts, and task starts, committed and pushed to the shared branch.
-2. On each computer, pull that branch and run `orchestrate status --json`; stories claimed on any computer show as `claimed` with holder and branch.
+2. On each computer, pull that branch and run `orchestrate status --json --json-profile full`; stories claimed on any computer show as `claimed` with holder and branch.
 3. Run `story availability --id <story> --json`, then claim one `available` story with `story claim` at the start of development, before editing; a refusal names who holds it.
 4. Create the story branch, work, push, and open the story's pull request (or complete its local release).
 5. Release the claim when done or handed off; if the release was not shared, run `story release` again once the remote is reachable.
+
+If two computers publish records at the same time (`story publish-records`), the push that loses is retried automatically, up to 4 attempts in total. Each attempt starts on the new base tip, with waits of 1s, 2s and 4s; `AGENTIC_SDLC_PUBLISH_BACKOFF_MS` sets the first wait, which doubles each time. If every attempt fails, the error shows the reason the remote gave.
 
 No computer coordinates the others. Each agent claims and reserves only the work it does itself, on its own computer: inside an agent session a worktree holds one claimed story (`STORY_CLAIM_ONE_PER_WORKTREE`) and a computer one reservation (`STORY_RESERVE_ONE_PER_COMPUTER`) until it is finished or released. Never claim, reserve, release, cancel, or supersede a story on behalf of another computer: a story held here can only become work here, and the other computers' agents cannot free it. Assigning work across computers is the user's decision, run in their own terminal. `story cancel` and `story supersede` refuse a story claimed or reserved on another computer until that claim ends.
 
@@ -112,9 +115,9 @@ Run `task start` and `story claim` at the start of development, not at integrati
 
 The reservation is a shared claim record marked `"reservation": true`, so older plugin versions treat it as a claim. It belongs to the computer, not to one worktree. Other computers see "reserved by X until Y"; their `story claim` is refused with `STORY_CLAIM_HELD_ELSEWHERE`, and only a person takes it over, like a claim. Your own `story claim`, run after `task start`, turns the reservation into the claim.
 
-A reservation always expires (default 24 hours, maximum 30 days, set in `orchestration_policy.reservation`); after that the story is free without a takeover. `story release --id <story>` ends it earlier. It is refused (`STORY_RESERVE_NOT_SHARED`) when claims are not shared or the remote cannot be reached.
+A reservation always expires (default 24 hours, maximum 30 days, set in `orchestration_policy.reservation`); after that the story is free without a takeover. `story release --id <story>` ends it earlier. It is refused with `STORY_RESERVE_NOT_SHARED` when claims are not shared, and with `STORY_CLAIM_REMOTE_UNAVAILABLE` when the remote cannot be reached.
 
-Before `task start`, run `story availability --id <story> --json`. If `safe_to_start` is false, stop, tell the user who holds or reserved the story, or which branch or pull request names it and how recently, and ask whether to proceed. Never decide for them and never retry with `--force`.
+Before `task start`, run `story availability --id <story> --json` as the quick check on `safe_to_start`. If it is false, run `story availability --id <story> --json --json-profile full`, or run the command without `--json`, to get the holder or reservation, the branch or pull request, and how recent it is, then stop, tell the user, and ask whether to proceed. Never decide for them and never retry with `--force`.
 
 ### Work on the remote that nobody claimed
 

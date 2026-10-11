@@ -47,6 +47,14 @@ node "$PLUGIN_CLI" status --locale it
 node "$PLUGIN_CLI" status --json
 ```
 
+`status` first brings this clone up to date from its git remote so it reports
+what was merged elsewhere. The mode comes from
+`orchestration_policy.status_sync.mode`: the default `fetch` updates
+remote-tracking branches and changes no files, and `pull` also fast-forwards
+the current branch. Pass `--sync off|fetch|pull` to override the mode for one
+run (`--sync off` reads the clone as it is). An unreachable remote is only a
+warning.
+
 The human view gives one recommended next action. The JSON view preserves the
 existing project and count fields, adds `schema_version: cli-status:v1`, and
 includes the same summary and next action in a stable machine-readable shape.
@@ -295,16 +303,21 @@ node "$PLUGIN_CLI" test record --root /path/to/project \
 | `--story` | The story the run belongs to; it must already exist. |
 | `--command` | The exact command that ran, as a JSON argument vector. |
 | `--exit-code` | The status the command returned, `0`–`255`. |
-| `--evidence` | The runner output, saved as a file inside the project. Repeatable, and at least one file is mandatory. |
+| `--evidence` | The runner output, saved as a file inside the project (or outside it, with `--copy-evidence`). Repeatable, and at least one file is mandatory. |
+| `--copy-evidence` | Copy an evidence file from outside the project into `.sdlc/tests/` and record that copy. Without this flag, such a file is refused. |
 | `--passed`, `--failed`, `--skipped` | The result counts; each defaults to `0`. |
+| `--case` | The single test case the run covers; `test triage` uses this key. |
+| `--outcome` | `failed-minor` for a small real failure, or `blocked` when the test could not run. It cannot turn a failure into a pass. |
 | `--framework`, `--cwd`, `--started-at` | Optional context: the runner, the directory it ran in, and when it began. |
 | `--requirement`, `--acceptance` | Link the run to the requirements and acceptance criteria it exercises. |
 
-The outcome is not an input. It is derived from the exit status and the counts:
+The counts and exit status decide the outcome:
 a zero exit status with no failures and at least one passing case is `passed`,
 a zero exit status with nothing executed is `skipped`, and anything else is
-`failed`. Each evidence file is hashed when the record is written, so a later
-edit to that file is detectable.
+`failed`. `--outcome` can only refine a failure to `failed-minor` or mark the
+run `blocked`. Every failed or failed-minor case needs a decision recorded with
+`test triage` before the strict gate passes. Each evidence file is hashed when
+the record is written, so a later edit to that file is detectable.
 
 ## Scan a delivery for credentials
 
@@ -320,7 +333,7 @@ node "$PLUGIN_CLI" secret scan --root /path/to/project \
 | Input | Purpose |
 |---|---|
 | `--story` | The story the delivery belongs to; it must already exist. |
-| `--base`, `--head` | The exact commits to compare. `--base` defaults to the commit the story's task start recorded and `--head` to the current `HEAD`. The gate only accepts a scan whose base is the task-start commit or an ancestor of it, so a later `--base` cannot hide a change the delivery already committed. |
+| `--base`, `--head` | The exact commits to compare. `--base` defaults to the commit the story's task start recorded and `--head` to the current `HEAD`. The gate accepts a scan whose base is the task-start commit or an ancestor of it. It also accepts a later base, such as `origin/main` after a sync, if that base is already on the remote base branch and in the scanned head's history. In that case, every file the delivery changed since task start must either be covered by the scan or be identical at the scan base and at the head. A later `--base` therefore cannot hide a change the delivery already committed. |
 | `--delivery` | Bind the record to one exact delivery. |
 | `--summary`, `--id` | Optional text and an explicit record ID. |
 | `--requirement` | Link the scan to the requirements the delivery serves. |
@@ -366,8 +379,9 @@ explicit `true`: a project whose configuration never declared it keeps the gate
 it agreed to, and adopts the check by initializing from the current template or
 migrating through `config migrate`.
 
-Writing the record also appends a `test` trace event carrying the same outcome,
-so the run appears in the story history without a separate `trace append`.
+Writing the record also appends a `gate` trace event (action `secret.scan`,
+outcome `passed` when the scan is clean and `failed` otherwise), so the run
+appears in the story history without a separate `trace append`.
 
 ## Record a code review of a pull request
 
@@ -407,7 +421,10 @@ The user decides for each story, before the task starts, whether its pull
 request needs a review before the merge. The answer is part of the approved
 delivery profile (`autonomy delivery propose --code-review required|not-required`
 with `--code-review-actor-type human --code-review-approval-source explicit-user
---code-review-summary "<the user's words>"`). An agent or system choice is
+--code-review-summary "<the user's words>"`). When an approved standing
+approval or the person's `delivery.policy` delegation already records the
+answer, `--code-review` is not needed, and the source is shown as
+`standing_approval` or `delegation`. An agent or system choice is
 refused, and a local release takes none. The template sets
 `gate_policy.merge_requires_code_review` to `false`; an existing project that
 explicitly has `true` keeps it, requires a review for every pull request, and
@@ -425,7 +442,7 @@ every commit author of the pull request. A later `changes_requested` from an
 independent reviewer blocks it, and any new commit on the head branch requires a
 new review. `autonomy delivery explain` and `status` show the requirement, where
 it comes from (`project_policy`, `delivery_profile`, `standing_approval`,
-`change`, or `project_default`), and how many of the reviews recorded on this
+`delegation`, `change`, or `project_default`), and how many of the reviews recorded on this
 computer are valid for the current head.
 
 ### Change the requirement after approval
@@ -572,9 +589,13 @@ operator problem.
 | `1` | User error: the request was understood and refused on its merits. | Correct the request and retry. |
 | `2` | Usage error: the command or its options could not be resolved. | Fix the invocation; `help` lists the real options. |
 | `3` | Governance denial: the mutation guard refused to change a governed record or file that the agreed limits or authorization do not cover. | A person decides whether to amend the agreement. Do not retry unchanged. |
-| `4` | Environment error: the host cannot run this software as installed. | Repair the installation; `doctor` names the fix. |
+| `4` | Environment error: the host cannot run this software as installed. A command also exits `4` when it stops at its own time limit (`AGENTIC_SDLC_MAX_RUN_MINUTES`, default 10); `message listen` exits `0` instead. | Repair the installation; `doctor` names the fix. For a time limit, rerun the command or raise the limit. |
+| `5` | Busy: the same command is already running for this story or repository, held by a live process (a lock under `<git-common-dir>/agentic-sdlc/locks/`). The message goes to standard error only, with no JSON. | Wait and retry, or set `AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS` to wait for the lock. |
 | `75` | Queued: `message send` could not reach the messaging server for a temporary reason and kept the message in the local outbox. Not an error of the request. | Do nothing: it is sent automatically later; `message outbox` lists it. Do not send it again. |
 | `70` | Internal error: the software failed in a way the caller cannot correct. | Report it with the correlation ID from the output. |
+
+`run --timeout` exits `124` when it reaches its deadline and otherwise returns
+the exit code of the command it ran.
 
 Usage errors include an unknown option, a missing or repeated option value, a
 malformed boolean or `--locale`, and an argument given to a command that takes
@@ -678,7 +699,11 @@ boundaries, removal, and recovery.
 story still needs: story sync, an incremental secret scan, the release trace
 when it is missing (evidence: the `pull_request.merge` receipt, or
 `--evidence <path>`), the `release` and `operations` steps when the governed
-chain allows them (`--authorization <id>` when it needs one), release of the
+chain allows them (`--authorization <id>` when it needs one),
+`story complete-step --backfill` for finished phases whose step was never
+recorded, a `DELIVERY-<story>` workflow instance started with `--backfill` and
+moved through the configured phases when the delivery finished without a
+story-bound workflow, release of the
 claim, `gate check --strict --lifecycle-complete` and
 `story publish-records --to-base`.
 
@@ -686,16 +711,24 @@ claim, `gate check --strict --lifecycle-complete` and
   (`AGENTIC_SDLC_FETCHED_REMOTES` tells each phase to skip its own fetch;
   `--no-fetch` skips it entirely).
 - It stops at the first block with that command's message and remembers the
-  finished phases in `.git/agentic-sdlc/close/<story>.json`: running it again
-  resumes from there. Sync, gate and publication run again when the base
-  branch moved; `--restart` forgets everything.
+  finished phases in `<git-common-dir>/agentic-sdlc/close/<story>.json`
+  (`.git` in a normal checkout; the main repository's `.git` from a linked
+  worktree): running it again resumes from there. Sync, gate and publication
+  run again when the base branch moved; `--restart` forgets everything.
+- `--full` scans the whole story instead of only the incremental diff;
+  `--notify` announces the outcome on the coordination channel; `--agent
+  <name>` is passed to the step it runs.
+- Publication retries a rejected push up to 3 times, after 1, 2 and 4 seconds,
+  each time on the latest base tip, and reports the remote's own reason.
+  `AGENTIC_SDLC_PUBLISH_BACKOFF_MS` sets the first delay in milliseconds
+  (default 1000, doubled each time; 0 retries without waiting).
 - `--json` reports `preflight_ms`, `total_ms` and the `duration_ms` of each
   phase.
 - Automatic close (opt-in): with `AGENTIC_SDLC_AUTO_CLOSE=1` or
   `orchestration_policy.auto_close: true`, a passed `pull_request.merge`
   starts `story close` in the background, logging to
-  `.git/agentic-sdlc/close/<story>.log` and announcing the outcome on the
-  coordination channel.
+  `<git-common-dir>/agentic-sdlc/close/<story>.log` and announcing the outcome
+  on the coordination channel.
 
 ### Phases completed retroactively (backfill)
 
@@ -712,8 +745,10 @@ mpsf story complete-step --id <story> --step implementation \
 - It applies only to a phase that is still open while a later phase is
   completed or the workflow moved past it, and it requires `--reason`.
 - It cites sealed trace events of the story that already exist and predate
-  the next phase: a recorded decision, `contract.approve` or
-  `task.start.confirm` for discovery, analysis and design; a passed
+  the next phase: a recorded decision, `contract.story-link`,
+  `contract.approve`, `requirement.approve` or `baseline.approve` for
+  discovery and analysis, and any of these or `task.start.confirm` for
+  design; a passed
   `git.commit` (or implementation trace) for implementation; a passed test
   record or strict `gate.check` for validation. Without such evidence it is
   refused and names what is missing. A project can replace the rules of a
@@ -738,7 +773,7 @@ used by the project gate). Committed files are read with one batched
 `git cat-file` instead of three git calls per file.
 
 Gates, sync, publication and close keep the hashes they verified in
-`.git/agentic-sdlc/verify-cache.json`: record files by path, size, mtime,
+`<git-common-dir>/agentic-sdlc/verify-cache.json`: record files by path, size, mtime,
 ctime and inode (files modified in the last two seconds are always hashed
 again), trace hash chains by the sha256 of the trace and checkpoint bytes.
 Only successful verifications are kept; a plugin version change empties the

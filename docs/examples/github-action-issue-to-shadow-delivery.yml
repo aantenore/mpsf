@@ -38,12 +38,14 @@ jobs:
       issues: write
     env:
       # REQUIRED: replace the placeholder with a release tag of the CLI at or
-      # after the one that added "autonomy delivery checks" (v0.20.0 or later),
+      # after the one that added "autonomy delivery checks" (v0.21.0 or later),
       # or with the full commit SHA of a reviewed revision. The run refuses to
       # start while it is unchanged.
       AGENTIC_SDLC_REF: REPLACE_WITH_RELEASE_TAG
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY_NAME: ${{ github.event.repository.name }}
+      # Scripts parse the complete JSON payload; older CLIs ignore this variable.
+      AGENTIC_SDLC_JSON_PROFILE: full
     steps:
       - name: Check out the default branch without credentials
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -61,7 +63,7 @@ jobs:
           set -euo pipefail
           case "$AGENTIC_SDLC_REF" in
             REPLACE_WITH_*|"")
-              echo "::error::Set AGENTIC_SDLC_REF in this workflow to a release tag (v0.20.0 or later) or a full commit SHA of the CLI." >&2
+              echo "::error::Set AGENTIC_SDLC_REF in this workflow to a release tag (v0.21.0 or later) or a full commit SHA of the CLI." >&2
               exit 1
               ;;
           esac
@@ -80,7 +82,7 @@ jobs:
           echo "AGENTIC_SDLC_CLI=$dir/bin/agentic-sdlc.mjs" >> "$GITHUB_ENV"
           node "$dir/bin/agentic-sdlc.mjs" --version
           if ! node "$dir/bin/agentic-sdlc.mjs" help autonomy delivery checks > /dev/null 2>&1; then
-            echo "::error::The CLI at $AGENTIC_SDLC_REF has no 'autonomy delivery checks' command; use v0.20.0 or later." >&2
+            echo "::error::The CLI at $AGENTIC_SDLC_REF has no 'autonomy delivery checks' command; use v0.21.0 or later." >&2
             exit 1
           fi
 

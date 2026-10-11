@@ -50,8 +50,14 @@ It is intentionally stored in the project repository so people and agents can co
 contracts/      Phase contracts and story-specific contracts
 autonomy/       Requirement ceilings, per-delivery profiles, decisions, execution/action receipts
 baseline/       Existing-project current-state baselines and approval records
+assessments/    Assessment proposals, approvals, and results
+budgets/        Execution budgets and usage records
+context-optimization/ Command-output optimization records
 workflows/      Versioned definitions, governed overlays, pinned instances, and append-only events
 authorizations/ Explicit action-scoped grants for delegated automation approvals
+authorization-uses/ Receipts recording authorization use
+receipts/       Host, generation, verification, and authorization-lifecycle receipts
+capability-discovery/ Capability profiles and recommendations
 output-contracts/ Approved output templates, artifact links, and structure decisions
 requirements/   Product requirements and constraints
 work-items/     Project-local epics and tasks

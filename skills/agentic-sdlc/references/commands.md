@@ -16,9 +16,9 @@ node bin/mpsf.mjs init --root <project> --project-name "Product Name"
 
 Creates `.sdlc/`, project metadata, KB directories, generated README, and default phase contracts.
 
-For a new seven-phase software project with `integration-review` between
-implementation and validation, use the complete distributed template
-directory at bootstrap:
+For a new eight-phase software project (the seven stock phases plus
+`integration-review` between implementation and validation), use the complete
+distributed template directory at bootstrap:
 
 ```bash
 node bin/mpsf.mjs init \
@@ -30,7 +30,7 @@ node bin/mpsf.mjs init \
 
 The same `--template-dir` is supported by `onboard existing-project` when
 `.sdlc/` does not exist yet. The bootstrap validates and pins the full config
-and creates all seven phase contracts.
+and creates all eight phase contracts, including integration-review.
 
 An exact manifestless project created by the bundled v0.11 format must be
 adopted explicitly before its first configuration lock. Preview
@@ -92,7 +92,30 @@ The withdrawn record stays as history and its shared claim on the git remote is 
 
 Approval commands require a formal source. `--actor-type human` alone is not enough.
 
-Use `--approval-source explicit-user` when the user explicitly approves the specific artifact and include `--summary` or `--approval-evidence`. A short "ok" or "yes" applies only to the artifact or decision that was shown immediately before it; do not reuse it for newly created templates, capability profiles, recommendations, contracts, or task start confirmations. Use `--approval-source ci` for approved CI actors. Use `--approval-source bootstrap` only for provisional migration records; bootstrap approvals do not satisfy strict gates by default.
+Use `--approval-source explicit-user` when the user explicitly approves the specific artifact and include `--summary` or `--approval-evidence`. A short "ok" or "yes" applies only to the artifact or decision that was shown immediately before it; do not reuse it for newly created templates, capability profiles, recommendations, contracts, or task start confirmations. Use `--approval-source ci` for approved CI actors. Use `--approval-source bootstrap` only for provisional migration records; bootstrap approvals do not satisfy strict gates by default. Use `--approval-source delegated` only together with `--delegation <DLG-id>`, on commands that accept a person's delegation (see below).
+
+### Approval delegations
+
+A person can grant, once, a limited, expiring and revocable delegation of named person-only approvals. Grant and revoke are refused inside an agent session:
+
+```bash
+node bin/mpsf.mjs autonomy delegation grant \
+  --root <project> \
+  --id DLG-001 \
+  --scope project \
+  --actions breakdown.approve,dependency.approve,contract.approve \
+  --until 30d \
+  [--delivery-policy code-review=<value>,merge=<value>] \
+  --summary "The agent may apply these approvals for 30 days" \
+  --actor-type human \
+  --approval-source explicit-user \
+  [--host-receipt-file <path>]
+node bin/mpsf.mjs autonomy delegation list --root <project>
+node bin/mpsf.mjs autonomy delegation publish --root <project> --id DLG-001
+node bin/mpsf.mjs autonomy delegation revoke --root <project> --id DLG-001 --reason "Back to direct approvals" --actor-type human --approval-source explicit-user
+```
+
+`--scope` is `project`, `requirement:<id>`, or `story:<id>`; `--until` takes a date or a duration. `--delivery-policy` is required when `--actions` includes `delivery.policy` and refused otherwise. Delegable action classes: `requirement.approve`, `requirement.supersede`, `breakdown.approve`, `dependency.approve`, `contract.approve`, `evidence.supersede`, `base.acknowledge`, `overlap.confirm`, `output.link`, `story.abandon`, `delivery.policy`, `delivery.approve`, `baseline.approve`, and `story.supersede`. The agent then applies a covered approval with `--approval-source delegated --delegation <DLG-id>`; a command accepts a delegation only for its own action class and inside its scope. A delegation never covers protected-branch push/merge outside the governed chain, `AGENTIC_SDLC_ALLOW_UNGOVERNED_*` variables, deploy/production, secrets, or installs. `publish` shares a delegation granted on this computer with every checkout and computer through one commit on the remote base branch. After `revoke`, later agent commands under the delegation are refused.
 
 ## Agree A Requirement And Its Autonomy Ceiling
 
@@ -243,9 +266,9 @@ node bin/mpsf.mjs autonomy delivery propose \
   --json
 ```
 
-Every new pull-request proposal must carry the user's answer to "do you want a code review before this PR is merged?": `--code-review required|not-required`, with `--code-review-actor-type human`, `--code-review-approval-source explicit-user`, and `--code-review-summary` quoting the user's words; `--code-review-actor <person-id>` names the person (default `user`). An agent or system choice is refused, and so is `--code-review` on a local release. Ask the question at the same step as the autonomy choice, before `task start`, and never infer it from an earlier story (see the skill, Workflow step 13 in `references/delivery.md`). The answer is stored in the approved, hash-bound profile as `pull_request_target.code_review` (`decision`, `source` `explicit-user` or `standing-approval`, `actor_id`, `user_words`, `standing_approval_id`, `decided_at`); editing it breaks the profile hash, and a delivery that carries it cannot be approved with `--approval-source automation`. A proposal under `--standing-approval` without `--code-review` takes the standing approval's answer instead. A profile created before this option has no `code_review` and follows `gate_policy.merge_requires_code_review` without blocking or asking. The requirement is checked only at `pull_request.merge`; see [Record A Code Review](#record-a-code-review) for what it needs and how to change it after approval.
+Every new pull-request proposal must carry the user's answer to "do you want a code review before this PR is merged?": `--code-review required|not-required`, with `--code-review-actor-type human`, `--code-review-approval-source explicit-user`, and `--code-review-summary` quoting the user's words; `--code-review-actor <person-id>` names the person (default `user`). An agent or system choice is refused, and so is `--code-review` on a local release. Ask the question at the same step as the autonomy choice, before `task start`, and never infer it from an earlier story (see the skill, Workflow step 13 in `references/delivery.md`). The answer is stored in the approved, hash-bound profile as `pull_request_target.code_review` (`decision`, `source` `explicit-user`, `standing-approval` or `delegation`, `actor_id`, `user_words`, `standing_approval_id`, `delegation_id`, `decided_at`); editing it breaks the profile hash, and a delivery that carries it cannot be approved with `--approval-source automation`. A proposal under `--standing-approval` without `--code-review` takes the standing approval's answer instead. A proposal under a `delivery.policy` delegation that carries a code-review answer takes that answer (`source: "delegation"`, `user_words` = the delegation statement); passing `--code-review` with such a delegation is refused. A profile created before this option has no `code_review` and follows `gate_policy.merge_requires_code_review` without blocking or asking. The requirement is checked only at `pull_request.merge`; see [Record A Code Review](#record-a-code-review) for what it needs and how to change it after approval.
 
-The same proposal also records how merging works, as the user's own answer to "how should merging this PR work?": `--merge manual|after-confirmation|automatic`, with `--merge-actor-type human`, `--merge-approval-source explicit-user`, and `--merge-summary` quoting the user's words. `manual` means the plugin never merges: a person merges on GitHub, then acknowledges it with [`autonomy delivery reconcile`](#acknowledge-a-merge-made-outside-the-plugin). `after-confirmation` (the usual behavior) means the plugin merges after a `pull_request.merge` checkpoint the person confirms. `automatic` needs `--merge-allowed`: the plugin merges once every gate passes, without that checkpoint, and it is refused at level `supervised`. The answer is stored in the approved, hash-bound profile as `pull_request_target.merge_decision` (`mode`, `source`, `actor_id`, `user_words`, `decided_at`). Ask it at the same step as the other two questions, before `task start`, and never infer it.
+The same proposal also records how merging works, as the user's own answer to "how should merging this PR work?": `--merge manual|after-confirmation|automatic`, with `--merge-actor-type human`, `--merge-approval-source explicit-user`, and `--merge-summary` quoting the user's words. `manual` means the plugin never merges: a person merges on GitHub, then acknowledges it with [`autonomy delivery reconcile`](#acknowledge-a-merge-made-outside-the-plugin). `after-confirmation` (the usual behavior) means the plugin merges after a `pull_request.merge` checkpoint the person confirms. `automatic` needs `--merge-allowed`: the plugin merges once every gate passes, without that checkpoint, and it is refused at level `supervised`. The answer is stored in the approved, hash-bound profile as `pull_request_target.merge_decision` (`mode`, `source`, `actor_id`, `user_words`, `delegation_id`, `decided_at`). Under a `delivery.policy` delegation that carries a merge answer, that answer is recorded with `source: "delegation"`, and `--merge` or any `--merge-*` option is refused. Ask it at the same step as the other two questions, before `task start`, and never infer it.
 
 Local-release example:
 
@@ -580,9 +603,25 @@ node bin/mpsf.mjs autonomy delivery action \
   --json
 ```
 
-Local completion runs the approved smoke argv without a shell from the exact governed `--smoke-cwd`. Shells, indirect dispatchers, inline interpreter code, and ambiguous loaders are rejected. Explicit interpreted entrypoints must resolve inside an allowed artifact path; package managers may only use `test` or one reviewed `run <script>` from the real package in that directory. Before spawning, a durable write-ahead attempt consumes the v3 authorization and binds the plugin build, sandbox, resolved launcher/runtime, explicit payload paths and pre-smoke artifact manifest. The supported read-only sandbox denies external network; macOS denies loopback and Linux `bwrap` exposes namespace-local loopback only. Portable smoke must not use listeners or connections; API artifacts should expose a handler that the smoke script invokes in-process. The runner can read host-account files and provides neither confidentiality nor transitive-code attestation, so reviewed artifact code must not load ungoverned host paths. Completion records ordered output hashes and an unchanged post-smoke manifest; failed or interrupted attempts require fresh authorization, current v3 receipts cannot downgrade to legacy, and later gates reject artifact drift. The directory must be equal to or inside one allowed write path; it defaults to the only write path and is required when several are allowed. Historical profiles without the field derive it only from one unambiguous write path and otherwise fail closed. Successful completion currently requires `/usr/bin/sandbox-exec` on macOS or `/usr/bin/bwrap` on Linux; unsupported hosts and Linux without `bwrap` fail closed before a `released` receipt is written. Passing `release.local` and `pull_request.merge` completions automatically close the lifecycle as `released` or `merged`; do not also call manual close for those statuses. A merge a person made on GitHub is closed as `merged_externally` only by `autonomy delivery reconcile`, never by manual close. A pull request whose profile excludes merge closes with `autonomy delivery close --terminal-status ready_for_review`, which binds its latest passing `pull_request.create` or `pull_request.update` completion, is refused after any later commit, push, or PR action, and needs no new approval. Use `autonomy delivery close` for formally approved `closed`, `cancelled`, `rolled_back`, `superseded`, or other allowed non-success terminal outcomes.
+Local completion runs the approved smoke argv without a shell from the exact governed `--smoke-cwd`. Shells, indirect dispatchers, inline interpreter code, and ambiguous loaders are rejected. Explicit interpreted entrypoints must resolve inside an allowed artifact path; package managers may only use `test` or one reviewed `run <script>` from the real package in that directory. Before spawning, a durable write-ahead attempt consumes the v3 authorization and binds the plugin build, sandbox, resolved launcher/runtime, explicit payload paths and pre-smoke artifact manifest. The supported read-only sandbox denies external network; macOS denies loopback and Linux `bwrap` exposes namespace-local loopback only. Portable smoke must not use listeners or connections; API artifacts should expose a handler that the smoke script invokes in-process. The runner can read host-account files and provides neither confidentiality nor transitive-code attestation, so reviewed artifact code must not load ungoverned host paths. Completion records ordered output hashes and an unchanged post-smoke manifest; failed or interrupted attempts require fresh authorization, current v3 receipts cannot downgrade to legacy, and later gates reject artifact drift. The directory must be equal to or inside one allowed write path; it defaults to the only write path and is required when several are allowed. Historical profiles without the field derive it only from one unambiguous write path and otherwise fail closed. Successful completion currently requires `/usr/bin/sandbox-exec` on macOS or `/usr/bin/bwrap` on Linux; unsupported hosts and Linux without `bwrap` fail closed before a `released` receipt is written. `autonomy delivery propose --kind local_release` runs the same check first. On a host with no supported read-only, no-network smoke sandbox it records nothing and lists the options: macOS, Linux with `/usr/bin/bwrap`, the whole CLI inside a WSL2 Linux distribution with the project on the Linux filesystem (on Windows), or delivering through a pull request (`--kind pull_request`). Passing `release.local` and `pull_request.merge` completions automatically close the lifecycle as `released` or `merged`; do not also call manual close for those statuses. A merge a person made on GitHub is closed as `merged_externally` only by `autonomy delivery reconcile`, never by manual close. A pull request whose profile excludes merge closes with `autonomy delivery close --terminal-status ready_for_review`, which binds its latest passing `pull_request.create` or `pull_request.update` completion, is refused after any later commit, push, or PR action, and needs no new approval. Use `autonomy delivery close` for formally approved `closed`, `cancelled`, `rolled_back`, `superseded`, or other allowed non-success terminal outcomes.
 
 The CLI revalidates local Git identity, branches, SHA transitions, paths, action receipts, and evidence hashes. Push authorization observes the base SHA directly on the selected remote, requires one passing completed `git.commit` receipt for every commit from that SHA to the exact head, and rejects remotes with any fetch/push URL outside the approved repository. Push/merge authorization records a live remote pre-state, and completion queries the exact Git remote or GitHub PR for the expected later post-state. This observation is not a provider-signed offline attestation; retain durable host/CI/provider evidence and do not claim signed proof when no attestation adapter is configured.
+
+When an evidence file bound by hash to a delivery action receipt was lost or overwritten, a person declares it (use `--trace <trace-event-id>` instead of `--id` and `--receipt` for a file bound to a trace event):
+
+```bash
+node bin/mpsf.mjs autonomy delivery evidence supersede \
+  --root <project> \
+  --id AUT-PR-184 \
+  --receipt <action-receipt-id> \
+  --path <evidence-path> \
+  --reason "A script overwrote the file" \
+  --actor-type human \
+  --approval-source explicit-user \
+  --summary "The original push output is lost"
+```
+
+It appends an immutable record with the recorded and current hashes and the reason; the receipt and the file are never edited. Checks then accept that exact mismatch and report a visible note instead of an error. An agent runs it only under an `evidence.supersede` delegation.
 
 For a reversible local data migration, declare the full boundary while proposing the local release:
 
@@ -684,8 +723,9 @@ node bin/mpsf.mjs contract create \
 ## Create And Claim Story
 
 `<host-agent>` is the agent running the plugin (`codex` or `claude-code`).
-Without `--actor` or `--agent`, the CLI detects the host from its environment;
-set `AGENTIC_SDLC_AGENT_HOST` to choose one explicitly.
+`story claim` and `story reserve` always need `--agent`. Records written
+without `--actor` or `--agent` are attributed to the host the CLI detects from
+its environment; set `AGENTIC_SDLC_AGENT_HOST` to choose one explicitly.
 
 ```bash
 node bin/mpsf.mjs story create --root <project> --id ST-001 --title "Implement a business workflow" --requirement REQ-001 --acceptance "<observable story-level success criterion>"
@@ -827,10 +867,12 @@ It compares the modified and new files of the worktree (or `--paths`) with the a
 A commit that reached the base branch outside any delivery (pushed straight
 to main) makes `git.commit` and `git.push` refuse the story branches that
 picked it up. Commits that only touch `.sdlc/` records, and a commit followed
-by its exact revert, never count. A person (human or CI actor, refused inside
-an agent session) can accept one such commit for one story; its files then
-stay out of the story's perimeter, and those inside its write scope or
-context go through `story overlap confirm` before the merge:
+by its exact revert, never count. A person (human or CI actor; refused inside
+an agent session unless the person granted a `base.acknowledge` delegation,
+which the agent applies with `--delegation <DLG-id>`) can accept one such
+commit for one story; its files then stay out of the story's perimeter, and
+those inside its write scope or context go through `story overlap confirm`
+before the merge:
 
 ```bash
 # A person, in their own terminal:
@@ -943,8 +985,10 @@ node bin/mpsf.mjs story cancel --root <project> --id ST-004 \
   --actor-type human --approval-source explicit-user --summary "Drop ST-004"
 ```
 
-`story abandon --id <story> --reason <text> [--replaced-by <story>]` (person only,
-`--actor-type human --approval-source explicit-user --summary <text>`) closes a
+`story abandon --id <story> --reason <text> [--replaced-by <story>]` (a person's
+decision: `--actor-type human --approval-source explicit-user --summary <text>`;
+or, for a single story, an agent acting under a delegation that covers
+`story.abandon`: `--approval-source delegated --delegation <DLG-id>`) closes a
 story whose workflow started but delivered nothing. It writes the same closure
 record (reason prefixed "Abbandonata: ", a cancellation or, with
 `--replaced-by`, a supersession), releases the claim and records a
@@ -1014,7 +1058,9 @@ from:old-to:new-to` retires them and adds the same edge (type, scope, required
 state, requirements) towards another story (repeat it to point one dependency
 at several stories), and `--edge` adds a new edge. `--rationale` is required.
 The revision is a proposal: nothing changes until a person approves it with
-`dependency approve`, which an agent cannot do.
+`dependency approve`. An agent can run that approval only with
+`--delegation <DLG-id>`, which names a `dependency.approve` delegation the
+person granted with `autonomy delegation grant`.
 
 ```bash
 node bin/mpsf.mjs dependency revise --root <project> --id DEP-REV-ST-ORCH-001   --redirect ST-CHAT-001A:ST-ORCH-001:ST-ORCH-001A   --redirect ST-CHAT-001A:ST-ORCH-001:ST-ORCH-001C   --retire ST-IMPR-001:ST-ORCH-001   --rationale "ST-ORCH-001 was split; each dependent names the part it needs"
@@ -1216,7 +1262,7 @@ node bin/mpsf.mjs workflow definition approve \
   --definition-version 1 \
   --actor-type human \
   --approval-source explicit-user \
-  --summary "Approve the displayed seven-phase workflow"
+  --summary "Approve the displayed eight-phase workflow"
 
 node bin/mpsf.mjs workflow instance start \
   --root <project> \
@@ -1276,6 +1322,8 @@ Sections: story, requirement (accepted criteria only), contract, decisions, depe
 
 With `--json` inside an agent session the payload is the agent profile: `status`, `outcome`, `next`, `ids`, `hashes`, `records` (id, status and hashes of each record, with a `rec:` ref), `warnings`/`errors`, `refs`, and `assistant_message`/`decide` only when a person must decide. Fetch a record with `context get <ref>`; pass `--json-profile full` when a script needs the complete payload.
 
+`AGENTIC_SDLC_OUTPUT=auto|compact|full` and `AGENTIC_SDLC_JSON_PROFILE=agent|full` set these for one computer, and `host_policy.context.output` (`mode`, `json_profile`) sets them for the project. Command flags take precedence over both. Host hook text is deduplicated per session and capped by `host_policy.context.hooks` (`max_lines`, `budget_tokens` per event). Defaults are in `config/context.json`. A project that sets `host_policy.context` needs 0.148.0 on every computer.
+
 ## Handoff And Locks
 
 ```bash
@@ -1305,6 +1353,15 @@ node bin/mpsf.mjs test record \
 ```
 
 The command is recorded, never run. An `--evidence` file outside the project root is refused with the exact destination (`.sdlc/tests/<story>-<name>`); add `--copy-evidence` to copy it there and register the copy. A story in validation with only a `trace append --type test` entry and no `test-run:v1` record is the legacy weaker form; prefer `test record` for validation evidence and use `trace append --type test` only where a durable test record does not apply.
+
+`test record` also takes `--case <case-id>` to name one test case and `--outcome failed-minor|blocked` for a real but small failure or a case that could not run. Decide what to do with failed and failed-minor cases with `test triage`:
+
+```bash
+node bin/mpsf.mjs test triage --root <project> --story ST-001   # lists failed and failed-minor cases that have no decision
+node bin/mpsf.mjs test triage --root <project> --story ST-001 --case <case-id> --decision fixable|not-fixable|by-design --reason "..." [--create-fix --fixes <delivered-story-id> [--title ...] [--priority P1|P2|P3]]
+```
+
+The strict gate refuses a story with failed or failed-minor cases that have no triage decision. With `--create-fix`, a fixable decision opens a fix story whose acceptance criterion is that the case passes again.
 
 ## Derived Verification Criteria
 
@@ -1552,9 +1609,9 @@ A story found merged while its records show it ready is never ready to start: `s
 | `publish_branch_prefix` | `sdlc-records/` | Branch that `story publish-records` pushes. |
 | `publish_pull_request` | `off` | `github-cli` opens the pull request of that branch with the GitHub CLI; `off` only pushes it. |
 
-`story publish-records --id <story>` publishes what the story's work left on this computer after its pull request (final receipt, release of the claim, later steps): it fetches the remote base branch, builds one commit on top of it (or of an earlier unmerged publication) with the story's records the base branch lacks, through a private index, and pushes it as `<prefix><story>`. The shared history (`traces/project.jsonl` and its checkpoint) and `output-contracts/registry.json` are never left out: like `story sync`, they are first merged onto the base branch in the working files (every event and every registry entry is kept), and the publication is refused with `STORY_RECORDS_SHARED_HISTORY_UNMERGEABLE`, publishing nothing, when they cannot be merged. Otherwise the checkout, its index, and its branches are not changed. Any other record the base branch changed after this work started is left out and listed as `skipped`. Nothing is ever deleted on the base branch.
+`story publish-records --id <story>` publishes what the story's work left on this computer after its pull request (final receipt, release of the claim, later steps): it fetches the remote base branch, builds one commit on top of it (or of an earlier unmerged publication) with the story's records the base branch lacks, through a private index, and pushes it as `<prefix><story>` (`story publish-records --id <story> --to-base` instead pushes the commit straight onto the base branch, as the automatic publication below does). The shared history (`traces/project.jsonl` and its checkpoint) and `output-contracts/registry.json` are never left out: like `story sync`, they are first merged onto the base branch in the working files (every event and every registry entry is kept), and the publication is refused with `STORY_RECORDS_SHARED_HISTORY_UNMERGEABLE`, publishing nothing, when they cannot be merged. Otherwise the checkout, its index, and its branches are not changed. Any other record the base branch changed after this work started is left out and listed as `skipped`. Nothing is ever deleted on the base branch.
 
-After `autonomy delivery action --action pull_request.merge --outcome passed` and after a passing `gate check --lifecycle-complete`, the records are published automatically and directly to the base branch: the shared history is rebuilt on the remote base first (like `trace rebase --apply`), the output registry keeps every entry of both sides, and one commit with only `.sdlc` files (`sdlc: record di <story> (<event>)`, configured git identity) is pushed on top of the base branch, rebuilt once when the push races another computer. It never changes the command's result. `AGENTIC_SDLC_AUTO_PUBLISH=off` turns it off; a failure prints `story publish-records --id <story>` and sends a question on the messaging channel.
+After `autonomy delivery action --action pull_request.merge --outcome passed` and after a passing `gate check --lifecycle-complete`, the records are published automatically and directly to the base branch: the shared history is rebuilt on the remote base first (like `trace rebase --apply`), the output registry keeps every entry of both sides, and one commit with only `.sdlc` files (`sdlc: record di <story> (<event>)`, configured git identity) is pushed on top of the base branch, rebuilt on a freshly fetched base tip and retried when the push fails (up to 4 attempts, waiting 1s, 2s and 4s by default; `AGENTIC_SDLC_PUBLISH_BACKOFF_MS` sets the first wait, which doubles each time), with a final failure reporting the remote's own reason line. It works the same as `story publish-records --id <story> --to-base` and never changes the command's result. `AGENTIC_SDLC_AUTO_PUBLISH=off` turns it off; a success sends an `info` message on the messaging channel, and a failure prints `story publish-records --id <story>` and sends a question there.
 
 ### Keeping a story aligned
 
@@ -1638,6 +1695,7 @@ node bin/mpsf.mjs trace append --root <project> --story ST-001 --type implementa
 ```
 
 Valid trace types: `assumption`, `decision`, `gate`, `claim`, `handoff`, `implementation`, `lock`, `release`, `risk`, `sync`, `test`.
+A `release` trace requires at least one `--evidence` (for example the merge or delivery receipt); without it the append is refused.
 `--evidence` must name a file inside the project or an `http(s)` URL: absolute paths elsewhere, `../` escapes, symlinks that leave the project, and other URI schemes such as `file:` are refused, accepted paths are stored project-relative, `http(s)` URLs are kept unchanged as references (never fetched or fingerprinted), and a path to a file that does not exist yet is recorded as a path only with an "evidence not verified" notice (`evidence_unverified` in JSON).
 
 Verify the sealed history (read-only; exits `1` and explains recovery when a file changed):
@@ -1648,7 +1706,7 @@ node bin/mpsf.mjs trace verify --root <project> --json
 ```
 
 When `trace append` reports `TRACE_INTEGRITY_VIOLATION`, run `trace verify` and tell the user which file changed. Only for `violated`, and only if the change was not intended, back up `.sdlc/traces` (restoring discards events recorded since the last commit) and restore it from version control before retrying. `recovery_needed` is an interrupted recording that the next recorded event repairs automatically; do not restore anything. `unverifiable` is a file above the 64 MiB verification limit, not tampering. Never edit history files by hand. `TRACE_HISTORY_TOO_LARGE` means a history file exceeds the 8 MiB read limit; see `docs/how-it-works.md#history-size-limit`. `CONFIG_MISSING` and `PROJECT_RECORD_INVALID` mean `.sdlc/config.json` or `.sdlc/project.json` must be restored (from version control, or by copying the bundled defaults file the message names when the lock proves the configuration was the defaults); do not recreate a customized configuration from defaults.
-Valid trace outcomes are `passed`, `failed`, `blocked`, `skipped`, and `ready`. Strict validation requires a `test` trace with `passed`; strict release requires `ready` or `passed`.
+Valid trace outcomes are `passed`, `failed`, `failed-minor`, `blocked`, `skipped`, and `ready`. Strict validation requires a `test` trace with `passed`; strict release requires `ready` or `passed`.
 
 Narrative flags are optional and repeatable where applicable. `--explanation-kind` accepts `codex-generated`, `deterministic`, or `human-authored` and requires `--explanation`. The stored scope is always `recorded-evidence-only`; never record private chain-of-thought or hidden reasoning.
 
@@ -1688,9 +1746,9 @@ node bin/mpsf.mjs workflow instance transition \
 ```
 
 Only after that transition, complete the exact delivery, append the passing
-release trace, and complete the release story step. The release-phase entry
-must be no later than both the release trace and terminal delivery close. Then
-certify the completed lifecycle with:
+release trace with `--evidence`, and complete the release story step. The
+release-phase entry must be no later than both the release trace and terminal
+delivery close. Then certify the completed lifecycle with:
 
 ```bash
 node bin/mpsf.mjs gate check \
@@ -1702,6 +1760,8 @@ node bin/mpsf.mjs gate check \
 ```
 
 Do not present an intermediate strict result as the final discovery-to-operations certificate. Both forms return non-zero when blocking errors are found. Use `--out` to persist JSON or Markdown gate evidence.
+
+The gate also adds a blocking error when the configured record store (`host_policy.adapters.records`, default `git-sdlc`) cannot give the guarantees the certification level needs, or when the store cannot be opened. For example, a `local-fs` store can back an intermediate strict gate but not `--lifecycle-complete`. See `docs/adapters-and-roles.md`.
 
 ## Output Consistency
 
@@ -1743,8 +1803,7 @@ node bin/mpsf.mjs output link \
   --decision-id DEC-output-override-001 \
   --rationale "User approved a separate artifact because the workflow diverges" \
   --actor-type human \
-  --approval-source explicit-user \
-  --summary "Approved separate artifact"
+  --approval-source explicit-user
 ```
 
 ## Cache, Index, And Search
@@ -1820,11 +1879,28 @@ exit code; `message listen` stops after `AGENTIC_SDLC_LISTEN_MAX_HOURS`
 (default 8). Every command, and the host hook when a turn or session ends,
 stops this user's plugin commands that outlived their limit by 5 minutes
 (including ones started by older plugin versions), after checking that the
-process is still an mpsf command; the Change Observatory is never
-stopped. `runs list` shows the running commands with their age; `runs stop`
-stops the stale ones, or those chosen with `--older-than <minutes>` or
-`--pid <pid>`. On Windows command lines cannot be checked, so only an explicit
-`runs stop` stops a process.
+process is still an mpsf command; the Change Observatory (`observe`),
+`watch` and `run` are never recorded or stopped by these limits (`watch` and
+`run` keep their own `--timeout`). `runs list` shows the running commands with
+their age; `runs stop` stops the stale ones, or those chosen with
+`--older-than <minutes>` or `--pid <pid>`. On Windows command lines cannot be
+checked, so only an explicit `runs stop` stops a process.
+
+```bash
+node bin/mpsf.mjs run --timeout 10m [--log out.log] -- npm test
+node bin/mpsf.mjs processes reap [--older-than 10m] [--dry-run] [--json]
+```
+
+`run` runs one command with a deadline: when `--timeout` expires (required, or
+`AGENTIC_SDLC_RUN_DEADLINE`) the command and every process it started are
+stopped with exit code 124; otherwise its input, output, and exit code pass
+through. `processes reap` stops this user's development processes (tests,
+builds, dev servers, plugin commands) in this project, its worktrees, or the
+plugin cache that run longer than `--older-than` (default
+`host_policy.process_reaper.older_than_minutes`, else 10 minutes); it never
+touches `observe`, `message listen`, `watch`, `run`, or the patterns in
+`host_policy.process_reaper.exclude_patterns` and `AGENTIC_SDLC_REAP_EXCLUDE`.
+`--dry-run` only lists them.
 
 `next` prints the next step while this computer has work in the project (an
 active claim not yet certified, unanswered questions to this computer, or
@@ -2041,6 +2117,18 @@ A claim's lease is renewed by activity, without any heartbeat: its effective exp
 
 Every claimed story in `orchestrate status` and `status` carries `claim_health` (`shared_claims.claims[].health` in `status`): `active`; `waiting` (with `wait`: kind, target, since, until, source); `idle` (no push for `orchestration_policy.claim_activity.idle_after_seconds`, 4 hours when the key is absent, off when it is `null`); or `abandoned` (lease ended and no valid wait). Only an abandoned claim is `stale`. Abandoned claims are listed under `claims_needing_decision` ("Needs a person's decision") with the exact commands: `story claim --id <story> --agent "<agent>" --force --reason "<why>" --actor-type human` or `story park --id <story> --reason "<why>" --actor-type human`. Nothing is ever released or taken over by itself. Summaries add `waiting`, `idle`, and `abandoned` (`waiting_claims`, `idle_claims`, `abandoned_claims` in `status`) only when non-zero. The Change Observatory shows the same health from what the clone last fetched.
 
+### Waits registry (`wait add` / `wait list` / `wait resolve`)
+
+```bash
+node bin/mpsf.mjs wait add --root <project> --on <type:ref> [--until <duration>] [--story <id>] [--reason <text>]
+node bin/mpsf.mjs wait list --root <project> [--all] [--offline]
+node bin/mpsf.mjs wait resolve --root <project> --id <wait-id> --resolution <text>
+```
+
+An explicit wait belongs to this computer, or to a story with `--story`. `wait resolve --id` takes an explicit `WAIT-...` id or a derived one (`q:<message id>`, `dep:...`, `approval:...`); the first resolution wins on every computer. Explicit waits are kept as create-only refs `refs/agentic-sdlc/wait-registry/<id>/open|resolve` on the remote, outside every branch; without a remote the record stays a local ref, and with the `local-fs` record store it is a plain file under `<dir>/.shared-state/wait-registry/` (`.sdlc` by default). `wait list` also shows derived waits, computed from existing data and never written: dependencies, unanswered questions, old plugin versions, pending approvals, expired delegations, and freezes (off by default). Defaults come from `config/waits.json` and can be overridden under `host_policy.waits` (`question_decide_after_minutes`, `question_max_age`, `explicit_default_until`, `explicit_max_until`, `list_limit`, `freezes_enabled`, and the others listed in `docs/messaging.md#waits-registry`).
+
+`story wait` records why a claim is waiting, under `refs/agentic-sdlc/waits/<story>/<epoch>/`, while the registry tracks who is waiting for what across computers.
+
 ## Preparing a story while its dependency is open
 
 ```bash
@@ -2091,4 +2179,36 @@ node bin/mpsf.mjs message identity --root <project> [--name "<name>"]   # unique
 node bin/mpsf.mjs message who --root <project> [--since 7d]   # participants: name, host, login, plugin version, stories; duplicates and old versions flagged
 ```
 
-`message setup` stores `{"provider":"github","repo","issue"}` in `<git-common-dir>/agentic-sdlc/messaging.json`: per clone, shared by its worktrees, never committed. The repository defaults to the `origin` remote; the channel is one GitHub issue (label `agentic-sdlc-channel`, title "MPSF · canale tra computer"), found or created once, with the lowest number winning a race. A message is a comment on it, written and read with the `gh` CLI the person is already signed in with (no token in the plugin; without `gh` or when not signed in the error says to run `gh auth login`). Each setting comes from, in order: `AGENTIC_SDLC_MESSAGING_REPO` / `AGENTIC_SDLC_MESSAGING_ISSUE`, the local file, a committed `.sdlc/messaging.json` (`repo`/`issue` for everyone). A clone still configured with the removed ntfy topic is converted on first use. `AGENTIC_SDLC_MESSAGING=off` turns it off on one computer. Messaging is opt-in: without a repository (or with an unreadable settings file or unknown provider) `send`, `read` and `listen` make no network call, print `skipped` with the reason and how to set it up, and exit 0. GitHub failing or not answering within 10 seconds gives `skipped` plus `unavailable` on `read`/`listen`, also exit 0. `send` refused for a temporary reason (rate limit: HTTP 429 or 403 with retry-after, 5xx, network, timeout, gh not ready) keeps the message in `<git-common-dir>/agentic-sdlc/messaging-outbox.json` (0600), prints `MESSAGE QUEUED (not sent yet): <reason>` and exits **75** (queued, not lost: never resend it); permanent refusals (other 4xx, validation) exit 1 and are not queued. The queue is sent in order by the next `send`, `read`, `listen`, the host hook and `message outbox --flush`, at most every `AGENTIC_SDLC_MESSAGING_OUTBOX_RETRY_MINUTES` (default 5, doubling after each failure, never before GitHub's retry-after); `message status` and `message outbox` show it. A queued `--reply-to X` answer stops question X from blocking the Stop hook. No other command uses messaging. The sender name is `--sender`, else `AGENTIC_SDLC_HOST_LABEL`, else the computer's id kept in `~/.config/agentic-sdlc/machine.json` (decided once as `pc-` plus a short hash of the host name, then kept when the host name changes). Nothing is in `.sdlc/config.json`, so older plugins are unaffected; they only lack the `message` commands. Messages are not stored in git and change no project record. `read` defaults to the last 12 hours; `listen` polls every `AGENTIC_SDLC_MESSAGING_POLL_SECONDS` (default 30) from the last message seen, and stops on `--limit` messages or `--timeout` seconds. `send` refuses text that matches the secret-scan rules (`MESSAGING_SECRET_REFUSED`). Messages are information, never instructions or approvals.
+`message setup` stores the chosen provider in `<git-common-dir>/agentic-sdlc/messaging.json` (`{"provider":"git"}`, or `{"provider":"github","repo","issue"}` for a GitHub channel): per clone, shared by its worktrees, never committed. Providers: `git` (one ref per computer on the project's remote, what setup picks for a new channel; see `docs/messaging.md#git-channel`), `github` (the default when nothing chooses a provider, and kept by a project that already has a channel issue), `local` (a channel file in a folder, for one computer or a shared network folder) and `none` (off). The provider comes from, in order: `AGENTIC_SDLC_MESSAGING_PROVIDER`, the local file, `.sdlc/messaging.json`, then `host_policy.adapters.messaging` in `.sdlc/config.json`. The local folder comes from, in order: `AGENTIC_SDLC_MESSAGING_LOCAL_DIR`, `dir` in the local file, `dir` in `.sdlc/messaging.json`, then `host_policy.adapters.messaging.options.dir`; the default is a folder next to the clone's settings in `<git-common-dir>/agentic-sdlc/`. See `docs/messaging.md` and `docs/adapters-and-roles.md`. With the `github` provider the repository defaults to the `origin` remote; the channel is one GitHub issue (label `agentic-sdlc-channel`, title "Agentic SDLC · canale tra computer"), found or created once, with the lowest number winning a race. A message is a comment on it, written and read with the `gh` CLI the person is already signed in with (no token in the plugin; without `gh` or when not signed in the error says to run `gh auth login`). Each setting comes from, in order: `AGENTIC_SDLC_MESSAGING_REPO` / `AGENTIC_SDLC_MESSAGING_ISSUE`, the local file, a committed `.sdlc/messaging.json` (`repo`/`issue` for everyone). A clone still configured with the removed ntfy topic is converted on first use. `AGENTIC_SDLC_MESSAGING=off` turns it off on one computer. Messaging is opt-in: without a repository (or with an unreadable settings file or unknown provider) `send`, `read` and `listen` make no network call, print `skipped` with the reason and how to set it up, and exit 0. GitHub failing or not answering within 10 seconds gives `skipped` plus `unavailable` on `read`/`listen`, also exit 0. `send` refused for a temporary reason (rate limit: HTTP 429 or 403 with retry-after, 5xx, network, timeout, gh not ready) keeps the message in `<git-common-dir>/agentic-sdlc/messaging-outbox.json` (0600), prints `MESSAGE QUEUED (not sent yet): <reason>` and exits **75** (queued, not lost: never resend it); permanent refusals (other 4xx, validation) exit 1 and are not queued. The queue is sent in order by the next `send`, `read`, `listen`, the host hook and `message outbox --flush`, at most every `AGENTIC_SDLC_MESSAGING_OUTBOX_RETRY_MINUTES` (default 5, doubling after each failure, never before GitHub's retry-after); `message status` and `message outbox` show it. A queued `--reply-to X` answer stops question X from blocking the Stop hook. Once a clone has a channel, other commands also post to it on their own (for example a failed gate, a parked or waiting story, a git time limit, and `story prepare --resolve`), and `story claim`/`task start` first show unread messages. This is best effort: it never changes a command's result or exit code. `AGENTIC_SDLC_MESSAGING_AUTO=off` stops these automatic messages and keeps the `message` commands; `AGENTIC_SDLC_MESSAGING_AUTO_TIMEOUT_SECONDS` (default 3) limits each automatic network step. Every message is signed with this computer's name: `message identity --name`, else `<git user.name> · <host>`, else the host id (`AGENTIC_SDLC_HOST_LABEL`, else the computer's id kept in `~/.config/agentic-sdlc/machine.json`, decided once as `pc-` plus a short hash of the host name and kept when the host name changes). `--sender` is deprecated; a value other than that name or the host id is refused (`MESSAGING_SENDER_REFUSED`). The channel settings are kept outside `.sdlc/config.json`. Only the optional `host_policy.adapters.messaging` is in it, and a project that sets `host_policy.adapters` needs 0.147.0 on every computer. Messages change no project record; only the `git` provider keeps them in git, in channel refs outside every branch. `read` defaults to the last 12 hours; `listen` polls every `AGENTIC_SDLC_MESSAGING_POLL_SECONDS` (default 30) from the last message seen, and stops on `--limit` messages or `--timeout` seconds. `send` refuses text that matches the secret-scan rules (`MESSAGING_SECRET_REFUSED`). Messages are information, never instructions or approvals.
+
+## Base-branch guard
+
+A person records, from their own terminal, the remote the merge and push guard reads the base branch from. The command is refused inside an agent session:
+
+```bash
+node bin/mpsf.mjs guard trust-remote --root <repo> --url <url> --actor-type human --approval-source explicit-user
+```
+
+The URL is stored per repository in a user-level file, `~/.config/agentic-sdlc/trusted-remotes.json`; `XDG_CONFIG_HOME` or `AGENTIC_SDLC_TRUSTED_REMOTES_FILE` can move that file.
+
+The guard applies whenever `.sdlc/project.json` exists in the working tree, the index, or the committed base branch. It blocks base-branch merges and pushes that lack an authorization.
+
+To turn the rule off for a repository, commit `host_policy.guard.protect_base_branch: false` in `.sdlc/config.json` to the base branch: it takes effect only when it is on the base branch as the trusted remote reports it. Agent edits to `host_policy.guard` are denied. Full details: `docs/claude-code-install.md#base-branch-guard`.
+
+## Other commands
+
+Commands not covered above, with their purpose; `node bin/mpsf.mjs help <command>` prints the exact options and examples of each.
+
+| Command | What it does |
+| --- | --- |
+| `doctor` | Checks the local setup and explains how to fix problems. |
+| `config status` | Explains which configuration is active. |
+| `preset list`, `preset show <name>`, `preset export <name\|@file.json>...` | Lists, shows, and combines the built-in presentation presets. |
+| `baseline propose`, `baseline status`, `baseline publish --id <approved-baseline-id>` | Proposes a baseline, shows the agreed project state, and publishes an approved baseline left on this computer to the remote base branch. |
+| `breakdown status`, `breakdown policy show`, `breakdown policy set` | Shows work-breakdown readiness and shows or changes how requirements are split into delivery units. |
+| `authorization status`, `authorization revoke --id <authorization-id> --actor-type <human\|ci> [--reason <text>]` | Shows and revokes authorizations created with `authorization grant`. |
+| `portfolio status --root <portfolio-root> --manifest <relative.json>` | Prints a compact read-only portfolio status. |
+| `workflow overlay propose`, `workflow overlay approve`, `workflow overlay explain` | Proposes, approves, and explains a workflow overlay on a workflow definition. |
+| `workflow definition list`, `workflow instance explain --id <instance-id>` | Lists the workflow definitions available to the project and explains a run's history, position, and next permitted steps. |
+| `trace evidence bind --target-event <trace-event-id> --redaction-policy <policy-id>` | Binds a supported redaction policy to historical trace evidence without rewriting the event. |
+| `capability profile status` | Shows tool-selection readiness. |

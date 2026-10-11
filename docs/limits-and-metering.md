@@ -160,7 +160,7 @@ For governed delivery work, policy and execution remain separate:
 
 The PR catalog is `repository.read`, `repository.write`, `test.run`, `git.commit`, `git.push`, `pull_request.create`, `pull_request.update`, and `pull_request.merge`. The local catalog is `build.local`, `test.run`, mandatory non-executing `rollback.verify`, optional paired `data.migrate` and `data.rollback`, and `release.local`. Rollback verification must pass before release authorization; a declared data migration also requires the initial migrate/rollback cycle and a later final migration. Commit authorization binds repeatable exact `--scope-path` values and completion verifies the one-commit parent/file transition. Push binds the matching remote, source SHA, destination ref, and non-force/non-delete semantics; every base-to-head commit must already have exactly one passing commit completion receipt, and all configured URLs for that remote must identify the approved repository. Merge binds the exact PR URL. When the delivery requires a code review (the user's answer for the story, or `gate_policy.merge_requires_code_review` set to `true`), authorizing `pull_request.merge` also requires an approved `review record` for the exact head commit by a reviewer independent of every commit author; see [How it works](how-it-works.md#code-review-before-merge-is-chosen-for-each-story).
 
-Passing completion of `pull_request.merge` or `release.local` automatically writes the terminal `merged` or `released` receipt. Other allowed outcomes use an explicitly approved manual close. Local completion repeats the exact approved shell-free JSON argv smoke tests and rollback from the governed `--smoke-cwd` inside one allowed write path. Shells, indirect dispatchers, inline code, and ambiguous loaders are rejected; explicit interpreted entrypoints must be artifact-manifest-bound, and package managers can only run a reviewed package script. Before spawning, a durable write-ahead receipt consumes the authorization and binds the v3 action receipt to the plugin build, sandbox, exact launcher/runtime, explicit payload paths, and pre-smoke artifact manifest; completion binds ordered output hashes and the unchanged post-smoke manifest. The supported read-only sandbox denies external network access. macOS also denies loopback, while Linux `bwrap` exposes namespace-local loopback only; portable tests must not depend on any listener or connection and should use an in-process API check or artifact validation. The runner can read files available to the host account and provides neither confidentiality nor transitive-code attestation: reviewed code must not load ungoverned host paths. Failed or interrupted attempts cannot reuse their authorization, current v3 receipts cannot fall back to legacy, and later gates reject released-byte drift. The working directory defaults only when there is exactly one allowed write path; multiple paths require an explicit choice. Successful completion currently requires `/usr/bin/sandbox-exec` on macOS or `/usr/bin/bwrap` on Linux; unsupported hosts and Linux without `bwrap` fail closed before release.
+Passing completion of `pull_request.merge` or `release.local` automatically writes the terminal `merged` or `released` receipt. Other allowed outcomes use an explicitly approved manual close. Local completion repeats the exact approved shell-free JSON argv smoke tests and rollback from the governed `--smoke-cwd` inside one allowed write path. Shells, indirect dispatchers, inline code, and ambiguous loaders are rejected; explicit interpreted entrypoints must be artifact-manifest-bound, and package managers can only run a reviewed package script. Before spawning, a durable write-ahead receipt consumes the authorization and binds the v3 action receipt to the plugin build, sandbox, exact launcher/runtime, explicit payload paths, and pre-smoke artifact manifest; completion binds ordered output hashes and the unchanged post-smoke manifest. The supported read-only sandbox denies external network access. macOS also denies loopback, while Linux `bwrap` exposes namespace-local loopback only; portable tests must not depend on any listener or connection and should use an in-process API check or artifact validation. The runner can read files available to the host account and provides neither confidentiality nor transitive-code attestation: reviewed code must not load ungoverned host paths. Failed or interrupted attempts cannot reuse their authorization, current v3 receipts cannot fall back to legacy, and later gates reject released-byte drift. The working directory defaults only when there is exactly one allowed write path; multiple paths require an explicit choice. Successful completion currently requires `/usr/bin/sandbox-exec` on macOS or `/usr/bin/bwrap` on Linux; unsupported hosts and Linux without `bwrap` fail closed before release. On such a host, `autonomy delivery propose --kind local_release` is refused before any delivery record is written, and the message lists the supported options; see [Windows status](portable-install.md#windows).
 
 The CLI validates local Git identity, branches, SHA transitions, paths, receipt lineage, and evidence hashes. Push/merge authorization records a live remote pre-state; completion queries the exact Git remote or GitHub PR and requires the expected post-state after authorization. This is a live authenticated observation, not a provider-signed offline attestation, so preserve durable host/CI/provider evidence and do not present a generic evidence file as signed proof.
 
@@ -206,7 +206,7 @@ node bin/mpsf.mjs authorization status --root /path/to/project
 node bin/mpsf.mjs authorization status --root /path/to/project --id AUTH-ST-001
 ```
 
-`authorization status` reads local records only. With `--id` it reports one authorization's `status` (`active`, `revoked`, or expired past `--expires-at`), its scope, and its allowed actions; without `--id` it lists every authorization recorded for the project.
+`authorization status` reads local records only. With `--id` it reports one authorization's stored `status` (`active` or `revoked`), its scope, and its allowed actions. It does not evaluate `--expires-at`, so a grant past its `expires_at` still shows `active` here, but any attempt to use it is refused. Without `--id` it lists every authorization recorded for the project.
 
 Revoke a delegated authorization when its scope is no longer correct, the work it was granted for is finished or cancelled, or the granting decision should not be exercised again — for example, the wrong action-subject pair was approved, or the approving actor's authority has changed. Revoking stops a grant from being used again; it is not a way to undo what already happened under it.
 
@@ -219,7 +219,7 @@ node bin/mpsf.mjs authorization revoke \
 
 The command requires `--id` and `--actor-type <human|ci>`, naming the human or CI actor who records the revocation, and accepts an optional `--reason <text>` explaining why. Omitting `--actor-type` fails closed with "Revoking delegated automation authorization requires --actor-type human or ci."; an agent cannot revoke its own delegation.
 
-Revoking sets the authorization's `status` to `revoked` and records `revoked_at` and, when supplied, `revocation_reason`. The very next attempt to use the authorization for any action-subject pair is rejected because the record is no longer `active`. For an older `content-authorization:v1`/`v2` grant, revocation instead writes a separate, immutable revocation record under `.sdlc/receipts/authorization-lifecycle/` and leaves the original grant file untouched; either form makes every new use fail immediately.
+Revoking sets the authorization's `status` to `revoked` and records `revoked_at` and, when supplied, `revocation_reason`. The very next attempt to use the authorization for any action-subject pair is rejected because the record is no longer `active`. For a proposal-bound `content-authorization:v2` record (the kind `assessment proposal approve` creates) or a legacy `content-authorization:v1` record, revocation instead writes a separate, immutable revocation record under `.sdlc/receipts/authorization-lifecycle/` and leaves the original file, including its `status`, untouched; either form makes every new use fail immediately.
 
 What revocation does **not** undo:
 
@@ -348,7 +348,7 @@ Field meanings:
 | Field | Meaning |
 |---|---|
 | `scope` | Aggregate the main agent and its subagents for this proposal |
-| `warning_thresholds_percent` | Notify at 70% and 90% of metrics that have a hard limit |
+| `warning_thresholds_percent` | Notify at 70% and 90% of each soft and hard limit; soft-limit notices are listed under `soft_warnings` and never change the decision status, only hard-limit thresholds produce `warnings` |
 | `completion_reserve_percent` | At 85% of a hard ceiling, preserve the final 15% for verification and delivery |
 | `limits.<name>.unit` | Unit used for validation and arithmetic |
 | `limits.<name>.metering` | Required evidence quality for that metric |
@@ -424,7 +424,7 @@ steps: used 12 / soft 40 steps (30.0%), hard 60 steps (20.0%); 48 steps left bef
 cost: not measured (soft USD 5.00); no usage receipt has reported this metric, so its limits are not being checked yet.
 ```
 
-`not measured` means no usage receipt has reported the metric yet, so its limit is not being checked. At completion, a budget that is within its limits only because some metrics were never measured is recorded in the release manifest as `not_measured`, with those metrics under `unmeasured_metrics`, and the completion output warns that no usage was recorded so the budget could not be checked. It is never reported as `within_budget`; hard-limited metrics still fail closed without exact coverage. For example, the Codex-session meter measures tokens and calls but not cost; `budget meter start` warns about such metrics when it captures the baseline, and `--json` output lists them as `unmeasured_metrics`.
+`not measured` means no usage receipt has reported the metric yet, so its limit is not being checked. At completion, a budget that is within its limits only because some metrics were never measured is recorded in the release manifest as `not_measured`, with those metrics under `unmeasured_metrics`, and the completion output warns that no usage was recorded so the budget could not be checked. It is never reported as `within_budget`; hard-limited metrics still fail closed without exact coverage. For example, the Codex-session meter measures tokens and calls but not cost; `budget meter start` warns about such metrics when it captures the baseline, and `--json --json-profile full` output lists them as `unmeasured_metrics` (inside an agent session, plain `--json` uses the short agent profile, which leaves this list out and names it under `omitted`).
 
 ### Usage ledger and its limit
 
@@ -631,6 +631,12 @@ command. An active assessment requires `--proposal`, and its cost gate runs
 before the child process. Operators capture only `phase=manual`; the automatic lifecycle hooks
 own the `apply`, `checkpoint`, and `complete` observations.
 
+`optimization run` also stops the command after `--timeout` in total (default
+30m) or after `--idle-timeout` with no output (default 10m). Give durations such
+as 90s, 10m or 2h, or 0 to turn one off. Without the flags, it reads
+`AGENTIC_SDLC_RUN_TIMEOUT` / `AGENTIC_SDLC_RUN_IDLE_TIMEOUT`. It streams the
+child's output and does not accept `--json`.
+
 RTK reports cumulative counters for the project root. Concurrent agents or
 sessions in the same checkout can contribute to that total. Each hash-linked
 observation reports an interval delta from its predecessor, while status
@@ -760,7 +766,7 @@ node bin/mpsf.mjs budget meter start \
 | `--root` | Run against this project and store evidence under its `.sdlc/` directory |
 | `--proposal` | Bind the baseline to this exact proposal and effective budget |
 | `--adapter` | Select an allowlisted adapter; `codex-session` is default and `codeburn` must be explicitly enabled |
-| `--id` | Name the baseline; the default is `METER-<proposal>-CODEBURN` |
+| `--id` | Name the baseline; the default is `METER-<proposal>-<adapter-id>` (for example `METER-<proposal>-codeburn`), which `budget meter record` also uses when `--baseline` is omitted |
 | `--provider` | Filter CodeBurn’s local log source, for example `codex`; this is not a billing account ID |
 | `--project` | Filter CodeBurn’s project aggregation; choose the narrowest stable project name |
 | `--from` | Inclusive start date in `YYYY-MM-DD` form |
@@ -926,7 +932,7 @@ Example approval wording:
 
 ### One local release
 
-Use delivery kind `local_release` and record the exact local target root, canonical allowed actions and write paths, at least one shell-free JSON-argv smoke test such as `["npm","run","smoke:local"]`, and a required rollback procedure. External access, production access, and destructive actions remain false. Writes outside the workspace and machine-global changes require a checkpoint even when the selected level is `bounded-autonomous`. Under `audit_only`, that requested level still evaluates as `checkpointed`; local execution is not an exception to authority assurance.
+Use delivery kind `local_release` and record the exact local target root, canonical allowed actions and write paths, at least one shell-free JSON-argv smoke test such as `["npm","run","smoke:local"]`, and a required rollback procedure. External access, production access, and destructive actions remain false. Writes outside the workspace and machine-global changes require a checkpoint even when the selected level is `bounded-autonomous`. Under `audit_only`, that requested level still evaluates as `checkpointed`; local execution is not an exception to authority assurance. On a host without a supported smoke sandbox, `autonomy delivery propose --kind local_release` is refused before any delivery record is written, and the message lists the supported options; see [Windows status](portable-install.md#windows).
 
 ### One hour and 60 steps, enforced
 

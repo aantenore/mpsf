@@ -9,9 +9,11 @@ The Codex packaging keeps the install identifier `agentic-sdlc-codex-plugin` (th
 The staged plugin contains:
 
 ```text
+.claude-plugin/
 .codex-plugin/plugin.json
 assets/
 bin/
+commands/
 config/
 docs/
 hooks/
@@ -29,7 +31,7 @@ package.json
 README.md
 ```
 
-The assessment, Change Observatory, and vendored Caveman skills include
+The core, assessment, Change Observatory, and vendored Caveman skills include
 `agents/openai.yaml`. Caveman `v1.9.1` is bundled with its MIT license and
 provenance notice, so initial installs and updates need no separate Caveman
 download. The first product starter remains:

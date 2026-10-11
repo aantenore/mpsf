@@ -70,7 +70,12 @@ The technical chain for `ST-TRIP-POLICY-001` is:
 Only that lifecycle-complete form is the final story certificate. It binds all
 configured phases — including `operations`, since the lifecycle now ends
 there — current approvals, required output, latest test evidence, terminal
-delivery, and release evidence into the final receipt. A strict check run
+delivery, and release evidence into the final receipt. It also requires a
+record store that guarantees an immutable, atomically published history
+coupled to the base branch. The default `git-sdlc` store does. A project on the
+`local-fs` store (`host_policy.adapters.records`) can pass standard and strict
+intermediate checks but cannot be certified lifecycle-complete; see
+[Adapters and roles](adapters-and-roles.md). A strict check run
 earlier may support an intermediate decision but must not be presented as
 proof that discovery-to-operations delivery is complete.
 
@@ -354,7 +359,7 @@ mpsf story overlap confirm --id ST-SECOND --summary "Rebased on the status chang
 
 `story overlap confirm` records a review under `.sdlc/stories/<story>/overlap-reviews/` that names each change by path, delivering story, merge commit, and exact bytes, with a trace event; a later change to the same file needs a new review. Until then the strict story gate lists each unreviewed change and the merge authorization is refused. `orchestration_policy.delivered_overlap` sets the behavior: `write_scope` and `context` take `confirm`, `warn`, or `off` (defaults `confirm` and `warn`), `confirmation_actor` is `any` or `human`, and `claim` (`warn` or `off`) lists, when a story is claimed, the other stories in progress whose write scope shares files with it. The claim warning never blocks: locking files would serialize parallel work.
 
-Picking up a merged story is supported. Once the first story is merged, fast-forward or rebase the second story's branch onto the base branch (a merge commit is not possible: `git.commit` records only non-merge commits, and its receipts are bound to commit SHAs, so rebase before the second story has commits of its own). The second story's changed-path perimeter is then the files its own commits touched: the strict gate leaves out the commits of other stories' merged deliveries (merged through the plugin, or merged on GitHub and recorded with `autonomy delivery reconcile`), read as `git rev-list <task start>..HEAD ^<merge commit>...`. A file both stories changed, such as a shared export file, still counts for the second story through its own commit. `git.commit` and `git.push` refuse a branch whose commits since the task start include work that is neither the story's own nor part of a merged delivery (a commit on the base branch that no merged delivery accounts for, or a commit another delivery recorded but has not merged), and name the commit to move back to with `git reset --keep`. When the first story was merged outside the plugin, record it with `autonomy delivery reconcile` first. Commits that only touch `.sdlc/` records, and a commit together with a later commit that exactly reverts it, are set aside and never block. A commit pushed straight to the base branch can be accepted for one story by a person (`story base acknowledge --id <story> --commit <sha> --reason <why>`, human or CI actor, refused inside an agent session): it is recorded under `.sdlc/stories/<id>/base-acknowledgements/`, its files leave the story's perimeter, and those inside the story's write scope or context are listed by `story overlap` and must be confirmed with `story overlap confirm` before the merge.
+Picking up a merged story is supported. Once the first story is merged, fast-forward or rebase the second story's branch onto the base branch (a merge commit is not possible: `git.commit` records only non-merge commits, and its receipts are bound to commit SHAs, so rebase before the second story has commits of its own). The second story's changed-path perimeter is then the files its own commits touched: the strict gate leaves out the commits of other stories' merged deliveries (merged through the plugin, or merged on GitHub and recorded with `autonomy delivery reconcile`), read as `git rev-list <task start>..HEAD ^<merge commit>...`. A file both stories changed, such as a shared export file, still counts for the second story through its own commit. `git.commit` and `git.push` refuse a branch whose commits since the task start include work that is neither the story's own nor part of a merged delivery (a commit on the base branch that no merged delivery accounts for, or a commit another delivery recorded but has not merged), and name the commit to move back to with `git reset --keep`. When the first story was merged outside the plugin, record it with `autonomy delivery reconcile` first. Commits that only touch `.sdlc/` records, and a commit together with a later commit that exactly reverts it, are set aside and never block. A commit pushed straight to the base branch can be accepted for one story by a person (`story base acknowledge --id <story> --commit <sha> --reason <why>`, human or CI actor; refused inside an agent session unless the agent applies a person's `base.acknowledge` approval delegation with `--approval-source delegated --delegation <DLG-id>`): it is recorded under `.sdlc/stories/<id>/base-acknowledgements/`, its files leave the story's perimeter, and those inside the story's write scope or context are listed by `story overlap` and must be confirmed with `story overlap confirm` before the merge.
 
 Run `task start` and `story claim` at the start of development, not at integration time, so the shared claim protects the work from the first moment; use `story reserve` when the story cannot start yet. When several stories were started from the same earlier main and one of them merges, the others keep working: after `baseline refresh` the project context holds the merged files, and a story started before that merge (including a replacement delivery, which keeps the story's first task start as its starting point) is not refused with `baseline_not_ready` because its branch lacks them. The context check accepts the bytes another story's merged delivery produced when that merge is not in the history of the commit the story started from, even for files outside this story's write scope; the task preflight does not bind those files as this story's context. What the story itself changes is still checked by its changed-path perimeter. To pick the merged work up, fast-forward or rebase the branch onto main as described above.
 
@@ -417,9 +422,9 @@ An approved requirement records what must be achieved, how success will be check
 
 Before **every pull request or local release**, ask the user to choose one of these three working modes for that delivery only:
 
-1. **Ask before every important step** — inspect and plan freely, but request confirmation before each material change or external action.
-2. **Work between agreed review moments** — continue through the named safe phases, then stop at the review moments shown in the summary.
-3. **Finish this delivery within the displayed limits** — complete the one PR or local release, including only the explicitly listed actions; anything outside those limits still requires a new decision.
+1. **Guided** (`supervised`) — ask before every important step: inspect and plan freely, but request confirmation before each material change or external action.
+2. **Autonomy with checks** (`checkpointed`) — work between agreed review moments: continue through the named safe phases, then stop at the review moments shown in the summary.
+3. **Full autonomy within these limits** (`bounded-autonomous`) — finish this delivery within the displayed limits: complete the one PR or local release, including only the explicitly listed actions; anything outside those limits still requires a new decision.
 
 The prompt must show the exact boundary in ordinary language:
 
@@ -428,9 +433,9 @@ The prompt must show the exact boundary in ordinary language:
 | Pull request | Repository, source and destination branches, files/actions allowed, and whether merge is included | Every new PR gets a fresh choice; merging to a protected branch is included only when explicitly shown |
 | Local release | Local destination, files/actions allowed, smoke checks, and how to restore the previous version | Remote deployment, production access, destructive work, machine-wide changes, and writes outside the shown workspace |
 
-The choice belongs to one delivery and one approved requirement contract. It cannot be reused for another PR or release, and only one run may use it at a time. Earlier successful deliveries may improve the recommendation, but they never grant more freedom. Each story is its own delivery with its own choice. If several parts must ship together, agree one delivery story whose parts are tasks inside it, and propose that shape at breakdown time instead of approving several stories first; an approved story that is never started currently stays in the plan, because no command retires it. Never quietly combine unrelated work in one delivery.
+The choice belongs to one delivery and one approved requirement contract. It cannot be reused for another PR or release, and only one run may use it at a time. Earlier successful deliveries may improve the recommendation, but they never grant more freedom. Each story is its own delivery with its own choice. If several parts must ship together, agree one delivery story whose parts are tasks inside it, and propose that shape at breakdown time instead of approving several stories first; an approved story that will not be started is closed, never rewritten: with `story cancel --id <story> --reason ...` when it will not be delivered, with `story supersede --id <story> --by <story> --reason ...` when another story delivers its work, or, by a person only, with `story retire --id <story> --replaced-by <child,...> --reason ...` once its child stories delivered all of it. Never quietly combine unrelated work in one delivery.
 
-For a pull request, the user answers a second question at this same step, before the task starts: whether a person who did not author the commits must approve the code before the plugin merges it. The answer applies to that story only and is never carried over; everything before the merge proceeds automatically either way. See [Code review before merge is chosen for each story](#code-review-before-merge-is-chosen-for-each-story).
+For a pull request, the user answers a second question at this same step, before the task starts: whether a person who did not author the commits must approve the code before the plugin merges it. The answer applies to that story only and is never carried over from earlier stories, unless a person signed it in a `delivery.policy` delegation; everything before the merge proceeds automatically either way. See [Code review before merge is chosen for each story](#code-review-before-merge-is-chosen-for-each-story).
 
 The system always applies the safest limit among the user’s choice, the project rules, the requirement, its contract, the available tools, the environment, and the budget. Any one of those may reduce what can happen; none may silently increase it. Missing, expired, revoked, or changed inputs stop the delivery safely.
 
@@ -523,7 +528,7 @@ After the immutable delivery-start receipt exists, each state-changing delivery 
 2. The host, Git client, CI job, or local tooling executes exactly that recorded operation. The authorization receipt does not perform the operation.
 3. The same command records `--outcome passed|failed` plus at least one immutable evidence file and consumes one exact action authorization. When exactly one matching authorization is waiting, the CLI selects it safely. When several are waiting, completion pauses and requires `--authorization-receipt <AUT-ACT-id>` so the host identifies the operation it actually executed. An identical retry returns the original completion with `idempotent: true` and repairs a missing trace or terminal close without querying the provider again or consuming another authorization. A different authorization selector, evidence set, outcome, or operation argument is a new completion request and is validated independently.
 
-For `git.push`, pull-request create/update/merge, and `release.local`, v2 profiles also bind one registered verification provider per action. Authorization stores that provider's hash-bound precondition receipt; successful completion stores a second receipt linked to the first. Providers expose observation and verification only. The host remains the only component that executes the operation. A missing, changed, unknown, or unsupported binding stops the action before it can be recorded as authorized or successfully completed.
+For `git.push`, `pull_request.create`/`update`/`merge`, `rollback.verify`, `data.migrate`, `data.rollback`, and `release.local`, v2 profiles also bind one registered verification provider per action. Authorization stores that provider's hash-bound precondition receipt; successful completion stores a second receipt linked to the first. Providers expose observation and verification only. The host remains the only component that executes the operation. A missing, changed, unknown, or unsupported binding stops the action before it can be recorded as authorized or successfully completed.
 
 Canonical PR actions are `repository.read`, `repository.write`, `test.run`, `git.commit`, `git.push`, `pull_request.create`, `pull_request.update`, and `pull_request.merge`. Canonical local actions are `build.local`, `test.run`, mandatory non-executing `rollback.verify`, optional paired `data.migrate` and `data.rollback`, and `release.local`. The rollback receipt must pass before release authorization; a declared data migration follows initial migrate → real rollback → rollback verification → later final migrate → release. `git.commit` authorization additionally binds repeatable exact `--scope-path` values; completion accepts only one non-merge commit with the authorized parent and file set. `git.push` binds one matching remote, source SHA, destination ref, and non-force/non-delete semantics. Before push authorization, the CLI observes the base SHA directly on that remote; every commit from that SHA to the exact head must have one passing completed `git.commit` receipt, and every fetch/push URL configured for the selected remote must identify the approved repository. Merge authorization binds the exact `--pr-url`.
 
@@ -918,11 +923,17 @@ user's language:
 The agent suggests "No" by default, and "Yes" when the story touches security,
 authentication, payments, data migrations, public APIs, or infrastructure. The
 answer is the user's own. It is recorded as a formal human decision
-(`autonomy delivery propose --code-review required|not-required` with actor
-type `human`, approval source `explicit-user`, and the user's words), an agent
-or system choice is rejected, and the task does not start without it. It is
-never inherited from an earlier story: past answers can only shape the
-suggestion. The answer is stored in the approved delivery profile as
+(`autonomy delivery propose --code-review required|not-required
+--code-review-actor-type human --code-review-approval-source explicit-user
+--code-review-summary "<user's words>"`), an agent or system choice is
+rejected, and the task does not start without it. The one alternative is a
+person's signed `delivery.policy` delegation (`autonomy delegation grant
+--actions delivery.policy --delivery-policy
+code-review=<required|not-required>,merge=<mode>`). Proposing with
+`--approval-source delegated --delegation <DLG-id>` applies the answer the
+person signed, recorded as `source: delegation` with `delegation_id`.
+`--code-review` cannot be combined with such a delegation. The answer is never
+inferred from an earlier story: past answers can only shape the suggestion. The answer is stored in the approved delivery profile as
 `pull_request_target.code_review`, so it is covered by the profile hash.
 Editing it breaks the profile, and a delivery that carries it cannot be
 approved with `--approval-source automation`. A profile approved before this
@@ -939,8 +950,9 @@ behavior it agreed to.
 
 `autonomy delivery explain` and `status` show where the requirement for a pull
 request comes from: the project policy (`project_policy`), the user's answer for
-this story (`delivery_profile`), a standing approval (`standing_approval`), a
-change made after approval (`change`), or the project default
+this story (`delivery_profile`), a standing approval (`standing_approval`), the
+person's standing answer in their `delivery.policy` approval delegation
+(`delegation`), a change made after approval (`change`), or the project default
 (`project_default`). When a review is required they also show how many of the
 reviews recorded on this computer are valid for the current head, and `status`
 lists every open pull-request delivery with its requirement.
@@ -1049,7 +1061,7 @@ At the same step, before the task starts, the agent asks a third question for ev
 >
 > This choice applies only to this story.
 
-The answer is the user's own, recorded as a formal human decision (`autonomy delivery propose --merge manual|after-confirmation|automatic` with `--merge-actor-type human`, `--merge-approval-source explicit-user`, and the user's words in `--merge-summary`) and stored in the approved delivery profile as `pull_request_target.merge_decision` (`mode`, `source`, `actor_id`, `user_words`, `decided_at`), so it is covered by the profile hash. With `manual` the plugin never merges and the person acknowledges their merge afterwards (below). With `after-confirmation` the plugin merges after the `pull_request.merge` checkpoint the person confirms. With `automatic`, which needs `--merge-allowed` and is not allowed at level `supervised`, the plugin merges once every gate passes, without that checkpoint. The answer is never inherited from an earlier story and the task does not start without it.
+The answer is the user's own, recorded as a formal human decision (`autonomy delivery propose --merge manual|after-confirmation|automatic` with `--merge-actor-type human`, `--merge-approval-source explicit-user`, and the user's words in `--merge-summary`) and stored in the approved delivery profile as `pull_request_target.merge_decision` (`mode`, `source`, `actor_id`, `user_words`, `decided_at`), so it is covered by the profile hash. With `manual` the plugin never merges and the person acknowledges their merge afterwards (below). With `after-confirmation` the plugin merges after the `pull_request.merge` checkpoint the person confirms. With `automatic`, which needs `--merge-allowed` and is not allowed at level `supervised`, the plugin merges once every gate passes, without that checkpoint. The answer is never inherited from an earlier story. It may also come from the person's signed `delivery.policy` delegation, recorded with `source: delegation` and its `delegation_id`. A pull-request profile proposed without `--merge` and without such a delegation follows `after-confirmation`. `automatic` cannot be combined with `--standing-approval`.
 
 If the profile was approved without merge (or with write paths that turn out too narrow), `autonomy delivery amend --id <profile> --merge-allowed` (also `--merge <mode>` and `--add-write-path <path>`) widens it as a new revision of the same profile, with the same approval rules as `autonomy delivery approve`. The contract keeps naming the profile, so task start and finished steps stay valid; receipts recorded under an earlier revision stay valid because a revision only adds to what the earlier one approved, and new actions use the current revision. It is refused once the affected action ran, once the delivery is closed or revoked, and for anything beyond the approved requirement write scope.
 
@@ -1105,6 +1117,15 @@ the table goes through the same privacy redaction as the Change Observatory, so
 a credential-shaped argument in a recorded command appears as `[REDACTED]`, and
 evidence is linked only as a project-relative path. The table is a report, not
 a gate: the strict and lifecycle-complete gates remain the authority.
+
+JSON field names in this document refer to the full payload. Inside an agent
+session, `--json` defaults to the shorter agent profile. That profile keeps the
+outcome, ids, `*_hash` fields, the next step and errors, and replaces long or
+nested fields with `context get rec:` refs. To read fields such as
+`pull_request_body_checks.markdown`, `host_receipt_request`,
+`lifecycle_remedy` or `project_history_divergence`, use any one of:
+`--json-profile full`, `--verbose`, `AGENTIC_SDLC_JSON_PROFILE=full` or
+`host_policy.context.output.json_profile: full`.
 
 The [issue-to-shadow-delivery example](examples/README.md#github-action-issue-to-shadow-delivery) shows the same table in a CI comment: it records an issue as a proposed requirement, approves nothing, and prints the table for the delivery that a person later approves.
 
@@ -1232,42 +1253,63 @@ Common fail-closed cases include:
 The agent continues with the next step until no work remains; it stops only
 for human decisions. At the end of each turn the Claude Code `Stop` hook reads
 local files only (no network: questions come from the messages already fetched
-by the throttled poll) and, when this computer still has work, answers
+by the throttled poll), except that, when a story prepared with `story prepare`
+is still waiting, it first runs `story prepare --resolve`. Once the dependency
+has merged, that command realigns the worktree, starts the task, claims the
+story and announces it (`AGENTIC_SDLC_PREPARED_STARTS=off` turns this off).
+When this computer still has work, the hook answers
 `{"decision":"block","reason":"..."}` with the next steps and exact commands:
 
-1. an active story claim of this clone whose lifecycle is not certified: the
-   next missing step (`story complete-step ...`), then
-   `gate check --story <id> --scope story --strict --lifecycle-complete`;
-2. coordination questions or requests to this computer not yet answered
+1. questions or requests to this computer not yet answered
    (`message send --kind answer --reply-to <id> ...`);
-3. with neither, stories without a claim that are not done (check their
-   dependencies with `mpsf status` before claiming one).
+2. this clone's story records not yet published to the base branch (publish
+   them first);
+3. a newer plugin version announced by another computer (update first);
+4. for each active claim of this clone that is not waiting or delegated:
+   `mpsf story sync --id <story>` when its worktree is behind the base
+   (before the governed `git.commit`), then the next missing step (with
+   `mpsf context pack --story <id>` as its context), then derived
+   verifications to record;
+5. open waits that have a suggested action (at most 3 shown);
+6. parallel work while a claim waits or is delegated, or reserving the next
+   story while the current one is being released;
+7. only when nothing above applies and there is no active claim: unclaimed
+   stories that are not done (check dependencies with `mpsf status`).
 
 Items that need a person, such as an expired claim to renew or force, never
-block: they are only mentioned. If the turn already continued because of this
-hook and the next step is unchanged, the stop is allowed after 3 identical
-blocks in a row (state in `<git-common-dir>/agentic-sdlc/keep-going.json`).
+block: they are only mentioned. Whatever `stop_hook_active` says, a list
+identical to the last one shown in the session never blocks again, and the
+same set of items blocks at most
+`host_policy.keep_going.max_consecutive_blocks` times in a row per session
+(default 2; `AGENTIC_SDLC_KEEP_GOING_MAX_BLOCKS` overrides it). State lives in
+`<git-common-dir>/agentic-sdlc/keep-going.json`.
 `AGENTIC_SDLC_KEEP_GOING=off` disables the check.
 
-Hosts without a blocking end-of-turn hook, such as Codex, use the same
-decision through `mpsf next` (read-only, local files only): the shared
-skill tells the agent to run it before ending a turn and to continue while it
-prints a next step. The hook script also accepts a Codex `Stop` payload
-(`cwd`, `stop_hook_active`) and answers in the same format, so it can be
-registered as a Codex `Stop` hook where hooks are enabled.
+Codex reads the same `hooks/hooks.json`, so the same Stop hook runs there once
+the user trusts the plugin hooks at startup ("Review hooks"). Where plugin
+hooks are not trusted or not enabled, the agent uses the same decision through
+`mpsf next` (read-only and local files only, apart from the same
+prepared-start resolution): the shared skill tells it to run `next` before
+ending a turn and to continue while it prints a next step.
 
 ### Never stay asleep: `watch`
 
 A session with nothing to do stops, and a stopped session never wakes up on
 its own. `mpsf watch [--timeout 30m] [--json]` is the alarm: it waits
 for the first relevant event and exits printing a short summary (for example
-`domanda di Alice · PC1 su ST-X (titolo): ...` or `nuova story libera ST-Y
-(titolo)`). Relevant events: a message on the channel for this computer or for
+`question from Alice · PC1 on ST-X (#123): ...` or `new free story ST-Y
+(title)`). Relevant events: a message on the channel for this computer or for
 everyone (question, request, answer to one of mine, offer, direct message), a
 story free to take here (same rule as keep-going, remote base included), a new
-plugin release announced. My own messages and the `[auto]` status messages of
-other computers are skipped, except "released and free to take". With no event
-by the deadline it exits 0 with `nessun evento` and the agent re-arms it.
+plugin release announced, a wait of `mpsf wait list` that is resolved,
+expires or is escalated (when a story dependency resolves, the summary prints
+the `story claim` command for the waiting story), and a prepared start
+(`story prepare`) that watch resolves during its scans (reported as
+`prepared start`). My own messages and the `[auto]` status messages of other
+computers are skipped, except "released and free to take". With messaging off,
+no channel is read and only stories, waits and prepared starts are watched. If
+a watch of this clone is already running, the command exits at once with
+`watch already active`. With no event by the deadline it exits 0 with `no event` and the agent re-arms it.
 
 In Claude Code a command started with Bash `run_in_background` re-invokes the
 agent when it exits, so the background watch is the wake-up. The Stop hook
@@ -1275,9 +1317,14 @@ enforces it: with no work and no active watch it blocks once, asking to start
 `mpsf watch --timeout 30m` in the background; with a watch active (pid
 and heartbeat in `<git-common-dir>/agentic-sdlc/watch.json`) it lets the stop
 through; at most one request per 10 minutes. The SessionStart context carries
-the same rule.
+the same rule. Hook text is kept short. Lines already shown earlier in the
+session are not repeated. Each event is capped by a line count and a token
+budget, configured under `host_policy.context.hooks` with defaults in
+`config/context.json`. The Stop hook's block decision and reason are never
+trimmed; only its extra message is.
 
-Other hosts (Codex, ...): there is no blocking Stop hook, so run the same
+Hosts where the plugin hooks do not run (for example Codex before its hooks are
+trusted): there is no blocking Stop hook, so run the same
 command as any background process that has a deadline (never an unbounded
 loop or `nohup`), for example `mpsf run --timeout 35m -- agentic-sdlc
 watch --timeout 30m`, read its output when it exits and start it again.
@@ -1290,8 +1337,9 @@ for the Stop hook.
 
 ### No process left running
 
-Each plugin command records itself under `<git-common-dir>/agentic-sdlc/runs/`
-and stops itself after `AGENTIC_SDLC_MAX_RUN_MINUTES` (default 10, `0` for
+Each plugin command except `observe`, `run` and `watch` records itself under
+`<git-common-dir>/agentic-sdlc/runs/` (`run` and `watch` have their own
+`--timeout`; the Observatory is a server) and stops itself after `AGENTIC_SDLC_MAX_RUN_MINUTES` (default 10, `0` for
 none); `message listen` after `AGENTIC_SDLC_LISTEN_MAX_HOURS` (default 8).
 Every command, and the host hook at the end of a turn or session, stops this
 user's plugin commands that outlived their limit, also those started by older
@@ -1309,11 +1357,13 @@ command's exit code. `mpsf processes reap [--older-than 10m]
 [--dry-run] [--json]` stops what is left: processes of the current user
 older than the limit, whose command line names the project root, one of its
 worktrees or the plugin cache, that match an include pattern and no exclude
-pattern (`observe`, `message listen` and `run` wrappers are always excluded),
+pattern (`observe`, `message listen`, `watch` and `run` wrappers are always excluded),
 never itself or its parents. Patterns, limit and extra folders come from
 `config/process-reaper.json` and `host_policy.process_reaper` in
 `.sdlc/config.json`; `AGENTIC_SDLC_REAP_EXCLUDE` adds exclusions. At Stop the
-hook reaps with `AGENTIC_SDLC_REAP_ON_STOP=1`, otherwise it warns at most
+hook reaps when `AGENTIC_SDLC_REAP_ON_STOP=1` or
+`host_policy.process_reaper.reap_on_stop: true` (the variable wins, `0` turns
+it off), otherwise it warns at most
 once every 5 minutes when something is over the limit.
 
 A command whose main thread is stuck in long synchronous work cannot run its
@@ -1329,11 +1379,12 @@ already-running plugin commands of any version that are past the limit
 
 Heavy commands also run one at a time. Gate check, story complete-step,
 workflow instance start/transition, autonomy delivery
-action/propose/approve/evidence supersede, task start, story claim/release,
+action/propose/approve/amend/evidence supersede, task start, story claim/release,
 output link, test record, secret scan and story overlap confirm take a lock
 per story (from `--story`, or `--id` when it is a story id; otherwise per
-command); trace rebase, baseline refresh/approve and story publish-records take
-one lock per repository. The lock is a file under
+command); trace rebase, workflow instance repair-traces, baseline
+refresh/approve, story publish-records and story sync take one lock per
+repository. The lock is a file under
 `<git-common-dir>/agentic-sdlc/locks/` created exclusively; a second start
 while the holder is a live mpsf process exits with code 5 and says which
 pid holds it. A dead, foreign or over-limit holder is taken over, and the

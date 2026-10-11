@@ -17,9 +17,10 @@ Launch the plugin-local, read-only visual lineage application for the selected p
    node <plugin-root>/bin/mpsf.mjs observe --root <target-project>
    ```
 
-4. Keep the process attached to a managed terminal session. Report the ready URL exactly as emitted. The URL fragment carries the per-run token; do not extract, repeat, or persist the token separately.
-5. If browser opening is unavailable or the user wants automation, add `--no-open --json`, wait for the `observatory.ready` line, and present its `url`.
-6. Omit `--locale` unless the user asks for a language: the observatory follows the locale recorded for the project.
+4. By default the observatory shows the records published on the shared base branch, not the local working tree. It shows the local files only when no shared branch is available. When the user wants records written in this checkout but not yet published, add `--worktree`. Add `--ref <ref>` only for a ref the user names explicitly (for example `origin/release`). The two flags cannot be combined.
+5. Keep the process attached to a managed terminal session. Report the ready URL exactly as emitted. The URL fragment carries the per-run token; do not extract, repeat, or persist the token separately.
+6. If browser opening is unavailable or the user wants automation, add `--no-open --json`, wait for the `observatory.ready` line, and present its `url`.
+7. Omit `--locale` unless the user asks for a language: the observatory follows the locale recorded for the project.
 
 ## Boundaries
 
@@ -31,7 +32,7 @@ Launch the plugin-local, read-only visual lineage application for the selected p
 
 ## Interpretation
 
-Explain only what canonical records support. Generated explanations are labeled and limited to recorded evidence; they are not private chain-of-thought. Call out `missing`, `malformed`, `inferred`, or blocked states instead of inventing history.
+Explain only what canonical records support. Generated explanations are labeled and limited to recorded evidence; they are not private chain-of-thought. Call out `missing`, `malformed`, `inferred`, or blocked states instead of inventing history. Records that exist only locally do not appear under the default source. Do not report them as missing history.
 
 Records kept on the `sdlc-state` branch (action receipts, executions, gate reports) are fetched and shown with the base branch; when one is missing, say so rather than inferring it. A `schema_version_newer` warning means a newer plugin wrote that record: it is still shown; suggest updating the plugin on this computer. The computers and role holders shown come from the presence and role leases on the remote.
 

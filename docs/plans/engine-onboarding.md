@@ -4,7 +4,7 @@ Status: plan only. Every step is incremental and can ship on its own. No big-ban
 
 ## Starting point (0.146.17)
 
-- `lib/` holds about 154k lines in 243 modules. `lib/engine/` alone holds 76 modules and about 76k lines. Five modules hold 44% of the engine:
+- `lib/` holds about 154k lines in 244 modules. `lib/engine/` alone holds 76 modules and about 76k lines. Five modules hold 44% of the engine:
 
   | Module | Lines |
   | --- | ---: |
@@ -62,7 +62,7 @@ The rule for each split: move code verbatim behind an unchanged import surface (
 4. `common.mjs`: split into `ids`, `paths`, `json-io` and `errors`, and remove any helpers that turn out unused.
 5. `workflow.mjs`: transitions apart from canonical evidence, which is already partly in `lib/workflow-canonical-evidence.mjs`.
 
-Each split also removes host-seam violations in the moved code, which shrinks the list in `runtime-host.test.mjs`.
+Each split also removes host-seam violations in the moved code, which shrinks the baseline in `test/fixtures/host-seam-baseline.json` (checked by `test/unit/runtime-host.test.mjs`).
 
 ### 6. Contributor "first hour" guide (S)
 

@@ -4,28 +4,37 @@ A contract is the operational descriptor for an SDLC phase or story. It tells Co
 
 Contracts are project-bound. The templates are generic, but generated contracts must include the target project identity and contextualization metadata captured from the project KB, user input, files, and open questions.
 
-## Required Fields
+## Fields
+
+Required by schema:
 
 - `id`: Stable contract identifier.
-- `phase`: One of `discovery`, `analysis`, `design`, `implementation`, `validation`, `release`, `operations`.
+- `schema_version`: Contract record schema version.
 - `project`: Target project identity.
+- `phase`: One of the project's configured `phase_order` phases (shipped defaults: `discovery`, `analysis`, `design`, `implementation`, `validation`, `release`, `operations`).
 - `purpose`: Why this phase exists.
 - `owner_agent`: Default agent role responsible for the phase.
 - `inputs`: Required source material.
 - `outputs`: Required artifacts.
-- `output_contract_refs`: Story output coverage references to approved output templates and reuse mode. Each reference may add an optional `phase` that says when the output becomes due in the bound workflow. A story contract for an output-producing phase must include at least one legacy unphased reference or one reference assigned to that exact contract phase; future-only output lists are incomplete and cannot be approved.
 - `validation`: Gate criteria.
 - `allowed_tools`: Tool classes allowed for the phase.
 - `kb_writes`: Knowledge base sections that must be updated.
 - `human_gate`: Whether human approval is required.
+- `execution_policy`: Codex runtime policy for model and reasoning inheritance or override.
+- `contextualization`: Project-specific summary, source files, questions, assumptions, and constraints.
+
+Optional or conditional:
+
+- `requirement_refs`: Exact requirement revisions the contract is bound to, each with ID, path, content hash, and revision.
+- `output_contract_refs`: Story output coverage references to approved output templates and reuse mode. Each reference may add an optional `phase` that says when the output becomes due in the bound workflow. A story contract for an output-producing phase must include at least one legacy unphased reference or one reference assigned to that exact contract phase; future-only output lists are incomplete and cannot be approved. Required for output-producing story contracts by gate rules, not by the schema.
 - `requirement_execution_profile_refs`: Exact approved requirement ceiling references, including immutable hashes.
 - `delivery_execution_profile_id`: For delivery work, the stable ID reserved for the one current pull-request or local-release profile. It is an identifier only, not a profile hash or reusable cross-delivery grant.
-- `autonomy_phase_level`: Optional phase-specific level. It may narrow, never widen, the delivery selection.
-- `execution_policy`: Codex runtime policy for model and reasoning inheritance or override.
+- `autonomy_level`: Contract autonomy level (`supervised`, `checkpointed` or `bounded-autonomous`), set with `contract create --level` and defaulting to the requirement's autonomy ceiling. It may narrow, never widen, the requirement ceiling or the delivery selection.
 - `capability_policy`: Skills, MCPs, tools, and approval-required actions agreed for the step.
 - `capability_bindings`: Concrete project-local targets and permissions for required MCP/tool usage.
 - `capability_recommendation_refs`: Approved capability recommendations that supplied policy, bindings, open questions, or execution-policy suggestions.
-- `contextualization`: Project-specific summary, source files, questions, assumptions, and constraints.
+- `proposal_ref`: Hashed reference to the assessment proposal that produced the contract, or `null`.
+- `execution_budget_ref`: Hashed reference to the execution budget that bounds the work, or `null`.
 - `audit`: Actor, Git, and run metadata for contract creation and updates.
 - `approvals`: Human or CI gate decisions. The latest approved decision controls strict gate status only while its content hash still matches the contract and its approval source satisfies policy.
 

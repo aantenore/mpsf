@@ -3,7 +3,7 @@
 Use this directory as the `--template-dir` for `init` or
 `onboard existing-project`. Its complete `sdlc-config.json` adds
 `integration-review` between implementation and validation, updates the
-matching autonomy presets, and lets bootstrap create all seven phase
+matching autonomy presets, and lets bootstrap create all eight phase
 contracts.
 
 Before proposing the custom workflow, copy `workflow-definition.json` into the

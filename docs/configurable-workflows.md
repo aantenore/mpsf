@@ -2,7 +2,7 @@
 
 MPSF can follow different agreed sequences instead of forcing every request through the same software-delivery process. For example, a new feature can use discovery through release, a small change can use intake through closure, and an assessment can keep its two normal approval moments.
 
-The practical rule is simple: choosing a process decides **which steps come next**. It does not decide **what the agent is allowed to do**. For each pull request or local release, the user still chooses separately whether the agent must ask at every step, may continue between agreed review moments, or may finish that one delivery inside the displayed limits.
+The practical rule is simple: choosing a process decides **which steps come next**. It does not decide **what the agent is allowed to do**. For each pull request or local release, the user still chooses separately whether the agent must ask at every step, may continue between agreed review moments, or may finish that one delivery inside the displayed limits. The only exception is a standing approval that the user approved in their own terminal. A matching delivery inside its limits runs at the middle level without asking for a new working choice. Any step outside those limits falls back to the normal confirmation, and merge, production, deploy, data migrations and force-push are never covered (see [Standing approvals](../README.md#standing-approvals-for-repeated-low-risk-work) in the README).
 
 Once work starts, later edits to the general process do not change that run. A project-specific adjustment must be reviewed before use, and it applies only to new runs. The technical sections below call the reusable process a *definition*, the project-specific adjustment an *overlay*, and one running use of it an *instance*.
 
@@ -75,7 +75,13 @@ event hashes, durable checkpoint, and matching audit-trace chain, and requires
 workflow start before task start, each phase entry before that phase's
 completion, and each next entry after the prior completion. Entry into the
 configured final state (`operations`) must precede both release evidence and
-terminal delivery. Only then does it write
+terminal delivery. The configured record store must also guarantee a
+hash-chained, immutable, atomically published history tied to the base branch.
+The default `git-sdlc` store does. With
+`host_policy.adapters.records: local-fs`, which guarantees only the hash
+chain, the lifecycle-complete gate fails closed. The strict intermediate gate
+needs only the hash chain. See [adapters-and-roles.md](adapters-and-roles.md).
+Only then does it write
 `.sdlc/gates/<story-id>-final.json` as
 `workflow-final-gate-receipt:v3`. Historical v1 receipts remain readable for
 an already pinned legacy run. Pre-freshness v2 receipts require explicit
@@ -116,8 +122,14 @@ order; this rule applies equally to the included v1/v2/v3 processes and approved
 custom definitions. Start the selected story-bound instance before `task
 start` and before the first completed step. The runtime rejects a post-hoc
 instance, and final certification requires the exact instance reference stored
-by task start. If the configured order differs from the seven stock phases, use
-an approved custom story-bound definition with that exact order.
+by task start. The one exception is a story whose delivery already finished
+(merged pull request or released local release):
+`workflow instance start --story <id> --backfill --reason "<why>"` records the
+run after the fact, and the lifecycle-complete gate reports it with reason code
+`workflow.backfilled_post_delivery` instead of the task-start binding and the
+chronology checks against task start and step completion. An unfinished story
+keeps the pre-task rule. If the configured order differs from the seven stock
+phases, use an approved custom story-bound definition with that exact order.
 
 For a current canonical story-bound workflow, a transition cannot leave its
 current phase until the matching `story complete-step` record exists. Completion
@@ -131,6 +143,15 @@ The reverse also holds: `story complete-step` for a configured phase is refused
 while the bound workflow is in a different phase, so a step cannot be recorded
 before its phase is entered. Steps outside the configured phase order and
 stories without a readable bound workflow keep the previous behavior.
+
+Exception: a phase that is still open after a later phase was completed or the
+workflow moved past it can be completed retroactively with
+`story complete-step --id <story> --step <phase> --backfill --reason "<why>"`.
+It skips the phase-match check but requires existing sealed trace evidence that
+predates the next phase. The step records `completion_mode: "backfill"` and
+`effective_at`, and the lifecycle gate orders phases by `effective_at` (see
+[self-service-cli.md](self-service-cli.md), "Phases completed retroactively
+(backfill)").
 
 The technical-assessment preset complements the existing
 `assessment-proposal:v1` and `assessment-workflow:v1` records; it does not
@@ -150,7 +171,7 @@ templates/workflow-software-project-v3-integration-review/
 ```
 
 For a new local project, use the directory during initialization. `init`
-validates the complete config, creates all seven phase contracts, and pins the
+validates the complete config, creates all eight phase contracts, and pins the
 config hash in the same bootstrap:
 
 ```bash
@@ -235,7 +256,7 @@ overrides them from the command and the recorded decision:
 | `definition_hash`, `hash_algorithm` | Canonical content hashing |
 
 The definition and companion config deliberately contain the same exact
-seven-phase order. A mismatch fails before an instance starts.
+eight-phase order. A mismatch fails before an instance starts.
 
 Propose the project-local copy, inspect it, approve that exact version, and
 start it for an existing story:
@@ -259,7 +280,7 @@ node "$PLUGIN_ROOT/bin/mpsf.mjs" workflow definition approve \
   --definition-version 1 \
   --actor-type human \
   --approval-source explicit-user \
-  --summary "Approve the displayed seven-phase workflow"
+  --summary "Approve the displayed eight-phase workflow"
 
 node "$PLUGIN_ROOT/bin/mpsf.mjs" workflow instance start \
   --root "$PROJECT_ROOT" \
@@ -348,6 +369,8 @@ The runtime treats persistence as a commit protocol rather than a sequence of or
 
 Runtime validation also requires one matching start trace and exactly one matching transition trace for every accepted event, in the same order. A cumulative hash in the checkpoint binds the full content of those records, including attribution, evidence, outcome, Git/run context, and summary. This detects isolated audit edits and an event/checkpoint pair restored to an older state while its later audit trace remains. These are strong local consistency checks, not a claim that local files are impossible to rewrite: an administrator able to replace the checkpoint and complete project trace consistently can also replace the local evidence of the change. Preventing that stronger coordinated rollback requires an external append-only or host-signed anchor. Network shares and filesystems without reliable hard-link, atomic-rename, locking, and flush semantics are outside the crash-durability guarantee and should use such an external evidence store.
 
+When a run's events and checkpoint verify but some of its transition audit traces are missing from `.sdlc/traces/project.jsonl` (for example after records were published from a temporary checkout), `workflow instance repair-traces --id <instance> --dry-run` shows those traces and `workflow instance repair-traces --id <instance>` rebuilds them from the verified events. The rebuild runs only when the events, the checkpoint and the project history verify. It binds the rebuilt traces in the checkpoint and records a `workflow.instance.repair-traces` trace. A trace that exists but differs is never rebuilt, and a run whose checkpoint no longer matches its existing traces stays blocked.
+
 ## Storage
 
 Canonical records live under the target project:
@@ -387,6 +410,7 @@ mpsf workflow instance start --id change-184 --definition change-request --defin
 mpsf workflow instance transition --id change-184 --to impact-review --request-id review-1
 mpsf workflow instance status --id change-184
 mpsf workflow instance explain --id change-184
+mpsf workflow instance repair-traces --id change-184 --dry-run
 ```
 
 For a new governed software project, pin v3 and its story explicitly:
@@ -403,8 +427,8 @@ Omitting `--definition-version` is not accepted when an instance starts.
 Explicit version pinning keeps the chosen process reviewable even after a newer
 preset is released.
 
-Human output begins with the outcome, practical impact, any decision needed, what remains protected, and one next action. `--json` returns stable machine output. Internal hashes and record paths remain supporting detail rather than prerequisites for understanding the result.
+Human output begins with the outcome, practical impact, any decision needed, what remains protected, and one next action; inside an agent session it is shortened to outcome, next step, any decision needed, ids and the exact error (`--verbose` restores the full text). `--json` returns the complete machine payload outside agent sessions; inside one it returns the shorter agent profile with `rec:` references, so scripts should pass `--json-profile full` (or set `AGENTIC_SDLC_JSON_PROFILE=full`). Internal hashes and record paths remain supporting detail rather than prerequisites for understanding the result.
 
 ## Local releases and pull requests
 
-The workflow chosen for a requirement does not choose autonomy for a delivery. Every pull request or local release still receives its own non-reusable working choice, exact destination, allowed files, and protected-action receipts. A local release also keeps its own smoke test and rollback procedure. A new workflow version cannot reuse or widen an earlier delivery choice.
+The workflow chosen for a requirement does not choose autonomy for a delivery. Every pull request or local release still receives its own non-reusable working choice, exact destination, allowed files, and protected-action receipts. A local release also keeps its own smoke test and rollback procedure. A new workflow version cannot reuse or widen an earlier delivery choice. The only exception is a user-approved standing approval: a matching delivery passes `--standing-approval <id>` instead of a new working choice. It is still checked against the standing approval's own paths, size, destination, count and expiry, and each covered delivery uses up one of its delivery slots.

@@ -1,6 +1,6 @@
 # Adapters and roles
 
-Two choices used to be fixed: how computers send each other notes (a GitHub issue) and where the project's records live (the `.sdlc/` folder in git). Since 0.147.0 both are replaceable, and one computer can be named coordinator. Everything here is optional: with no configuration the plugin behaves as before. The design is in [pluggable-adapters](plans/pluggable-adapters.md).
+Two choices used to be fixed: how computers send each other notes (a GitHub issue) and where the project's records live (the `.sdlc/` folder in git). Since 0.147.0 the messaging channel is replaceable. The records store is replaceable only for explicit waits and delegation reads so far; the other records are still written to `.sdlc/`, and routing record writes through the store is planned for a later phase. One computer can also be named coordinator. Everything here is optional: with no configuration the plugin behaves as before. The design is in [pluggable-adapters](plans/pluggable-adapters.md).
 
 ## Configuration
 
@@ -37,14 +37,14 @@ All of it is in `.sdlc/config.json` under `host_policy`:
 | `local` | A channel file in a folder (`options.dir`, or `AGENTIC_SDLC_MESSAGING_LOCAL_DIR`) | One computer, tests, a shared network folder |
 | `none` | Messaging off | Anything that must not depend on a channel |
 
-Choose per computer with `AGENTIC_SDLC_MESSAGING_PROVIDER`, per clone with `message setup`, or for everyone with `host_policy.adapters.messaging`. Details and the full precedence are in [Messages between computers](messaging.md#working-without-messaging).
+Choose per computer with `AGENTIC_SDLC_MESSAGING_PROVIDER`, per clone with `"provider"` in `.git/agentic-sdlc/messaging.json` (`message setup` writes the provider it set up there), or for everyone with `host_policy.adapters.messaging`. Examples are in [Working without messaging](messaging.md#working-without-messaging) and the full precedence is in [Settings](messaging.md#settings).
 
 ## Record stores
 
 | Store | Where the records live | Good for |
 |---|---|---|
 | `git-sdlc` (default) | The `.sdlc/` folder in git, shared state in refs on the remote, one commit per publication | The normal team flow |
-| `local-fs` | Plain files in a folder (`options.dir`, default `.sdlc`), no git involved | A single computer, experiments, projects without a remote |
+| `local-fs` | Explicit wait records are kept as plain files in `<options.dir>/.shared-state/wait-registry/` (`options.dir` defaults to `.sdlc`), no git involved; the other records are still written to `.sdlc/` | A single computer, experiments, projects without a remote |
 | `sdlc-state` | Like `git-sdlc`, but the operational records live on an orphan branch of the same remote (`sdlc-state`) | Busy projects whose base branch fills up with record-only commits |
 
 Code, branches, pull requests and merges stay in git with every store.
@@ -57,7 +57,7 @@ Each store declares what it guarantees, and the strictest checks ask for them:
 | `immutable_history` | yes | no |
 | `atomic_publish` | yes | no |
 | `base_branch_coupling` (records and code share one history) | yes | no |
-| `shared_state` (claims and waits shared across computers) | yes | no (this computer only) |
+| `shared_state` (claims and waits shared across computers) | yes | no: explicit waits stay on this computer; claims and reservations still use git refs on the remote |
 
 `sdlc-state` gives the same guarantees as `git-sdlc`: what the base branch certifies stays there.
 

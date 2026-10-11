@@ -92,7 +92,7 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - [How It Works](docs/how-it-works.md) — advanced detail about checkpoints, state transitions, authorization, verification, and recovery.
 - [Autonomy, Limits, and Metering](docs/limits-and-metering.md) — concrete time, step, token, cost, reserve, warning, and stop-policy examples.
 - [Configuration Safety](docs/configuration-safety.md) — why project behavior is pinned, how to preview an upgrade, and how to recover from drift without hidden policy changes.
-- [Token Efficiency](docs/token-efficiency.md) — compact derived JSON, the RTK command gateway, lifecycle observations, and budget-safe savings telemetry.
+- [Token Efficiency](docs/token-efficiency.md) — context packs, short command output, compact derived JSON, the RTK command gateway, lifecycle observations, and budget-safe savings telemetry.
 - [Native Codex Session Metering](docs/codex-session-metering.md) — authentication-free local token/call observations, exact task binding, and limit semantics.
 - [Assessment Interactions](docs/agent-interactions.md) — the precise contract used for every user question.
 - [Claude Code Installation](docs/claude-code-install.md) — install from the bundled marketplace, use the slash commands, and see which Codex-only steps do not apply.
@@ -543,7 +543,7 @@ Merge, production, deploy, data migrations, force-push, and deletions of tracked
 
 Only the user approves a standing approval, in their own terminal: the CLI refuses `autonomy standing approve` inside an agent's session, and the plugin's hooks (`hooks/hooks.json`, read by both Claude Code and Codex) stop the agent from running it or from changing the records directly. In a project that requires signed approvals (`host_verified`), the approval also needs the trusted host's Ed25519 receipt for that exact standing approval (`--host-receipt-file`): it binds the record hash, the decision, and the expiry, is kept inside the approval record, and is verified again at every covered step and by the strict gate, so a script that writes the records itself cannot approve one. Revoking accepts a receipt but never requires one, because it only removes authority. An `audit_only` project may add a receipt too, and the approval is then shown as signed by the trusted host. Used deliveries and revocations are also shared through the project's git remote, so every copy of the project, such as CI runners or containers, counts the same deliveries and sees a revocation at its next step; if the remote cannot be reached, nothing is covered and the normal confirmation applies (`standing_approval_policy.coordination`).
 
-### Delegare le approvazioni all'agente
+### Delegate approvals to the agent
 
 Some commands accept only a person: `requirement approve` and `requirement supersede`, `breakdown approve`, `dependency approve`, `contract approve`, `autonomy delivery evidence supersede`, `story base acknowledge`, `story overlap confirm`, `output link` with a human decision, `story abandon`, `story supersede`, `autonomy delivery approve` and `baseline approve`. An agent that passes `--actor-type human` is still not a person, and that stays true. To let the agent run them, the person signs once an explicit, limited and revocable delegation from their own terminal:
 
@@ -587,7 +587,7 @@ Records can also live in plain files instead of git (`"records": { "provider": "
 
 ### Coordinator role
 
-With several computers, one can be named coordinator: it assigns stories, merges pull requests one at a time and publishes records, while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`). In 0.148.0 the configuration is validated and resolved but not yet enforced; nothing a computer can do changes today. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
+With several computers, one can be named coordinator: it assigns stories, merges pull requests one at a time and publishes records, while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`, and optionally `reserved_actions`). With that section, a reserved action (by default merging a pull request and refreshing the baseline) is refused on a computer that does not hold the coordinator lease; without it, roles are assigned automatically among the computers alive on the remote and nothing is refused. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
 
 ## Native Codex Metering Versus Exact Metering
 
@@ -710,6 +710,7 @@ Requested formats are stored as canonical delivery metadata; a Markdown file ren
 | `html` | `html` | `.html` | `text/html` | Native generation plus rendered validation |
 | `json` | `json` | `.json` | `application/json` | Native parse validation |
 | `csv` | `csv` | `.csv` | `text/csv` | `spreadsheets` |
+| `custom` | `custom` | None (no fixed extension) | `application/octet-stream` | Native checks (text, no binary NUL bytes) |
 
 Assessment delivery is either `artifact` or `artifact-plus-chat-summary`; the latter is the default.
 
@@ -839,9 +840,9 @@ npm run check
 npm pack --dry-run --json
 ```
 
-Doctor checks the Node runtime, version consistency, first assessment prompt, core and assessment skills, assessment agent card, preset, and project records when `.sdlc/` exists. A failed check returns a non-zero exit code.
+Doctor checks the Node runtime, version consistency, build identity, the effective configuration, the first assessment prompt, the core and assessment skills, the assessment agent card and preset, the token-efficiency components (RTK adapter and provider, Caveman skill, agent card and provider, Codex session meter, autoconfiguration script), the context-optimization and project-bootstrap schemas, the Change Observatory entry point, launcher, skill, agent card and UI files, and the project records when `.sdlc/` exists. A failed check returns a non-zero exit code.
 
-Exit codes are categorized so a pipeline can tell a rejected request (`1`) from a bad invocation (`2`), a write refused by the mutation guard (`3`), a broken installation (`4`), and an internal failure (`70`). See [Self-service CLI](docs/self-service-cli.md#read-the-exit-code-in-a-pipeline).
+Exit codes are categorized so a pipeline can tell a rejected request (`1`) from a bad invocation (`2`), a write refused by the mutation guard (`3`), a broken installation (`4`), an internal failure (`70`), and a message that `message send` kept in the local outbox for later sending (`75`, not an error; do not resend). See [Self-service CLI](docs/self-service-cli.md#read-the-exit-code-in-a-pipeline).
 
 For maintainer validation when the Codex system validators are available:
 
@@ -861,22 +862,22 @@ The policy is data, not code: the default is `templates/verification-policy.json
 
 The strict gate (story in validation, and `--lifecycle-complete`) looks for a passing `test record` per derived criterion: it must name the id (`--acceptance DV-ui-e2e`) or its command, framework or summary must match the rule's `evidence_patterns`. `enforce` is stored per record: `block` for new records (default), `warn` for backfilled ones (`backfill_enforce`). Existing open stories are filled in with `story derive-verification --all-open` (or `--id`): idempotent and additive; a story already bound by a contract, task start, claim or delivery profile is only reported, because its record hash is what those bind, and it is not gated.
 
-## Rilascio
+## Release
 
-Da un branch di lavoro con le modifiche già committate:
+From a working branch with the changes already committed:
 
 ```bash
 npm run release -- [--version X.Y.Z] [--title "..."] [--body "..."] [--no-update]
 ```
 
-Lo script allinea il branch a `origin/main`, porta la versione al minor successivo (massimo tra `origin/main` e i tag `vX.Y.Z`), la aggiorna in manifest, README e `docs/`, committa `Versione X.Y.Z`, pubblica il branch (mai force), apre la PR e la unisce subito con merge commit. Senza `--no-update` aggiorna anche marketplace e plugin installati con `claude plugin`. Richiede `git`, `gh` autenticato e working tree pulito.
+The script aligns the branch with `origin/main`, bumps the version to the next minor (the higher of `origin/main` and the `vX.Y.Z` tags) unless `--version` is given, writes it into the manifests, README and `docs/`, commits `Versione X.Y.Z`, pushes the branch (never with force), opens the PR and merges it at once with a merge commit. Without `--no-update` it also updates the marketplace and the installed plugins with `claude plugin`. It needs `git`, an authenticated `gh` and a clean working tree.
 
-Regole per le correzioni:
+Rules for fixes:
 
-- Una correzione piccola per volta, un rilascio per correzione: le richieste nuove diventano un rilascio separato, non allargano quello in corso.
-- Solo i test dei file toccati (al massimo circa un minuto), mai le suite complete né prove lente prima/dopo: la verifica reale si fa sul progetto con la versione rilasciata.
-- Rilascio subito, anche a pezzi; prima di ogni rilascio `git fetch` e allineamento a `origin/main`.
-- Un comando del plugin non deve mai superare 10 minuti: se succede è un difetto di prestazioni da correggere (campionare i processi git figli, trovare la chiamata ripetuta, leggere in blocco o memorizzare).
+- One small fix at a time, one release per fix: new requests become a separate release instead of widening the current one.
+- Run only the tests for the files you touched (about a minute at most), never full suites or slow before/after checks: the real check happens on the project with the released version.
+- Release right away, even in pieces; before every release run `git fetch` and align with `origin/main`.
+- No plugin command may take more than 10 minutes: if one does, treat it as a performance defect (sample the child git processes, find the repeated call, then read in bulk or cache).
 
 ## Safety Boundaries
 
@@ -956,13 +957,22 @@ budget credit. See [Token Efficiency](docs/token-efficiency.md).
 commands/                                    Claude Code slash commands (one per starter intent)
 assets/                                      Plugin artwork
 bin/mpsf.mjs                         CLI entry point: main, command registry, observatory launcher
+hooks/                                       Host hooks (hooks.json, guard) for both supported hosts
+config/                                      Plugin defaults: feature compatibility, context, waits, release policy
 docs/agent-interactions.md                   Two-checkpoint assessment interaction
 docs/portable-install.md                     Install and recovery guide
 schemas/                                     Canonical data contracts
 lib/engine/                                  Command implementations and everything with effects
 lib/lifecycle/                               Pure lifecycle rules: validators, normalizers, decisions
 lib/runtime/host.mjs                         The one I/O seam: file system, processes, clock, randomness
+lib/cli/                                     Command catalog, dispatch, and help
+lib/adapters/                                Messaging and record store ports
+lib/messaging/                               Messages between computers
+lib/context/                                 Context pack/get and compact output
+lib/host-hooks/                              Hook guard, injection budget, trusted remotes
+lib/delivery/                                Local smoke providers
 lib/                                         Proposal, authorization, budget, and workflow primitives
+lib/<domain>/                                Other modules: governance/, observability/, release/, ci/, change-observatory/
 lib/codex-session-metering-adapter.mjs       Native exact-task advisory usage meter
 skills/agentic-sdlc/                         Core project workflow skill
 skills/agentic-sdlc-assessment/              Guided assessment skill
