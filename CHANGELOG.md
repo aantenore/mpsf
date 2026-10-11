@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.3
+
+- Role duties that write records (`coordinator main-green`, `knowledge distill`) run in the dedicated worktree on the base branch, never in the person's checkout, and push what they wrote under `.sdlc` to the base branch with `[skip ci]`, never forced (on top of the base when it moved meanwhile). They stay manual until turned on in `config/role-duties.json` (`auto: true`).
+- Change Observatory: no change needed.
+- Compatibility: nothing changes for older plugins.
+
 ## 0.153.2
 
 - `knowledge distill` reads the records of origin/<base> after one bounded fetch (`lib/engine/fresh-state.mjs`), so the knowledge role works on the shared state, not on this computer's checkout; without a base branch it reads the working tree as before. The JSON result names the `source`.
