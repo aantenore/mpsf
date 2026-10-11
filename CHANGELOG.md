@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.12
+
+- Documentation and skill fixes: the skill now points to `story cancel` for an approved story that will not be delivered, and pushes a rewritten story branch only under an approved `git.push` action (the hook denies it otherwise); an abandoned claim is described as freed by the coordinator; a newer plugin announced by another computer no longer reads as "update first". Install docs: `cd mpsf` after cloning, `/path/to/mpsf` placeholders, update with `claude plugin update` (not `/plugin install`). The `git` messaging provider is in the providers table, the coordinator duties match the code, and Change Observatory is described as never editing records rather than read-only (with `sdlc-state` it brings in records published by other computers). Change Observatory: wording of one CLI line only. Compatibility: nothing changes for older plugins.
+
 ## 0.159.11
 
 - Security: `known-error apply` no longer follows symlinks (a `remove_path` through a link is refused, so nothing outside the project is removed) and treats a path Git cannot classify as tracked. An `accepted` event now counts only when a person or CI wrote it, it names exactly the record's fix actions (and its record hash, stored by new acceptances), and the record's own hash holds; `known-error accept` refuses inside an agent session. Change Observatory: the known-error view shows "accepted safe fix" only for acceptances that hold. Compatibility: acceptances written by older plugins with `known-error accept` still count; hand-written or agent ones no longer do.

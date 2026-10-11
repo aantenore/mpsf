@@ -1,4 +1,4 @@
-# How MPSF 0.159.11 Works
+# How MPSF 0.159.12 Works
 
 MPSF turns a natural-language request into a bounded, reproducible execution tranche. Codex handles conversation and reasoning; the CLI handles deterministic validation and state changes; the target repository keeps the evidence under `.sdlc/`.
 
