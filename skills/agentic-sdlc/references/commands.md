@@ -2046,7 +2046,7 @@ node bin/agentic-sdlc.mjs story prepare --root <project> --resolve [--id ST-002]
 ## Messages between computers
 
 ```bash
-node bin/agentic-sdlc.mjs message setup --root <project> [--repo owner/name] [--issue N]   # every computer: finds or creates the channel issue
+node bin/agentic-sdlc.mjs message setup --root <project> [--provider git|github|local] [--repo owner/name] [--issue N]   # every computer: git channel for new projects (refs/agentic-sdlc/channel/<machine-id>, signed; proposes .sdlc/machines/<id>.json to commit), existing channel issue kept
 node bin/agentic-sdlc.mjs message status --root <project>
 node bin/agentic-sdlc.mjs message send --root <project> --story ST-001 --text "Tests on ST-001 take 30 minutes here"
 node bin/agentic-sdlc.mjs message send --root <project> --kind question --to PC2 --text "Can you publish the records of ST-001?"   # kinds: info|question|answer|ack|offer|request
