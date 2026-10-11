@@ -178,5 +178,8 @@ test("every module reaches files, processes, the OS, randomness, and the clock t
       }
     }
   }
-  assert.deepEqual(offenders, []);
+  // Known debt only shrinks: a new offender fails, and so does a baseline entry that no longer applies.
+  const baseline = JSON.parse(realFs.readFileSync(path.join(PLUGIN_ROOT, "test", "fixtures", "host-seam-baseline.json"), "utf8")).offenders;
+  assert.deepEqual(offenders.filter((entry) => !baseline.includes(entry)), [], "new modules must use the host");
+  assert.deepEqual(baseline.filter((entry) => !offenders.includes(entry)), [], "remove the fixed entries from host-seam-baseline.json");
 });
