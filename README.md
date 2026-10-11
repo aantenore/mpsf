@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.5** — `npm run test:fast` runs a quick local subset of the tests; the suite no longer inherits `NODE_USE_SYSTEM_CA`.
 - **0.159.4** — clones of one project on one computer share its presence; roles stay with the clone that holds them.
 - **0.159.3** — stand-in for role holders on old plugins; waiting channel messages tick sooner.
 - **0.159.2** — main-green reads the newest commit that ran CI; roles tick detached from the hook; duty outcomes in roles status; fewer default reserved actions.

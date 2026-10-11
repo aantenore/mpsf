@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.5
+
+- `npm run test:fast` runs a quick local subset of the tests: the cheap unit files whole, plus a few selected end-to-end tests per feature area, listed in `test/test-tiers.json`. It is a partial run for routine checks and is refused under CI; releases and CI keep running the full suite (`npm test`). A selected end-to-end test that is renamed, skipped, or no longer runs fails the tier and is named, and a unit test checks the list against the test files.
+- The test runner removes `NODE_USE_SYSTEM_CA` from the environment its test files inherit, so every CLI process the suite spawns no longer loads the system certificate store first. `AGENTIC_SDLC_TEST_STRIP_ENV` replaces the list of removed variables (empty keeps them all).
+- Test discovery ignores `test/helpers` and `test/fixtures`, and a full-suite test fails when another test file under `test/` would be skipped by discovery.
+- No change needed for plugin users.
+
 ## 0.159.4
 
 - Two clones of the same project on one computer no longer overwrite each other's presence: the computer's presence ref keeps one entry per clone (`clones`), and its stories and activity cover them all, so the claims of both stay renewed.
