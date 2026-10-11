@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.1
+
+- With `--json`, a failing command no longer appends the known-error hint to stderr, so the JSON error payload stays parseable; the failure is still remembered for `mpsf known-error add --from-last-failure`.
+- The `agentic-sdlc` bridge entry is version-locked to `mpsf` again.
+- Change Observatory: the story priority badge uses the 12px minimum font size. Compatibility: nothing changes for older plugins.
+
 ## 0.159.0
 
 - **Traces, workflow instances and final gate receipts on `sdlc-state` (level 2).** `state migrate` now also moves `traces/` (with checkpoints), `workflows/instances/` and `gates/<story>-final.json`; a project migrated with 0.154 runs it again. Run it on a checkout up to date with the base branch.
