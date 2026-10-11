@@ -9,7 +9,7 @@ import "../lib/runtime/env-alias.mjs";
 // Then: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version takes over this call.
 import "../lib/runtime/self-forward.mjs";
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -130,7 +130,7 @@ async function coordinationMessages(payload, hookEventName, extraContext = async
   try {
     // This computer's presence and role leases on the remote: at most every few minutes, bounded.
     const { rolesTick } = await import("../lib/engine/role-leases.mjs");
-    await rolesTick(root);
+    await rolesTick(root, { sessionId: payload.session_id });
   } catch {
     // best effort
   }
@@ -276,6 +276,25 @@ async function reapRuns(payload, options = {}) {
 // Anything left over is stopped by the next Stop hook or the run watchdog.
 const SESSION_END_KILL_AFTER_MS = 800;
 
+/**
+ * Hands back this computer's presence and roles when the session ends, in a
+ * detached process: the push does not count against the SessionEnd limit and
+ * a cut push only means they lapse on their own.
+ */
+function releaseInBackground(payload) {
+  try {
+    const root = governedRoot(payload.cwd);
+    if (!root) return;
+    spawn(process.execPath, [fileURLToPath(import.meta.url), "session-release", root, String(payload.session_id ?? "")], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }).unref();
+  } catch {
+    // best effort
+  }
+}
+
 /** Keeps the agent working while this computer has work in the project (see lib/host-hooks/keep-going.mjs). */
 async function keepGoing(payload) {
   const root = governedRoot(payload.cwd);
@@ -308,7 +327,13 @@ try {
     } finally {
       await keepGoing(payload);
     }
-  } else if (event === "session-end") await reapRuns(payload, { killAfterMs: SESSION_END_KILL_AFTER_MS });
+  } else if (event === "session-end") {
+    releaseInBackground(payload);
+    await reapRuns(payload, { killAfterMs: SESSION_END_KILL_AFTER_MS });
+  } else if (event === "session-release") {
+    const { releaseAtSessionEnd } = await import("../lib/engine/role-leases.mjs");
+    releaseAtSessionEnd(process.argv[3], { sessionId: process.argv[4] || null });
+  }
   else if (event === "user-prompt-submit") await coordinationMessages(payload, "UserPromptSubmit", pendingProcessWarning);
 } catch {
   process.exitCode = 0;
