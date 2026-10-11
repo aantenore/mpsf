@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.7
+
+- Test-only change: the end-to-end tests for historical, stale, invalid and unborn-history certifications now ask for the full re-verification (`AGENTIC_SDLC_STATUS_CHECKS=full`), because the default fast status trusts a sealed final receipt whose hash holds; and the final-gate race test waits for the single-flight guard. Change Observatory: no change. Compatibility: the plugin behaves as before.
+
 ## 0.159.6
 
 - Version bumps (`npm version` or `npm run release`) set the version in every plugin manifest, the `agentic-sdlc` bridge included, so it can no longer fall behind. Change Observatory: no change. Compatibility: nothing changes for older plugins.
