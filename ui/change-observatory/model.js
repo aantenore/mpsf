@@ -721,6 +721,23 @@ export function normalizeKnownError(value) {
   };
 }
 
+// One entry of the shared knowledge (.sdlc/knowledge).
+export function normalizeKnowledgeEntry(value) {
+  const item = objectOrEmpty(value);
+  const id = readable(item.id, "");
+  if (!id) return null;
+  return {
+    id,
+    type: readable(item.type, "trap"),
+    title: readable(item.title, id),
+    summary: readable(item.summary, ""),
+    status: readable(item.status, "active"),
+    occurrences: Number.isInteger(item.occurrences) && item.occurrences >= 0 ? item.occurrences : 0,
+    stories: arrayOrEmpty(item.stories).map((story) => readable(story, "")).filter(Boolean),
+    paths: arrayOrEmpty(item.paths).map((entry) => readable(entry, "")).filter(Boolean),
+  };
+}
+
 export function normalizeViewModel(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new TypeError("The observatory API returned a non-object payload.");
@@ -839,6 +856,7 @@ export function normalizeViewModel(payload) {
       .map(normalizeSemanticObservation)
       .filter(Boolean),
     knownErrors: arrayOrEmpty(payload.knownErrors).map(normalizeKnownError).filter(Boolean),
+    knowledge: arrayOrEmpty(payload.knowledge).map(normalizeKnowledgeEntry).filter(Boolean),
     unlinkedLineage: arrayOrEmpty(payload.unlinked ?? payload.unlinkedLineage).map(normalizeItem),
     records: arrayOrEmpty(payload.records).map(normalizeRecord).filter((record) => record.path),
     diagnostics: normalizeDiagnostics([

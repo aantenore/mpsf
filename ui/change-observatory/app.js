@@ -70,6 +70,7 @@ const VALID_VIEWS = new Set([
   "intent-evidence",
   "verification",
   "known-errors",
+  "knowledge",
 ]);
 // Visual views keep the evidence inspector closed until a record is chosen,
 // so charts and maps get the full width.
@@ -86,6 +87,7 @@ const VIEW_LABELS = Object.freeze({
   "intent-evidence": "Intent evidence",
   verification: "Verification",
   "known-errors": "Known errors",
+  knowledge: "Knowledge",
 });
 
 const elements = {

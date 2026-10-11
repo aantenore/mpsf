@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "knowledge.schema.json",
+  "title": "Agentic SDLC Knowledge v1",
+  "description": "One piece of shared knowledge distilled from the project's records (a recurring trap, a fix, an answer). Deterministic: the id comes from what it is about, and the record carries no author or time of its own, so the same knowledge distilled on two computers is the same file. Later sightings and retirement are events under knowledge/events/<id>/.",
+  "type": "object",
+  "required": ["kind", "schema_version", "id", "key", "type", "title", "summary", "paths", "stories", "sources"],
+  "properties": {
+    "kind": { "const": "knowledge" },
+    "schema_version": { "const": "knowledge:v1" },
+    "id": { "type": "string", "pattern": "^KN-[0-9a-f]{12}$" },
+    "key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "type": { "enum": ["trap", "fix", "answer"] },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string" },
+    "paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "stories": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "ref"],
+        "properties": { "type": { "type": "string", "minLength": 1 }, "ref": { "type": "string", "minLength": 1 } },
+        "additionalProperties": false
+      }
+    },
+    "first_seen_at": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

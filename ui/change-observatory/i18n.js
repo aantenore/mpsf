@@ -184,6 +184,12 @@ const ITALIAN = Object.freeze({
   "No change records were found.": "Non sono state trovate modifiche registrate.",
   "Verification evidence": "Prove di verifica",
   "Known errors": "Errori noti",
+  Knowledge: "Knowledge",
+  "Recurring traps, fixes and answers distilled for every computer, shown in the context pack of the stories they touch": "Trappole ricorrenti, fix e risposte distillate per tutti i computer, mostrate nel context pack delle storie che toccano",
+  "No shared knowledge was distilled yet.": "Non è stata ancora distillata knowledge condivisa.",
+  trap: "trappola",
+  fix: "fix",
+  answer: "risposta",
   "Recurring failures with a recorded diagnosis and fix, shown again as soon as the same failure happens": "Fallimenti ricorrenti con diagnosi e soluzione registrate, mostrate appena lo stesso fallimento si ripresenta",
   "No known error was recorded.": "Non è stato registrato alcun errore noto.",
   "Accepted safe fix": "Fix sicuro accettato",
@@ -683,6 +689,8 @@ function translatePattern(value) {
   if (match) return `${match[1]} ${match[1] === "1" ? "categoria" : "categorie"} · ${match[3]} ${match[3] === "1" ? "prova" : "prove"}`;
   match = value.match(/^(\d+) known errors · (\d+) analyses saved$/u);
   if (match) return `${match[1]} errori noti · ${match[2]} analisi risparmiate`;
+  match = value.match(/^Seen (\d+) times$/u);
+  if (match) return `Vista ${match[1]} volte`;
   match = value.match(/^(\d+)\/(\d+) worked$/u);
   if (match) return `${match[1]}/${match[2]} risolti`;
   match = value.match(/^(\d+) records$/u);

@@ -1,0 +1,14 @@
+{
+  "schema_version": "agentic-sdlc.knowledge-defaults.v1",
+  "principle": "Defaults of the shared knowledge distilled into .sdlc/knowledge: what the knowledge role collects and how many entries a story's context pack shows. A project overrides any value in .sdlc/config.json under host_policy.knowledge.",
+  "enabled": true,
+  "min_occurrences": 2,
+  "pack_entries": 6,
+  "summary_max_chars": 400,
+  "sources": {
+    "known_errors": true,
+    "gates": true,
+    "fix_stories": true,
+    "channel_answers": true
+  }
+}

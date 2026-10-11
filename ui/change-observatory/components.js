@@ -1069,6 +1069,35 @@ function knownErrorsPanel(model, options = {}) {
   return panel;
 }
 
+function knowledgePanel(model, options = {}) {
+  const entries = model.knowledge ?? [];
+  const panel = node("section", { className: "section-panel" }, [
+    sectionHeading("Knowledge", "Recurring traps, fixes and answers distilled for every computer, shown in the context pack of the stories they touch"),
+  ]);
+  if (!entries.length) {
+    panel.append(emptyInline("No shared knowledge was distilled yet."));
+    return panel;
+  }
+  const list = node("div", { className: "record-list", attrs: { role: "list" } });
+  for (const entry of pagedItems(entries, options)) {
+    list.append(node("div", { className: "known-error-row", attrs: { role: "listitem" } }, [
+      node("div", { className: "known-error-copy" }, [
+        node("strong", { text: `${entry.id} · ${entry.title}` }),
+        entry.summary ? node("p", { text: entry.summary }) : null,
+        node("p", { className: "known-error-meta", text: [...entry.stories, ...entry.paths].join(" · ") }),
+      ]),
+      node("div", { className: "known-error-stats" }, [
+        statusText(entry.status),
+        node("span", { text: entry.type, i18n: true }),
+        node("span", { text: `Seen ${entry.occurrences} times`, i18n: true }),
+      ]),
+    ]));
+  }
+  panel.append(list);
+  if (list.children.length < entries.length) panel.append(showMoreFooter(list.children.length, entries.length));
+  return panel;
+}
+
 const INTENT_EVIDENCE_LABELS = Object.freeze({
   shadow: "Shadow",
   original: "Original",
@@ -1240,6 +1269,9 @@ export function renderPrimary(container, model, state) {
       break;
     case "known-errors":
       content = knownErrorsPanel(model, paging);
+      break;
+    case "knowledge":
+      content = knowledgePanel(model, paging);
       break;
     case "stories":
       content = storiesView(model, state);

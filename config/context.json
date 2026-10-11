@@ -27,14 +27,14 @@
     "test_runs": 3,
     "decisions": 8,
     "phase_sections": {
-      "discovery": { "story": 2, "requirement": 4, "decisions": 2, "dependencies": 2, "waits": 1, "next": 1 },
-      "analysis": { "story": 2, "requirement": 4, "decisions": 2, "dependencies": 2, "waits": 1, "next": 1 },
-      "design": { "story": 2, "requirement": 3, "contract": 2, "decisions": 2, "dependencies": 1, "scope": 1, "waits": 1, "next": 1 },
-      "implementation": { "story": 1, "requirement": 3, "contract": 2, "decisions": 1, "dependencies": 1, "scope": 3, "evidence": 2, "waits": 1, "next": 1 },
-      "validation": { "story": 1, "requirement": 3, "contract": 1, "scope": 1, "evidence": 4, "waits": 1, "next": 1 },
-      "release": { "story": 1, "requirement": 1, "dependencies": 2, "evidence": 4, "waits": 1, "next": 1 },
-      "operations": { "story": 1, "requirement": 1, "dependencies": 1, "evidence": 3, "waits": 1, "next": 1 },
-      "handoff": { "story": 2, "requirement": 3, "contract": 1, "decisions": 2, "dependencies": 1, "scope": 2, "evidence": 2, "waits": 2, "next": 1 }
+      "discovery": { "story": 2, "requirement": 4, "decisions": 2, "knowledge": 1, "dependencies": 2, "waits": 1, "next": 1 },
+      "analysis": { "story": 2, "requirement": 4, "decisions": 2, "knowledge": 1, "dependencies": 2, "waits": 1, "next": 1 },
+      "design": { "story": 2, "requirement": 3, "contract": 2, "decisions": 2, "knowledge": 1, "dependencies": 1, "scope": 1, "waits": 1, "next": 1 },
+      "implementation": { "story": 1, "requirement": 3, "contract": 2, "decisions": 1, "knowledge": 2, "dependencies": 1, "scope": 3, "evidence": 2, "waits": 1, "next": 1 },
+      "validation": { "story": 1, "requirement": 3, "contract": 1, "knowledge": 1, "scope": 1, "evidence": 4, "waits": 1, "next": 1 },
+      "release": { "story": 1, "requirement": 1, "knowledge": 1, "dependencies": 2, "evidence": 4, "waits": 1, "next": 1 },
+      "operations": { "story": 1, "requirement": 1, "knowledge": 1, "dependencies": 1, "evidence": 3, "waits": 1, "next": 1 },
+      "handoff": { "story": 2, "requirement": 3, "contract": 1, "decisions": 2, "knowledge": 1, "dependencies": 1, "scope": 2, "evidence": 2, "waits": 2, "next": 1 }
     }
   }
 }

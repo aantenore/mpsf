@@ -1413,6 +1413,10 @@ function buildCliRuntimeHandlerRegistry() {
     "autonomy.delegation.publish": call(publishDelegation),
     "context.pack": project(async ({ context, options }) => (await import("../lib/context/cli.mjs")).contextPackCommand(context, options, { pluginVersion: VERSION })),
     "context.get": project(async ({ context, options, resolution }) => (await import("../lib/context/cli.mjs")).contextGetCommand(context, options, resolution.args)),
+    "context.budget": project(async ({ context, options }) => (await import("../lib/context/cli.mjs")).contextBudgetCommand(context, options)),
+    "knowledge.distill": project(async ({ context, options }) => (await import("../lib/knowledge/cli.mjs")).knowledgeDistillCommand(context, options)),
+    "knowledge.list": call(async (context, options) => (await import("../lib/knowledge/cli.mjs")).knowledgeListCommand(context, options)),
+    "knowledge.retire": call(async (context, options) => (await import("../lib/knowledge/cli.mjs")).knowledgeRetireCommand(context, options)),
     "known-error.list": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorListCommand(context, options)),
     "known-error.show": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorShowCommand(context, options)),
     "known-error.match": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorMatchCommand(context, options)),
@@ -1427,7 +1431,11 @@ function buildCliRuntimeHandlerRegistry() {
     "story.acceptance.add": call(addStoryAcceptance),
     "story.fast-track": call(fastTrackStoryCommand),
     "story.derive-verification": call(deriveStoriesVerification),
-    "story.claim": call(claimStory),
+    "story.claim": project(async ({ context, options }) => {
+      const result = claimStory(context, options);
+      (await import("../lib/context/auto-pack.mjs")).autoContextPack(context, options.id, { trigger: "story.claim", options, pluginVersion: VERSION });
+      return result;
+    }),
     "story.release": project(verified(({ context, options }) => noteForMessages(releaseStoryClaim)(context, options))),
     "story.reserve": call(reserveStory),
     "story.availability": call(showStoryAvailability),
@@ -1486,7 +1494,11 @@ function buildCliRuntimeHandlerRegistry() {
     "authorization.status": call(showAuthorizations),
     "authorization.revoke": call(revokeAuthorization),
     "task.preflight": call(preflightTask),
-    "task.start": call(startTask),
+    "task.start": project(async ({ context, options }) => {
+      const result = startTask(context, options);
+      if (options["confirm-start"] === true) (await import("../lib/context/auto-pack.mjs")).autoContextPack(context, options.story, { trigger: "task.start", options, pluginVersion: VERSION });
+      return result;
+    }),
     "handoff.close": call(closeHandoff),
     "phase.lock": call(lockPhase),
     "phase.release": call(releasePhaseLock),

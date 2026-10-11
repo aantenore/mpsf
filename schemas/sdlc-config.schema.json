@@ -332,6 +332,26 @@
           },
           "additionalProperties": false
         },
+        "knowledge": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "min_occurrences": { "type": "integer", "minimum": 1 },
+            "pack_entries": { "type": "integer", "minimum": 1 },
+            "summary_max_chars": { "type": "integer", "minimum": 1 },
+            "sources": {
+              "type": "object",
+              "properties": {
+                "known_errors": { "type": "boolean" },
+                "gates": { "type": "boolean" },
+                "fix_stories": { "type": "boolean" },
+                "channel_answers": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
         "known_errors": {
           "type": "object",
           "properties": {

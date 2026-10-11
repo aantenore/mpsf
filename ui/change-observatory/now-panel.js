@@ -40,6 +40,12 @@ const ITALIAN = Object.freeze({
   escalated: "passata a una persona",
   open: "aperta",
   deadline: "scadenza",
+  "Context used by agent sessions": "Contesto usato dalle sessioni degli agenti",
+  session: "sessione",
+  tokens: "token",
+  packs: "pack",
+  gets: "letture",
+  "no cap": "nessun tetto",
 });
 
 const SOURCE_KIND = Object.freeze({ base: "base", branch: "branch", claim: "claim" });
@@ -148,9 +154,21 @@ export function renderNowPanel(container, view) {
     ]))));
   }
   if (senders.length) children.push(section("Latest from each computer", senders.map(senderItem)));
+  const sessions = Array.isArray(view.context?.sessions) ? view.context.sessions : [];
+  if (sessions.length) children.push(section("Context used by agent sessions", sessions.map(contextItem)));
   const details = node("details", { className: "now-details", attrs: { open: wasOpen ? "" : null } }, children);
   container.append(details);
   container.hidden = false;
+}
+
+function contextItem(entry) {
+  const used = Number(entry.used) || 0;
+  const cap = Number(entry.cap) || 0;
+  return node("li", { className: "now-item" }, [
+    node("strong", { text: `${label("session")} ${entry.session}${entry.host ? ` · ${entry.host}` : ""}` }),
+    node("span", { text: ` ${used} ${cap ? `/ ${cap} ` : ""}${label("tokens")}${cap ? ` (${Math.min(100, Math.round((used / cap) * 100))}%)` : ` · ${label("no cap")}`}` }),
+    node("span", { className: "now-meta", text: ` ${entry.packs ?? 0} ${label("packs")}, ${entry.gets ?? 0} ${label("gets")} · ${relativeTime(entry.updatedAt)}` }),
+  ]);
 }
 
 // Mounts the panel under `anchor` and keeps it fresh; failures keep it hidden.
