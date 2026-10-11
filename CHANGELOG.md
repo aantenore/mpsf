@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.1
+
+- The computer holding a role runs its duties by itself: the host hook starts each one, detached so no hook waits for it, at most every few minutes (`config/role-duties.json`). Automatic today: `coordinator free-claims` and `settle-waits` (once available) and `coordinator check-records`. `coordinator digest`, `update-requests`, `merge`, `main-green` and `knowledge distill` are listed but stay manual until a person turns them on, because they message other computers, merge into the base branch or write a story into the checkout. `roles status` lists the duties started here; `AGENTIC_SDLC_ROLE_DUTIES=off` stops them on a computer.
+- A pinned coordinator (`host_policy.roles.coordinator`) is now enforced: on the other computers its reserved actions (merging a pull request through a delivery, publishing records, resolving waits, ...) are refused with the holder's name while it holds a valid lease, and with `fallback: hold` while nobody does. The lease is read from the remote right before the action. Automatic roles refuse nothing; without a shared remote nothing is refused; `AGENTIC_SDLC_ROLES=off` turns the check off on one computer.
+- Change Observatory: no change needed; the "Now" panel already shows who holds each role.
+- Compatibility: nothing new is written to the repository or the remote. Older plugins do not enforce a pinned coordinator and do not run duties.
+
 ## 0.153.0
 
 - Shared knowledge in `.sdlc/knowledge/`: `knowledge distill` collects recurring traps (known errors, and gate failures seen in at least two stories), fix stories (`story create --fixes`) and channel questions with an answer. Entries with the same key merge (a known error and the same gate failure are one trap). Records and "seen" events carry no author or time of their own, so the same knowledge distilled on two computers is the same file and nothing conflicts. Only the computer holding the knowledge role distils (every computer when nobody holds a lease); `--force` runs it anyway. `knowledge list [--story]`, `knowledge retire --id --reason`.

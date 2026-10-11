@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.153.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.153.1 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.153.1** — role duties start by themselves on the role holder (detached; messaging, merge and main-green duties stay manual); a pinned coordinator's reserved actions are refused on the other computers.
 - **0.153.0** — knowledge role: traps, fixes and channel answers distilled into `.sdlc/knowledge` and shown in the context pack of the stories they touch; the pack is printed at story claim and task start; per-worker context budget (`context budget`), usage in the Change Observatory.
 - **0.152.1** — coordinator tasks read the stories from the remote base branch (fresh state reader), not the working tree.
 - **0.152.0** — coordinator tasks as commands that run only on the coordinator: `coordinator digest` (replaces the heartbeat), `coordinator check-records`, `coordinator main-green` (P1 fix story, never a revert), `coordinator merge` (serial merges through a forge adapter, GitHub first); welcomes only from the coordinator.

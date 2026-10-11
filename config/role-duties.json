@@ -8,6 +8,7 @@
     { "role": "coordinator", "command": ["coordinator", "digest"], "every_minutes": 15, "auto": false },
     { "role": "coordinator", "command": ["coordinator", "update-requests"], "every_minutes": 30, "auto": false },
     { "role": "coordinator", "command": ["coordinator", "main-green"], "every_minutes": 30, "auto": false },
-    { "role": "coordinator", "command": ["coordinator", "merge"], "every_minutes": 10, "auto": false }
+    { "role": "coordinator", "command": ["coordinator", "merge"], "every_minutes": 10, "auto": false },
+    { "role": "knowledge", "command": ["knowledge", "distill"], "every_minutes": 60, "auto": false }
   ]
 }
