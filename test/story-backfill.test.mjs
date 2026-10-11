@@ -80,8 +80,8 @@ test("keep-going suggests recording a phase whose work already left evidence", a
   const { nextStoryStep } = await import("../lib/host-hooks/keep-going.mjs");
   const next = nextStoryStep({ storyId: "ST-1", completedSteps: ["discovery", "analysis", "design"], evidencedPhases: ["implementation"] });
   assert.equal(next.phase, "implementation");
-  assert.match(next.label, /ha gia' prove/u);
+  assert.match(next.label, /already has evidence/u);
   assert.match(next.command, /story complete-step --id ST-1 --step implementation/u);
   const plain = nextStoryStep({ storyId: "ST-1", completedSteps: ["discovery", "analysis", "design"] });
-  assert.doesNotMatch(plain.label, /prove/u);
+  assert.doesNotMatch(plain.label, /evidence/u);
 });
