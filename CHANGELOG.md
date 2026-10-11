@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.152.1
+
+- Coordinator tasks read the stories from the remote base branch after one bounded fetch (`lib/engine/fresh-state.mjs`), plus local stories not there yet; `coordinator check-records` checks the freshly fetched base.
+
 ## 0.152.0
 
 - Coordinator tasks as standalone, idempotent commands with `--dry-run` and `--json`; each does nothing on a computer that does not hold the coordinator role (without roles every computer runs it, as before):
