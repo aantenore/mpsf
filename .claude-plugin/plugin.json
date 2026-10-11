@@ -1,6 +1,6 @@
 {
   "name": "mpsf",
-  "version": "0.159.15",
+  "version": "0.159.16",
   "description": "MPSF (My Personal Software Factory): contract-driven delivery, verified assessments, and visual project lineage for Claude Code.",
   "author": {
     "name": "Antonio Antenore",

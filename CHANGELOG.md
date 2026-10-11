@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.16
+
+- Channel messages injected into the agent's context now carry the same `[untrusted]` / `[unverified: key not registered]` marks as `message read`; an `[untrusted]` question or request is listed only among the other messages, never among those the agent must answer before continuing; and a newer version announced by an untrusted or unverified message no longer starts the opt-in auto-update. Change Observatory: no change. Compatibility: older plugins on other computers are unaffected; unsigned messages of the local provider behave as before.
+
 ## 0.159.15
 
 - `config migrate --apply` inside an agent session is refused when the edits since the last confirmation touch a part of the rules only a person confirms (listed in `config/config-human-only.json`: authority, gate, host, approval, autonomy, standing approval, delegation, release evidence, verification and phase lock policies), when those edits cannot be listed, or when it changes the autonomy mode; the user runs the same command in their own terminal. Plugin migrations and other edits still apply from the agent. Change Observatory: no change. Compatibility: older plugins on other computers are unaffected.
