@@ -1245,7 +1245,8 @@ async function noteKnownErrors() {
       action, options, error, exitCode: process.exitCode, result, root, sdlcRoot, config,
       italian: humanGuidanceLocale(options ?? {}) === "it",
     });
-    if (lines.length > 0) process.stderr.write(`${lines.join("\n")}\n`);
+    // With --json the error payload may be on stderr: keep it parseable, the failure is still remembered.
+    if (lines.length > 0 && options?.json !== true) process.stderr.write(`${lines.join("\n")}\n`);
   } catch {
     // Known error hints are best effort.
   }
