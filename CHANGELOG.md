@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.158.2
+
+- Push budget also covers the `sdlc-state` branch and claims: state pushes wait for the backoff after failed pushes, and both count as this computer's pushes, so channel messages and presence renewals space around them. Claims are never delayed. Change Observatory: no change. Compatibility: nothing changes for older plugins.
+
 ## 0.158.1
 
 - Test fix only: the outbox note test expects the English keep-going text. Change Observatory: no change. Compatibility: nothing changes.
