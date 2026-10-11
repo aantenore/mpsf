@@ -24,7 +24,7 @@ You do not need keys or extra tools for this. A **soft limit** is a checkpoint: 
    ```
 
    Without your own limits, the project defaults apply: soft limits of 45 minutes of active time, 40 steps, and 200,000 tokens.
-2. **Read the budget status** at any time with `agentic-sdlc budget status --proposal <id>`:
+2. **Read the budget status** at any time with `mpsf budget status --proposal <id>`:
 
    ```text
    tokens: used 140000 / soft 200000 tokens (70.0%); no hard limit.
@@ -43,16 +43,16 @@ In the default `audit_only` mode the tool records who you said you are but canno
 
 ## Quick start: see what one delivery cost and how long it took
 
-1. **Lead time needs nothing.** `agentic-sdlc autonomy delivery status --id <profile-id>` and `agentic-sdlc status` show it from the records the lifecycle already wrote: proposed → approved → work started → first action → released, ready for review, or closed, with the time spent waiting for a person.
+1. **Lead time needs nothing.** `mpsf autonomy delivery status --id <profile-id>` and `mpsf status` show it from the records the lifecycle already wrote: proposed → approved → work started → first action → released, ready for review, or closed, with the time spent waiting for a person.
 2. **Record cost against the delivery** once it is approved, with a meter or by hand:
 
    ```bash
-   agentic-sdlc budget meter start --delivery AUT-PR-184 --adapter codeburn    # once, right after approval and before the work starts
-   agentic-sdlc budget meter record --delivery AUT-PR-184 --adapter codeburn   # whenever you want a reading
-   agentic-sdlc budget usage record --delivery AUT-PR-184 --input-tokens 1200 --output-tokens 300 --cost-amount 0.42 --currency USD
+   mpsf budget meter start --delivery AUT-PR-184 --adapter codeburn    # once, right after approval and before the work starts
+   mpsf budget meter record --delivery AUT-PR-184 --adapter codeburn   # whenever you want a reading
+   mpsf budget usage record --delivery AUT-PR-184 --input-tokens 1200 --output-tokens 300 --cost-amount 0.42 --currency USD
    ```
 
-3. **Read it** with `agentic-sdlc budget status --delivery AUT-PR-184`:
+3. **Read it** with `mpsf budget status --delivery AUT-PR-184`:
 
    ```text
    Lead time: proposed → approved 4m 10s; approved → work started 2m 00s; work started → first action 31m 05s; first action → released 1h 02m; total 1h 39m.
@@ -167,7 +167,7 @@ The CLI validates local Git identity, branches, SHA transitions, paths, receipt 
 ### Delegated authorization example
 
 ```bash
-node bin/agentic-sdlc.mjs authorization grant \
+node bin/mpsf.mjs authorization grant \
   --root /path/to/project \
   --id AUTH-ST-001 \
   --scope "Only the approved analysis tranche for ST-001" \
@@ -202,8 +202,8 @@ For the normal assessment workflow, prefer `assessment proposal approve`: it der
 ### Check and revoke a delegated authorization
 
 ```bash
-node bin/agentic-sdlc.mjs authorization status --root /path/to/project
-node bin/agentic-sdlc.mjs authorization status --root /path/to/project --id AUTH-ST-001
+node bin/mpsf.mjs authorization status --root /path/to/project
+node bin/mpsf.mjs authorization status --root /path/to/project --id AUTH-ST-001
 ```
 
 `authorization status` reads local records only. With `--id` it reports one authorization's `status` (`active`, `revoked`, or expired past `--expires-at`), its scope, and its allowed actions; without `--id` it lists every authorization recorded for the project.
@@ -211,7 +211,7 @@ node bin/agentic-sdlc.mjs authorization status --root /path/to/project --id AUTH
 Revoke a delegated authorization when its scope is no longer correct, the work it was granted for is finished or cancelled, or the granting decision should not be exercised again — for example, the wrong action-subject pair was approved, or the approving actor's authority has changed. Revoking stops a grant from being used again; it is not a way to undo what already happened under it.
 
 ```bash
-node bin/agentic-sdlc.mjs authorization revoke \
+node bin/mpsf.mjs authorization revoke \
   --root /path/to/project \
   --id AUTH-ST-001 \
   --actor-type human
@@ -230,7 +230,7 @@ What revocation does **not** undo:
 Verify the result:
 
 ```bash
-node bin/agentic-sdlc.mjs authorization status --root /path/to/project --id AUTH-ST-001
+node bin/mpsf.mjs authorization status --root /path/to/project --id AUTH-ST-001
 ```
 
 The record now shows `status: "revoked"`. Any later attempt to consume it fails closed; grant a new authorization for any further use.
@@ -369,7 +369,7 @@ The CLI derives the canonical budget ID as `BUDGET-<proposal-id>`, so the input 
 Use the file when preparing a proposal:
 
 ```bash
-node bin/agentic-sdlc.mjs assessment proposal prepare \
+node bin/mpsf.mjs assessment proposal prepare \
   --root /path/to/project \
   --id ASSESS-001 \
   --baseline BASELINE-001 \
@@ -462,7 +462,7 @@ sequenceDiagram
     participant R as Runtime adapter
     participant K as Ed25519 private key
     participant S as .sdlc receipt store
-    participant V as Agentic SDLC validator
+    participant V as MPSF validator
     participant P as Trusted public-key policy
     R->>R: Measure cumulative usage
     R->>K: Sign canonical measurement payload hash
@@ -528,10 +528,10 @@ Hard limits are optional. The shipped defaults use soft limits only, because a h
 
    `meter-public.pem` is the PEM-encoded SPKI public key the project trusts. Never copy the private key into the repository or `.sdlc/`.
 3. **Trust the signer in `.sdlc/config.json`.** Add an entry to `budget_policy.exact_metering.trusted_sources` with your adapter id, the metrics it may assert as exact, and `trusted_keys: [{"key_id": "<stable id>", "algorithm": "Ed25519", "public_key": "<contents of meter-public.pem, newlines as \n>"}]` (see the example above).
-4. **Pin the edited configuration.** Run `agentic-sdlc config migrate`, review the plan, and apply it with `agentic-sdlc config migrate --apply --plan-hash <hash>`. Until then the project keeps its previous configuration.
+4. **Pin the edited configuration.** Run `mpsf config migrate`, review the plan, and apply it with `mpsf config migrate --apply --plan-hash <hash>`. Until then the project keeps its previous configuration.
 5. **Prepare the proposal with the hard limits** only after pinning, for example `{"limits":{"steps":{"unit":"steps","metering":"exact","soft":40,"hard":60}}}`. The checkpoint warns when a hard metric has no trusted source.
 6. **Have the signer write cumulative receipts.** For each observation it builds a signed attestation with `buildMeteringAttestation` from `lib/metering-attestations.mjs` (measurement: `execution_id` = proposal id, the effective `budget_id` and `budget_hash`, `adapter`, cumulative `usage` and `metering: "exact"` per metric, `cumulative: true`, start/end and coverage timestamps, and `signing: { key_id, private_key }`), then a usage receipt with `buildExecutionUsageReceipt` from `lib/execution-budget.mjs` whose `source` is `{ adapter, assurance: "trusted_attested", aggregation: "cumulative", attestation_ref: { id, path, hash } }`, where `hash` is the SHA-256 of the attestation file's bytes.
-7. **Import each receipt** with `agentic-sdlc budget usage record --proposal <id> --receipt-file <receipt.json>`. Cumulative values may never decrease; a regressing receipt is refused and nothing is written.
+7. **Import each receipt** with `mpsf budget usage record --proposal <id> --receipt-file <receipt.json>`. Cumulative values may never decrease; a regressing receipt is refused and nothing is written.
 8. **Finish with a fresh observation.** At completion the latest exact receipt must cover the whole execution and be no older than `completion_freshness_seconds`.
 
 ## Delivery cost and lead time
@@ -606,17 +606,17 @@ Inspect the configured RTK 0.43+ provider, route a supported command, and create
 an operator-initiated diagnostic observation with:
 
 ```bash
-node bin/agentic-sdlc.mjs optimization status \
+node bin/mpsf.mjs optimization status \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --json
 
-node bin/agentic-sdlc.mjs optimization run \
+node bin/mpsf.mjs optimization run \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --command-json '["npm","test"]'
 
-node bin/agentic-sdlc.mjs optimization capture \
+node bin/mpsf.mjs optimization capture \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --phase manual \
@@ -691,7 +691,7 @@ the approved project budget remains sovereign.
 Capture after approval and before apply:
 
 ```bash
-node bin/agentic-sdlc.mjs budget meter start \
+node bin/mpsf.mjs budget meter start \
   --root /path/to/project \
   --proposal ASSESS-001
 ```
@@ -699,7 +699,7 @@ node bin/agentic-sdlc.mjs budget meter start \
 Record during `running`, `verifying`, or `exception_pending`:
 
 ```bash
-node bin/agentic-sdlc.mjs budget meter record \
+node bin/mpsf.mjs budget meter record \
   --root /path/to/project \
   --proposal ASSESS-001
 ```
@@ -743,7 +743,7 @@ Only metrics present in the approved budget are mapped. CodeBurn’s session cou
 Run this after proposal approval and before `assessment proposal apply`, while the workflow is `authorized`:
 
 ```bash
-node bin/agentic-sdlc.mjs budget meter start \
+node bin/mpsf.mjs budget meter start \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --adapter codeburn \
@@ -773,7 +773,7 @@ The baseline stores the exact provider, project, and date query, adapter version
 Run this while the workflow is `running`, `verifying`, or `exception_pending`:
 
 ```bash
-node bin/agentic-sdlc.mjs budget meter record \
+node bin/mpsf.mjs budget meter record \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --adapter codeburn \
@@ -851,7 +851,7 @@ The user then chooses one of three outcomes:
 - **Stop:** cancel the tranche and perform no further work, also with `assessment proposal cancel`.
 
 ```bash
-node bin/agentic-sdlc.mjs assessment proposal cancel \
+node bin/mpsf.mjs assessment proposal cancel \
   --root /path/to/project \
   --id ASSESS-001 \
   --reason "Stop at the budget checkpoint and keep the verified findings as a partial result" \
@@ -876,7 +876,7 @@ stateDiagram-v2
 ### Versioned amendment example
 
 ```bash
-node bin/agentic-sdlc.mjs budget amend \
+node bin/mpsf.mjs budget amend \
   --root /path/to/project \
   --proposal ASSESS-001 \
   --id BAMEND-ASSESS-001-01 \

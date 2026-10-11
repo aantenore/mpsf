@@ -1,6 +1,6 @@
 # Parallel Work
 
-Agentic SDLC supports parallel work through story-scoped ownership and append-only traces.
+MPSF supports parallel work through story-scoped ownership and append-only traces.
 
 ## Rules
 

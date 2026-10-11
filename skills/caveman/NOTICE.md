@@ -12,5 +12,5 @@ The files in this directory are vendored from Caveman `v1.9.1`, commit
 Upstream: <https://github.com/JuliusBrussee/caveman>
 
 The vendored content is unmodified; packaging adds the repository-standard
-terminal newline to `SKILL.md`. Agentic SDLC selects the skill through its own
+terminal newline to `SKILL.md`. MPSF selects the skill through its own
 policy and keeps budget accounting independent from response compression.

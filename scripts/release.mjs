@@ -11,6 +11,7 @@ const VERSION_PATHSPECS = [
   "package-lock.json",
   ".claude-plugin/*.json",
   ".codex-plugin/*.json",
+  "legacy/*/.claude-plugin/*.json",
   "README.md",
   "docs/*.md",
 ];

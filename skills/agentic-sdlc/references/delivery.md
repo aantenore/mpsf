@@ -1,6 +1,6 @@
 # Delivery: Working Mode, Profile, Task Start, and Delivery Actions
 
-Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
+Workflow step 13 of the MPSF skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
 13. Before every delivery, ask for and obtain one fresh working-mode choice. Never inherit, infer, or reuse the choice from an earlier delivery, even when it implements the same approved requirement. First show only the concrete destination, files that may change, actions that remain protected, expiry, and material risks in normal product language. Before listing the choices, state whether the most independent option can actually be effective in this installation; if approver identity cannot be digitally verified, explain that selecting option 3 will produce the effective “Autonomy with checkpoints” mode. Likewise, when the approved requirement maximum (or the approved contract level) is below an option, say so before the user answers: that option is still accepted and recorded as the user's choice, but it is capped to the approved maximum. Pass the user's actual answer as `--level` (never pre-lower it), and relay the guidance that states the choice was capped and which mode is effective. Do not lead with internal levels, policy modes, record IDs, hashes, or approval-evidence terminology. A delivery execution profile remains deliberately exact and non-reusable: one story, its one approved contract, and one concrete delivery. If several stories must ship together, agree an aggregation story and contract first.
 
@@ -75,7 +75,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    For a new pull request:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery propose \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery propose \
      --root <target-project> \
      --id AUT-PR-184 \
      --delivery PR-184 \
@@ -108,7 +108,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    For an existing pull request, resolve and display its exact repository, base, head, current SHA, and PR URL. Propose with `--pr-mode existing`, the exact `--pr-number` and `--pr-url`, and `--pr-head-sha` when the local head branch cannot supply the reviewed head. Omit `pull_request.create` and keep only the approved update actions. The CLI pins that PR and reviewed head, and refuses an action on a different PR or on a head that does not descend from the reviewed commit:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery propose \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery propose \
      --root <target-project> \
      --id AUT-PR-185 \
      --delivery PR-185 \
@@ -143,7 +143,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    For a local release:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery propose \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery propose \
      --root <target-project> \
      --id AUT-LOCAL-REL-009 \
      --delivery LOCAL-REL-009 \
@@ -191,7 +191,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    destination before certification will otherwise invalidate it.
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action build.local \
      --json
@@ -201,7 +201,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    displayed direct approval:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action build.local --confirm-action \
      --actor-type human --approval-source explicit-user \
@@ -213,7 +213,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    artifact. Complete the same authorization afterward:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action build.local --outcome passed \
      --authorization-receipt <AUT-ACT-id-from-build-authorization> \
@@ -238,7 +238,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    the reversible boundary at proposal time:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery propose \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery propose \
      --root <target-project> \
      --id AUT-LOCAL-DATA-009 \
      --delivery LOCAL-DATA-009 \
@@ -284,14 +284,14 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    Approve and inspect the exact profile:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery approve \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery approve \
      --root <target-project> \
      --id AUT-PR-184 \
      --actor-type human \
      --approval-source explicit-user \
      --summary "Select checkpointed autonomy for PR-184 only"
 
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery explain \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery explain \
      --root <target-project> \
      --id AUT-PR-184
    ```
@@ -305,7 +305,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    Verify that the approved profile ID equals the planned `delivery_execution_profile_id` in the already approved contract. Before `task start` and before completing any story step, start exactly one current story-bound workflow. The included `software-project` v3 definition is valid only when the project uses its exact seven-phase order. If `phase_order` contains, removes, or reorders a phase, propose and approve a story-bound definition with that exact order first; do not force the included preset across a custom configuration:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow instance start \
+   node <plugin-root>/bin/mpsf.mjs workflow instance start \
      --root <target-project> \
      --id DELIVERY-ST-001 \
      --definition software-project \
@@ -322,18 +322,18 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
      <plugin-root>/templates/workflow-software-project-v3-integration-review/workflow-definition.json \
      <target-project>/workflow-software-project-v3-integration-review.json
 
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow definition propose \
+   node <plugin-root>/bin/mpsf.mjs workflow definition propose \
      --root <target-project> \
      --id software-project-integration-review \
      --definition-version 1 \
      --definition-file workflow-software-project-v3-integration-review.json
 
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow definition show \
+   node <plugin-root>/bin/mpsf.mjs workflow definition show \
      --root <target-project> \
      --id software-project-integration-review \
      --definition-version 1
 
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow definition approve \
+   node <plugin-root>/bin/mpsf.mjs workflow definition approve \
      --root <target-project> \
      --id software-project-integration-review \
      --definition-version 1 \
@@ -341,7 +341,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
      --approval-source explicit-user \
      --summary "Approve the displayed seven-phase workflow"
 
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow instance start \
+   node <plugin-root>/bin/mpsf.mjs workflow instance start \
      --root <target-project> \
      --id DELIVERY-ST-001 \
      --definition software-project-integration-review \
@@ -370,7 +370,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    Only now make the lifecycle's one logical task-start decision with that profile. Do not use `task start` for preview, routing, requirement discovery, or contract preparation. Task start is automatic only when the effective level is not `supervised` **and** the current phase appears in that level's configured `autonomy_policy.presets.<level>.automatic_phases`. If the CLI requires `--confirm-start`, the explicit confirmation completes this same logical start decision; it does not reopen planning or create a second delivery start. Use `--confirm-start` only after the user confirms this concrete start or with an authorization containing `task.start.confirm`; an agent or system confirmation must cite that grant with `--authorization <id>`. The stock `checkpointed` preset makes analysis, design, implementation, and validation automatic, while keeping release actions checkpointed. Do not rewrite the contract:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs task start \
+   node <plugin-root>/bin/mpsf.mjs task start \
      --root <target-project> \
      --story ST-001 \
      --delivery-profile AUT-PR-184 \
@@ -383,22 +383,22 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    Every state-changing delivery action uses an authorize → execute → complete sequence. In the primary explanation say what operation is paused, its concrete target, what the person must decide, and what remains untouched. Put the internal receipt, canonical action, policy mode, codes, hashes, and command only after the optional technical-details divider. First request an authorization receipt for the exact canonical action and runtime target, and retain the returned `AUT-ACT-...` ID with the external operation. If the command reports `checkpoint_required`, show the plain-language decision and rerun with `--confirm-action` plus formal approval attribution. Under `authority_policy.mode: host_verified`, this rerun must also supply `--host-receipt-file`; the external Ed25519 receipt signs action `autonomy.delivery.action.<canonical-action>` and the exact subject containing the profile, delivery, runtime target, and action details. In `audit_only`, the explicit approval is recorded but does not become host-verified authority. Then execute exactly the recorded operation through the host/tooling. Finally report `--outcome` with immutable evidence and pass `--authorization-receipt <AUT-ACT-id>` whenever more than one authorization for that action is waiting. An identical completion retry is safe and returns the original completion; do not change evidence or operation arguments merely to force a retry. For `git.commit`, bind the exact changed files with repeatable `--scope-path`; for `git.push`, bind the matching remote; for merge, bind the exact PR URL:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-PR-184 \
      --action git.commit --scope-path src/example.mjs --json
 
    # Execute exactly one non-merge commit whose parent and file set match the receipt.
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-PR-184 \
      --action git.commit --outcome passed \
      --authorization-receipt <AUT-ACT-id-from-authorization> \
      --evidence evidence/PR-184-commit.txt --json
 
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-PR-184 \
      --action git.push --remote origin --json
    # Push the exact recorded SHA/ref, collect host or provider evidence, then complete it.
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-PR-184 \
      --action git.push --outcome passed \
      --authorization-receipt <AUT-ACT-id-from-authorization> \
@@ -410,7 +410,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    An `authorized` receipt grants only the displayed operation; it does not run it. Push authorization observes the base SHA directly on the selected remote, requires exactly one passing `git.commit` completion for every commit from that SHA to the exact head, and rejects the remote if any configured fetch/push URL identifies another repository. Push/merge authorization records a live remote pre-state, and completion queries the exact Git remote or GitHub PR for the expected post-state after authorization. That observation and the declared evidence are hash-bound, but the observation is not a provider-signed offline attestation; retain durable host/CI/provider evidence and do not call a generic file signed proof. A passing `pull_request.merge` completion or `release.local` completion creates the terminal close receipt automatically; do not manually close either as `merged` or `released`. A pull request whose delivery excludes merge ends successfully open for review: after its last passing `pull_request.create` or `pull_request.update` completion, with no later commit, push, or PR action, close it as `ready_for_review`. That close binds the verified PR completion under the already approved profile and needs no new approval; it is refused when the profile includes `pull_request.merge`. Other terminal outcomes use `autonomy delivery close` with a formal reason and approval, and cannot certify lifecycle success.
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery close \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery close \
      --root <target-project> --id AUT-PR-184 \
      --terminal-status ready_for_review \
      --reason "The pull request is open for review at its verified head" \
@@ -420,7 +420,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    **A pull request merged outside the plugin.** When a person merges a plugin-managed pull request directly on GitHub, the plugin does not see it. `status` detects the clear cases read-only (a head the plugin's receipts cover is already on the remote base branch; payload key `merged_outside_plugin`) and prints the command, but never records anything. A squash or rebase merge leaves no trace in git, so `status` cannot detect it; `reconcile` still works. Only a person or CI acknowledges the merge, in their own terminal; the command is refused inside an agent session, and the hooks deny it to agents and protect `.sdlc/autonomy/executions/<id>/external-merge.json`. Give the user the exact command and never run it for them:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery reconcile \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery reconcile \
      --root <target-project> --id AUT-PR-184 \
      --pr-url https://github.com/owner/repository/pull/184 \
      --actor-type human --approval-source explicit-user \
@@ -438,7 +438,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    Authorize and complete the mandatory rollback rehearsal before asking to authorize `release.local`. For a declared data migration, first complete the initial `data.migrate` and real `data.rollback`; the rollback rehearsal must bind that passing rollback receipt, and a later passing final `data.migrate` must still precede release. In `host_verified` mode, add the exact external `--host-receipt-file` to each checkpoint authorization. In the default `audit_only` mode, omit that option; `--confirm-action` plus direct approval attribution records the checkpoint without claiming verified host authority:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action rollback.verify \
      --evidence evidence/rollback-rehearsal.json \
@@ -447,7 +447,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
      --summary "Approve this exact rollback rehearsal evidence" \
      --json
 
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action rollback.verify --outcome passed \
      --evidence evidence/rollback-rehearsal.json \
@@ -457,7 +457,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    Only after that passing receipt may the local release be authorized and completed. In the full lifecycle, execute these `release.local` commands only after the validation step passes, the intermediate strict receipt is sealed, and the bound workflow has entered `release`:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action release.local --confirm-action \
      --actor-type human --approval-source explicit-user \
@@ -465,7 +465,7 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
      --json
 
    # Perform the approved local write, then let completion run the exact smoke test.
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery action \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery action \
      --root <target-project> --id AUT-LOCAL-REL-009 \
      --action release.local --outcome passed \
      --evidence .local-release/release-evidence.json \
@@ -478,5 +478,5 @@ Workflow step 13 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are sha
    For implementation work or parallel worker work, inspect the current orchestration state before editing:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs orchestrate status --root <target-project> --json
+   node <plugin-root>/bin/mpsf.mjs orchestrate status --root <target-project> --json
    ```

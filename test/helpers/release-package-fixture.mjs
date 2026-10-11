@@ -103,22 +103,22 @@ export function buildTarGzip(entries, { trailingData, zeroBlocks = 2 } = {}) {
 
 export function validReleaseFixtureEntries({ version = "0.13.3", extra = [] } = {}) {
   const packageJson = {
-    name: "agentic-sdlc",
+    name: "mpsf",
     version,
     type: "module",
-    bin: { "agentic-sdlc": "./bin/agentic-sdlc.mjs" },
+    bin: { "agentic-sdlc": "./bin/agentic-sdlc.mjs", mpsf: "./bin/mpsf.mjs" },
   };
   const pluginJson = {
-    name: "agentic-sdlc",
+    name: "mpsf",
     version,
   };
   const claudePluginJson = {
-    name: "agentic-sdlc",
+    name: "mpsf",
     version,
   };
   const claudeMarketplaceJson = {
     name: "aantenore",
-    plugins: [{ name: "agentic-sdlc", source: "./", version }],
+    plugins: [{ name: "mpsf", source: "./", version }],
   };
   return [
     { path: "package/package.json", data: `${JSON.stringify(packageJson)}\n` },
@@ -128,6 +128,7 @@ export function validReleaseFixtureEntries({ version = "0.13.3", extra = [] } = 
     { path: "package/LICENSE", data: "fixture license\n" },
     { path: "package/README.md", data: "fixture readme\n" },
     { path: "package/bin/agentic-sdlc.mjs", data: "#!/usr/bin/env node\n", mode: 0o755 },
+    { path: "package/bin/mpsf.mjs", data: "#!/usr/bin/env node\n", mode: 0o755 },
     { path: "package/config/release-artifact-policy.json", data: "{}\n" },
     { path: "package/hooks/agentic-sdlc-guard.mjs", data: "// fixture\n" },
     { path: "package/hooks/hooks.json", data: "{}\n" },

@@ -90,7 +90,7 @@ test("priority: questions, unpublished, plugin update, claims, then available", 
   }).reason.split("\n").slice(1);
   const order = ["answer", "unpublished records", "plugin 9.9.9", "complete"].map((word) => reason.findIndex((line) => line.includes(word)));
   assert.deepEqual(order, [0, 1, 2, 3]);
-  assert.match(reason[2], /claude plugin update agentic-sdlc@aantenore/u);
+  assert.match(reason[2], /claude plugin update mpsf@aantenore/u);
   assert.match(reason[2], /takes priority/u);
 });
 

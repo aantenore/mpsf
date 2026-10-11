@@ -91,7 +91,7 @@ test("requirement files decide whether this plugin can work on the project", () 
   const unreadable = evaluateRequirements([{ path: "c.json", record: { schema_version: "plugin-compatibility-requirement:v9" } }]);
   assert.equal(unreadable.satisfied, false);
   assert.deepEqual(unreadable.unreadable, ["c.json"]);
-  assert.match(pluginUpdateCommand(), /^claude plugin marketplace update \S+ && claude plugin update agentic-sdlc@\S+$/u);
+  assert.match(pluginUpdateCommand(), /^claude plugin marketplace update \S+ && claude plugin update mpsf@\S+$/u);
 });
 
 test("an older plugin refuses changes, keeps reads working, and says how to update", () => {
@@ -101,7 +101,7 @@ test("an older plugin refuses changes, keeps reads working, and says how to upda
   const write = run(["cache", "rebuild", "--root", project, "--json"], project);
   assert.notEqual(write.status, 0);
   assert.match(write.stdout + write.stderr, /PLUGIN_UPDATE_REQUIRED/u);
-  assert.match(write.stdout + write.stderr, /claude plugin update agentic-sdlc@/u);
+  assert.match(write.stdout + write.stderr, /claude plugin update mpsf@/u);
 
   const status = run(["status", "--root", project, "--json"], project);
   assert.equal(status.status, 0, status.stderr);

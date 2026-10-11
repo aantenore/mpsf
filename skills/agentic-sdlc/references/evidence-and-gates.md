@@ -1,15 +1,15 @@
 # Evidence, Handoffs, Gates, and Certification
 
-Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
+Workflow steps 15–19 of the MPSF skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
 15. Capture durable autonomy decisions, assumptions, risks, tests, handoffs, sync/push/PR events, dependency revalidation, and release evidence as traces. Include requirement/profile, delivery/profile, requested/effective level, and deterministic reason-code references. Strict gates require `test` and `release` traces to include real evidence paths outside cache/index directories and explicit successful outcomes (`passed` for tests; `ready` or `passed` for release). A local release also requires target-bound smoke-test evidence and its rollback procedure:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs trace append --root <target-project> --story ST-001 --type decision --summary "..." --actor <host-agent> --actor-type agent
-   node <plugin-root>/bin/agentic-sdlc.mjs trace append --root <target-project> --story ST-001 --type implementation --summary "Implemented the requested change" --actor <host-agent> --actor-type agent --requested-by antonioantenore --requested-by-type human --request-summary "User-requested change"
-   node <plugin-root>/bin/agentic-sdlc.mjs trace append --root <target-project> --story ST-001 --type implementation --summary "Added the requested launcher" --input-summary "Approved contract" --output-summary "Installed launcher" --rationale-summary "Keep evidence local" --alternative "Hosted dashboard" --explanation "The installed plugin now opens recorded project lineage locally." --explanation-kind codex-generated
-   node <plugin-root>/bin/agentic-sdlc.mjs trace append --root <target-project> --story ST-001 --type test --outcome passed --summary "Tests passed" --evidence .sdlc/tests/ST-001-test-run.json
-   node <plugin-root>/bin/agentic-sdlc.mjs sync record --root <target-project> --story ST-001 --event push --summary "Pushed feature/ST-001"
+   node <plugin-root>/bin/mpsf.mjs trace append --root <target-project> --story ST-001 --type decision --summary "..." --actor <host-agent> --actor-type agent
+   node <plugin-root>/bin/mpsf.mjs trace append --root <target-project> --story ST-001 --type implementation --summary "Implemented the requested change" --actor <host-agent> --actor-type agent --requested-by antonioantenore --requested-by-type human --request-summary "User-requested change"
+   node <plugin-root>/bin/mpsf.mjs trace append --root <target-project> --story ST-001 --type implementation --summary "Added the requested launcher" --input-summary "Approved contract" --output-summary "Installed launcher" --rationale-summary "Keep evidence local" --alternative "Hosted dashboard" --explanation "The installed plugin now opens recorded project lineage locally." --explanation-kind codex-generated
+   node <plugin-root>/bin/mpsf.mjs trace append --root <target-project> --story ST-001 --type test --outcome passed --summary "Tests passed" --evidence .sdlc/tests/ST-001-test-run.json
+   node <plugin-root>/bin/mpsf.mjs sync record --root <target-project> --story ST-001 --event push --summary "Pushed feature/ST-001"
    ```
 
    Stories and requirements may carry `derived_acceptance` (secondary to the explicit acceptance). Produce those checks as well and record each one with `test record --acceptance DV-<rule-id>`; the strict gate flags a derived criterion with no passing run (see "Derived Verification Criteria" in `commands.md`).
@@ -17,7 +17,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    For validation, record test evidence with `test record` instead: it binds the story to the exact executed test command, its exit code, its result counts, and at least one immutable evidence file in a durable `test-run:v1` record. Treat a plain `trace append --type test` entry as the legacy weaker form; the validation gate warns when a story in validation has only that trace and no `test record`:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs test record \
+   node <plugin-root>/bin/mpsf.mjs test record \
      --root <target-project> \
      --story ST-001 \
      --command '["npm","test"]' \
@@ -31,7 +31,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    Scan the changed files for credentials before validation closes. `secret scan` compares the delivery's base and head, records the result as a `secret-scan:v1` record under `.sdlc/security/`, and exits `1` when it finds something. Matches are always redacted, in the output and in the record:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs secret scan \
+   node <plugin-root>/bin/mpsf.mjs secret scan \
      --root <target-project> \
      --story ST-001
    ```
@@ -41,7 +41,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    When a code review is required before the merge (the user's answer for this story, or a project policy that requires it for every pull request), a reviewer who authored none of its commits records a review of the current head. `review record` reads the head commit from the repository and the reviewer's Git identity from the local Git configuration, and writes a `code-review:v1` record under `.sdlc/reviews/`:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs review record \
+   node <plugin-root>/bin/mpsf.mjs review record \
      --root <target-project> \
      --delivery AUT-PR-001 \
      --verdict approved \
@@ -61,7 +61,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    Put the recorded checks in the pull-request description. The host writes that description, so before it creates or updates the pull request, print the table and include it unchanged:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs autonomy delivery checks \
+   node <plugin-root>/bin/mpsf.mjs autonomy delivery checks \
      --root <target-project> --id AUT-PR-001
    ```
 
@@ -72,7 +72,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
 16. When a phase lane is complete, record the step with hashed evidence. `story complete-step` requires the story contract to be approved and fresh unless `--allow-unapproved-contract-output` is being used for explicit migration/recovery. If the step produced a durable artifact, pass `--type` so the CLI verifies the output is linked in the registry:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs story complete-step \
+   node <plugin-root>/bin/mpsf.mjs story complete-step \
      --root <target-project> \
      --id ST-001 \
      --step functional-analysis \
@@ -85,7 +85,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    After each non-terminal phase step is completed, transition the bound workflow to the next configured phase. The completion command seals an exact step-file attestation in the append-only story trace. A current canonical workflow refuses to leave the phase when that step is missing, stale, or manually changed; `workflow instance status` reports the blocker in `current_phase_completion` and keeps `ready_next_states` empty. The ordering is evidence: workflow start must be no later than task start, phase entry must be no later than that phase's completion, and the next phase entry must be no earlier than the previous phase completion:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow instance transition \
+   node <plugin-root>/bin/mpsf.mjs workflow instance transition \
      --root <target-project> \
      --id DELIVERY-ST-001 \
      --to <next-configured-phase> \
@@ -95,7 +95,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
 17. Use `story prepare-handoff` when passing work between chats, machines, or phases.Give the receiving agent `context pack --story <id> --phase handoff` (criteria, decisions, scope with file index, evidence, waits, next step) so it does not re-read the records.  Use `--release-claim` only when the next agent should be able to claim the story after pulling the shared KB; the release is also shared through the git remote, and if the output says it was not shared, run `story release --id ST-001` again once the remote can be reached:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs story prepare-handoff \
+   node <plugin-root>/bin/mpsf.mjs story prepare-handoff \
      --root <target-project> \
      --id ST-001 \
      --to-agent implementation-agent \
@@ -108,13 +108,13 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
 18. After the validation step and latest passing test evidence, run the ordinary strict story gate. It must validate the requirement revision and ceiling, current non-reused delivery profile, most-restrictive effective level, material-scope freshness, exact authorization uses, and applicable evidence. A passing gate does not itself authorize a release, protected-branch merge, or remote/production deployment:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs gate check --root <target-project> --story ST-001 --strict --out .sdlc/reports/ST-001-gate-report.json
+   node <plugin-root>/bin/mpsf.mjs gate check --root <target-project> --story ST-001 --strict --out .sdlc/reports/ST-001-gate-report.json
    ```
 
    This is an intermediate readiness check, not the final delivery certificate. It verifies validation and seals the distinct strict receipt used to move the current story-bound workflow to its configured `release` phase with a unique request ID:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs workflow instance transition \
+   node <plugin-root>/bin/mpsf.mjs workflow instance transition \
      --root <target-project> \
      --id <workflow-instance-id> \
      --to release \
@@ -124,7 +124,7 @@ Workflow steps 15–19 of the Agentic SDLC skill (`../SKILL.md`). Step numbers a
    Only after entering `release`, authorize and complete the exact local release or PR delivery (closing a PR without merge as `ready_for_review`), append the passing release trace, and complete the `release` story step. Entry into `release` must precede both the release trace and terminal delivery close. Then transition the workflow to `operations` (no additional guard) and complete the `operations` story step — a plain completion marker, never gated on an incident or feedback record existing. When those results are complete, release the story claim so no active worker can race final certification. Then run the lifecycle-complete gate. It replays the task-bound workflow's immutable instance, event history, checkpoint, audit trace, and alternating phase timeline, and requires every configured phase to have a completed canonical step — configured phase order now ends at `operations`, not `release`. Do not claim that the story or discovery-to-operations lifecycle is complete unless this stronger command passes and seals its separate final receipt. When a later story legitimately changes files this story certified and seals its own valid final receipt, `status` reports this story as a historical certification superseded by that later story: it stays completed, needs no recertification, and accepts no new evidence. Any change that no later valid certification binds still requires recertification. After certification, a story's own records (contract, requirements, profiles, workflow records, test and story records) never change: any change voids the receipt (`final_receipt_check:story_record_changed`, restore the named record), except files added to its delivery executions, related governance, `base-acknowledgements/`, and `autonomy delivery reconcile` events appended to its trace. Shared files (project, configuration, referenced governance, write-path files, release targets) changing make the certification stale, which keeps the story completed only once its delivery finished (pull request merged or reconciled, local release `released`); before that the story is blocked and needs recertification on the current files. A merged pull-request story is certified, and later checked, on its merge commit, which must be in the clone and an ancestor of HEAD. A missing certified commit (`certified_commit_missing`, run `git fetch`) or a rewritten history (`certified_history_rewritten`) blocks the story. Keep recorded evidence in story-scoped paths so later stories never overwrite it:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs gate check \
+   node <plugin-root>/bin/mpsf.mjs gate check \
      --root <target-project> \
      --story ST-001 \
      --strict \

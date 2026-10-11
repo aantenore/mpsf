@@ -1,6 +1,6 @@
 # Change Observatory
 
-Change Observatory is the visual, local-first lineage reader bundled with Agentic SDLC. It turns canonical `.sdlc/` records into a presentation that a non-technical stakeholder can start with and a technical reviewer can drill through to raw evidence.
+Change Observatory is the visual, local-first lineage reader bundled with MPSF. It turns canonical `.sdlc/` records into a presentation that a non-technical stakeholder can start with and a technical reviewer can drill through to raw evidence.
 
 ## Your First Time
 
@@ -10,7 +10,7 @@ nothing anywhere. This is what to expect the first time.
 
 1. **Start it.** Ask your agent to open the Change Observatory for this project,
    or run the command yourself (see below). If your agent offers plugin
-   commands, `/agentic-sdlc:observe` does the same thing; agents that work
+   commands, `/mpsf:observe` does the same thing; agents that work
    through skills start it from a plain request such as
    `Open the Change Observatory for this project.`
 2. **Keep the terminal open.** The page is served by the command that is
@@ -79,7 +79,7 @@ The installed `Change Observatory` skill resolves its own plugin root and runs t
 An npm, Git, or tarball installation that exposes the package bin can launch it directly:
 
 ```bash
-agentic-sdlc observe --root /path/to/project --locale en
+mpsf observe --root /path/to/project --locale en
 ```
 
 Use `--locale it` for Italian. Without `--locale`, the observatory follows the
@@ -128,7 +128,7 @@ For this layout:
 Launch only that list:
 
 ```bash
-agentic-sdlc observe \
+mpsf observe \
   --root /work \
   --portfolio-manifest portfolio.json
 ```
@@ -136,7 +136,7 @@ agentic-sdlc observe \
 For CI or a quick terminal check, use the one-shot read-only command instead:
 
 ```bash
-agentic-sdlc portfolio status \
+mpsf portfolio status \
   --root /work \
   --manifest portfolio.json \
   --json
@@ -154,7 +154,7 @@ attention, and `0` when every project is ready or only needs review. The JSON
 output carries `fail_on_attention` and, for each project, an `attention_reason`
 (`null` when the project is fine).
 
-Naming the family alone, `agentic-sdlc portfolio`, shows the help for that
+Naming the family alone, `mpsf portfolio`, shows the help for that
 family instead of an error.
 
 The manifest and every project path must be explicit, portable paths relative
@@ -227,7 +227,7 @@ selected item.
 Automation can suppress browser opening and consume the first NDJSON event:
 
 ```bash
-agentic-sdlc observe \
+mpsf observe \
   --root /path/to/project \
   --host 127.0.0.1 \
   --port 0 \
@@ -283,7 +283,7 @@ are `0.99`, with `20` samples required before it reports `met` or `breached`.
 It does not block a delivery or claim provider-grade monitoring.
 
 The support bundle includes only numeric limits, schema and runtime versions
-(the Agentic SDLC package version, Node.js version, platform, and CPU
+(the MPSF package version, Node.js version, platform, and CPU
 architecture, but no host name or path), readiness state, metric/SLO snapshots, and a bounded recent-request list with
 time, correlation ID, route, safe code, and status. Redaction is applied before
 the bundle is returned. Its SHA-256 digest covers the canonical **redacted**
@@ -425,7 +425,7 @@ The three overview answers use an injectable semantic-ranking policy rather than
 `trace append` can store a shareable narrative with repeatable input/output summaries, a rationale summary, alternatives, and an optional explanation:
 
 ```bash
-agentic-sdlc trace append \
+mpsf trace append \
   --root /path/to/project \
   --story ST-001 \
   --type implementation \
@@ -525,7 +525,7 @@ the existing process never mixes evidence produced under two privacy policies.
 | The page says it lost its connection | The terminal that runs the observatory was closed or stopped. Start it again and open the new full link. |
 | "Port N on 127.0.0.1 is already in use" | Another program uses that port. Choose another with `--port <number>` or use `--port 0` for any free port. |
 | "Records are changing right now" | Something is writing to `.sdlc` continuously. The observatory already retried a few times; wait a few seconds and press **Refresh**. |
-| "No Agentic SDLC records were found in this folder" | The folder you opened has no `.sdlc` folder. Ask your agent to initialize Agentic SDLC, or run `agentic-sdlc init` in the project folder, then press **Refresh**. If it is the wrong folder, restart with `--root`. |
+| "No MPSF records were found in this folder" | The folder you opened has no `.sdlc` folder. Ask your agent to initialize MPSF, or run `mpsf init` in the project folder, then press **Refresh**. If it is the wrong folder, restart with `--root`. |
 | An error says `.sdlc/config.json is not valid JSON` or that `.sdlc` is a symbolic link | The error names the file and the kind of problem without printing its contents. Fix or restore the file, or replace the link with a real folder, then run the command again. |
 | The browser did not open | The terminal prints the full link again; copy it into your browser. Use `--no-open` to skip the attempt. |
 
@@ -535,7 +535,7 @@ closes early, the observatory stops cleanly instead of failing.
 Run the installed plugin-local doctor when launch fails:
 
 ```bash
-node /path/to/installed-plugin/bin/agentic-sdlc.mjs doctor \
+node /path/to/installed-plugin/bin/mpsf.mjs doctor \
   --root /path/to/project \
   --json
 ```

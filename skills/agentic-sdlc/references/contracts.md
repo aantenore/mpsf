@@ -103,7 +103,7 @@ Execution actions are two-receipt operations: authorize the exact action/runtime
 The default contract templates are defined in `templates/sdlc-config.json` at the plugin root. Teams can fork or replace that file, then pass a custom template overlay directory through:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs --template-dir <dir> ...
+node <plugin-root>/bin/mpsf.mjs --template-dir <dir> ...
 ```
 
 The overlay must contain a valid, readable `sdlc-config.json`. Other template assets are optional: when an asset is absent from the overlay, the CLI uses the matching bundled asset. `init` and the initialization part of `onboard existing-project` resolve and validate the configuration plus the knowledge-base README before writing the `.sdlc` bootstrap. Later commands resolve only the assets they need—for example, story creation resolves its plan and implementation-log templates—and reject an invalid selected asset before that command starts its own writes. Initialization does not proactively validate optional assets used only by later commands.

@@ -37,7 +37,7 @@ test("forwarded methods keep their own properties and a stable identity", () => 
 });
 
 test("PLUGIN_ROOT is the directory that holds package.json", () => {
-  assert.equal(JSON.parse(realFs.readFileSync(path.join(PLUGIN_ROOT, "package.json"), "utf8")).name, "agentic-sdlc");
+  assert.equal(JSON.parse(realFs.readFileSync(path.join(PLUGIN_ROOT, "package.json"), "utf8")).name, "mpsf");
 });
 
 test("a fixed clock makes engine timestamps deterministic", () => {

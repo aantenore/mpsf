@@ -1,5 +1,5 @@
 interface:
-  display_name: "Agentic SDLC"
+  display_name: "MPSF"
   short_description: "Agree requirements and deliver verified PRs or local results"
   brand_color: "#0EA5E9"
   icon_small: "./assets/icon-small.png"

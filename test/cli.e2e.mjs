@@ -1175,7 +1175,7 @@ test("RTK optimization gateway validates telemetry, routes safe commands, and by
     "doctor", "--root", project, "--trust-custom-rtk-command",
   ]).stdout);
   assert.match(doctorGuidance.firstLine, /^Outcome: All available health checks passed/u);
-  assert.match(doctorGuidance.technical, /Agentic SDLC doctor: passed/u);
+  assert.match(doctorGuidance.technical, /MPSF doctor: passed/u);
   assert.match(doctorGuidance.technical, /PASS rtk-optimization-provider:/u);
 });
 
@@ -6194,7 +6194,7 @@ test("onboard rejects removing both the manifest and its marker from a new proje
     "--project-name",
     "Bootstrap Downgrade",
   ], new RegExp(
-    String.raw`bootstrap-manifest\.json is missing for a project created by Agentic SDLC ${escapedPluginVersion}.*require the completed bootstrap record.*No files were changed`,
+    String.raw`bootstrap-manifest\.json is missing for a project created by MPSF ${escapedPluginVersion}.*require the completed bootstrap record.*No files were changed`,
     "s",
   ));
 
@@ -12808,7 +12808,7 @@ test("npm package installs as a complete reusable plugin", async (t) => {
     archivePath,
   ], packageRoot);
   assert.equal(installed.status, 0, `npm install failed\nSTDOUT:\n${installed.stdout}\nSTDERR:\n${installed.stderr}`);
-  const installedPluginRoot = path.join(installRoot, "node_modules", "agentic-sdlc");
+  const installedPluginRoot = path.join(installRoot, "node_modules", "mpsf");
   const installedCli = path.join(installedPluginRoot, "bin", "agentic-sdlc.mjs");
   const installedBinShim = path.join(
     installRoot,

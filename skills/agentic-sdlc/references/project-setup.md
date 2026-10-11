@@ -1,12 +1,12 @@
 # Project Setup and Request Routing
 
-Workflow steps 1–4 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
+Workflow steps 1–4 of the MPSF skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
 1. Identify the target project root. Default to the current workspace root unless the user names another project.
 2. If `.sdlc/project.json` is missing, initialize the project:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs init --root <target-project> --project-name "<name>"
+   node <plugin-root>/bin/mpsf.mjs init --root <target-project> --project-name "<name>"
    ```
 
    When a new project's agreed phase order includes `integration-review`
@@ -14,7 +14,7 @@ Workflow steps 1–4 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are
    distributed overlay instead of adding the phase after bootstrap:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs init \
+   node <plugin-root>/bin/mpsf.mjs init \
      --root <target-project> \
      --project-name "<name>" \
      --template-dir \
@@ -31,7 +31,7 @@ Workflow steps 1–4 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are
    For an existing repository with useful current code, docs, or configuration, prefer onboarding so the KB starts with an explicit proposed baseline instead of pretending the historical SDLC is known:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs onboard existing-project \
+   node <plugin-root>/bin/mpsf.mjs onboard existing-project \
      --root <target-project> \
      --project-name "<name>" \
      --document README.md \
@@ -42,6 +42,6 @@ Workflow steps 1–4 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are
 
    Run `baseline refresh` only from the base branch with the work committed; the CLI refuses a story branch that is not merged and uncommitted changes in the baseline scope, and says how to proceed. A proposed refresh that must not become the project state (for example one taken from a story branch) is withdrawn with `baseline refresh withdraw --id <id> --reason <why>` and a person's approval, never approved to get past a gate. See `commands.md`.
 
-3. When the user invokes Agentic SDLC for project context, discovery, analysis, design, implementation, validation, release, or other generic phase work, normalize the request into canonical route intent JSON as a read-only preview. Do not call `task start` yet. Explain the intended outcome, delivery destination, known boundaries, and missing decisions in ordinary language. Do not keyword-match inside the CLI. For an assessment, follow the dedicated skill instead: approve the baseline, prepare and approve the immutable combined proposal, apply it idempotently, then make its one proposal-bound start decision. Do not treat natural-language requests such as "initial technical assessment" as permission to analyze directly.
+3. When the user invokes MPSF for project context, discovery, analysis, design, implementation, validation, release, or other generic phase work, normalize the request into canonical route intent JSON as a read-only preview. Do not call `task start` yet. Explain the intended outcome, delivery destination, known boundaries, and missing decisions in ordinary language. Do not keyword-match inside the CLI. For an assessment, follow the dedicated skill instead: approve the baseline, prepare and approve the immutable combined proposal, apply it idempotently, then make its one proposal-bound start decision. Do not treat natural-language requests such as "initial technical assessment" as permission to analyze directly.
 
 4. Select the SDLC phase: `discovery`, `analysis`, `design`, `implementation`, `validation`, `release`, or `operations`.

@@ -1,8 +1,8 @@
 # Story Claims and Coordination Between Computers
 
-Workflow step 14 of the Agentic SDLC skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
+Workflow step 14 of the MPSF skill (`../SKILL.md`). Step numbers are shared across the workflow reference files; the always-on guardrails in `../SKILL.md` apply to every step.
 
-After `story claim`, load the story's context once with `agentic-sdlc context pack --story <id>` instead of reading its records (see `commands.md`, "Story Context Pack").
+After `story claim`, load the story's context once with `mpsf context pack --story <id>` instead of reading its records (see `commands.md`, "Story Context Pack").
 
 14. After the delivery profile is approved and the immutable task-start receipt
    is recorded for the current approved story contract, claim the existing story
@@ -19,7 +19,7 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    compound story/step subject:
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs authorization grant \
+   node <plugin-root>/bin/mpsf.mjs authorization grant \
      --root <target-project> \
      --id AUTH-ST-001-CLAIM \
      --scope "Allow one claim for ST-001 only" \
@@ -29,7 +29,7 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
      --approval-source explicit-user \
      --summary "Approve one story claim for ST-001"
 
-   node <plugin-root>/bin/agentic-sdlc.mjs authorization grant \
+   node <plugin-root>/bin/mpsf.mjs authorization grant \
      --root <target-project> \
      --id AUTH-ST-001-DISCOVERY-COMPLETE \
      --scope "Complete discovery for ST-001 only" \
@@ -63,7 +63,7 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    `--agent`, the CLI detects the host from its environment.
 
    ```bash
-   node <plugin-root>/bin/agentic-sdlc.mjs story claim --root <target-project> --id ST-001 --agent <host-agent> --branch feature/ST-001 --thread-id <thread-id> --authorization AUTH-ST-001-CLAIM
+   node <plugin-root>/bin/mpsf.mjs story claim --root <target-project> --id ST-001 --agent <host-agent> --branch feature/ST-001 --thread-id <thread-id> --authorization AUTH-ST-001-CLAIM
    ```
 
    Before `task start`, run `story availability --id ST-001 --json`. If
@@ -158,12 +158,12 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    listeners or waits: give every one a deadline (`message listen --timeout`,
    `--limit`). Plugin commands stop themselves after
    `AGENTIC_SDLC_MAX_RUN_MINUTES` (default 10; a command that needs longer is a performance defect to fix) and `message listen` after
-   `AGENTIC_SDLC_LISTEN_MAX_HOURS` (default 8); `agentic-sdlc runs list` and
+   `AGENTIC_SDLC_LISTEN_MAX_HOURS` (default 8); `mpsf runs list` and
    `runs stop` show and stop the ones still running.
 
    **Restare in moto.** Never wait idle. The agent continues with the next
    step until no work remains; it stops only for human decisions. Before
-   ending a turn run `agentic-sdlc next` (the Stop hook in Claude Code does
+   ending a turn run `mpsf next` (the Stop hook in Claude Code does
    the same and keeps the turn going; `AGENTIC_SDLC_KEEP_GOING=off` disables
    it). Priority: unanswered questions/requests, unpublished records, plugin
    update (a message from another computer carries a newer `v:<version>`:
@@ -176,7 +176,7 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    (`story reserve --id <id>`) so work continues right after certification.
    When the story worktree is behind origin/main, run `story sync` before
    commit/gate steps. Whoever delegates a step to a background helper
-   (subagent) runs `agentic-sdlc story working --id <story> --until <2h>
+   (subagent) runs `mpsf story working --id <story> --until <2h>
    [--reason <text>]` (`--clear` when done): the marker is local, expires by
    itself, and until then the check does not ask for that step and proposes
    only parallel work. The same reason blocks at most 2 times in a row within

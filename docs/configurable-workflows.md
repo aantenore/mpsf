@@ -1,6 +1,6 @@
 # Configurable workflows
 
-Agentic SDLC can follow different agreed sequences instead of forcing every request through the same software-delivery process. For example, a new feature can use discovery through release, a small change can use intake through closure, and an assessment can keep its two normal approval moments.
+MPSF can follow different agreed sequences instead of forcing every request through the same software-delivery process. For example, a new feature can use discovery through release, a small change can use intake through closure, and an assessment can keep its two normal approval moments.
 
 The practical rule is simple: choosing a process decides **which steps come next**. It does not decide **what the agent is allowed to do**. For each pull request or local release, the user still chooses separately whether the agent must ask at every step, may continue between agreed review moments, or may finish that one delivery inside the displayed limits.
 
@@ -97,15 +97,15 @@ exclude file matches them.
 
 The examples in this guide use the npm/package bin shim `agentic-sdlc`. A Codex
 plugin installation does not create that global executable; use
-`node <plugin-root>/bin/agentic-sdlc.mjs` followed by the same arguments:
+`node <plugin-root>/bin/mpsf.mjs` followed by the same arguments:
 
 ```bash
-agentic-sdlc gate check --strict --story ST-TRIP-POLICY-001
-agentic-sdlc workflow instance transition \
+mpsf gate check --strict --story ST-TRIP-POLICY-001
+mpsf workflow instance transition \
   --id DELIVERY-TRIP-POLICY-001 \
   --to release \
   --request-id trip-policy-release-1
-agentic-sdlc gate check --strict --story ST-TRIP-POLICY-001 --lifecycle-complete
+mpsf gate check --strict --story ST-TRIP-POLICY-001 --lifecycle-complete
 ```
 
 If a story retains more than one immutable story-bound workflow run, the
@@ -157,13 +157,13 @@ config hash in the same bootstrap:
 PLUGIN_ROOT=/absolute/path/to/agentic-sdlc
 PROJECT_ROOT=/absolute/path/to/project
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" init \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" init \
   --root "$PROJECT_ROOT" \
   --project-name "Local project with integration review" \
   --template-dir \
     "$PLUGIN_ROOT/templates/workflow-software-project-v3-integration-review"
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" config status \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" config status \
   --root "$PROJECT_ROOT"
 ```
 
@@ -185,10 +185,10 @@ cp \
   "$PLUGIN_ROOT/templates/workflow-software-project-v3-integration-review/sdlc-config.json" \
   "$PROJECT_ROOT/.sdlc/config.json"
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" config migrate \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" config migrate \
   --root "$PROJECT_ROOT"
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" config migrate \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" config migrate \
   --root "$PROJECT_ROOT" \
   --apply \
   --plan-hash <hash-shown-by-the-preview>
@@ -241,19 +241,19 @@ Propose the project-local copy, inspect it, approve that exact version, and
 start it for an existing story:
 
 ```bash
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" workflow definition propose \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" workflow definition propose \
   --root "$PROJECT_ROOT" \
   --id software-project-integration-review \
   --definition-version 1 \
   --definition-file workflow-software-project-v3-integration-review.json \
   --summary "Add an explicit integration review before validation"
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" workflow definition show \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" workflow definition show \
   --root "$PROJECT_ROOT" \
   --id software-project-integration-review \
   --definition-version 1
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" workflow definition approve \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" workflow definition approve \
   --root "$PROJECT_ROOT" \
   --id software-project-integration-review \
   --definition-version 1 \
@@ -261,7 +261,7 @@ node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" workflow definition approve \
   --approval-source explicit-user \
   --summary "Approve the displayed seven-phase workflow"
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" workflow instance start \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" workflow instance start \
   --root "$PROJECT_ROOT" \
   --id DELIVERY-ST-001 \
   --definition software-project-integration-review \
@@ -281,7 +281,7 @@ each exact operation. Claim authority is story-scoped; completion authority is
 bound to the story and configured step:
 
 ```bash
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" authorization grant \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" authorization grant \
   --root "$PROJECT_ROOT" \
   --id AUTH-ST-001-CLAIM \
   --scope "Allow one claim for ST-001 only" \
@@ -291,7 +291,7 @@ node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" authorization grant \
   --approval-source explicit-user \
   --summary "Approve one story claim for ST-001"
 
-node "$PLUGIN_ROOT/bin/agentic-sdlc.mjs" authorization grant \
+node "$PLUGIN_ROOT/bin/mpsf.mjs" authorization grant \
   --root "$PROJECT_ROOT" \
   --id AUTH-ST-001-INTEGRATION-REVIEW-COMPLETE \
   --scope "Complete integration-review for ST-001 only" \
@@ -372,27 +372,27 @@ Definitions and overlays are immutable after approval. Instance headers are immu
 Use focused help for the exact options supported by the installed version:
 
 ```bash
-agentic-sdlc workflow definition list
-agentic-sdlc workflow definition show --id software-project --definition-version 1
-agentic-sdlc workflow definition show --id software-project --definition-version 2
-agentic-sdlc workflow definition show --id software-project --definition-version 3
-agentic-sdlc workflow definition propose --id my-process --definition-version 1 --definition-file workflow.json
-agentic-sdlc workflow definition approve --id my-process --definition-version 1 --actor-type human --approval-source explicit-user --summary "I confirm these steps and checks"
+mpsf workflow definition list
+mpsf workflow definition show --id software-project --definition-version 1
+mpsf workflow definition show --id software-project --definition-version 2
+mpsf workflow definition show --id software-project --definition-version 3
+mpsf workflow definition propose --id my-process --definition-version 1 --definition-file workflow.json
+mpsf workflow definition approve --id my-process --definition-version 1 --actor-type human --approval-source explicit-user --summary "I confirm these steps and checks"
 
-agentic-sdlc workflow overlay propose --id labels-it --overlay-version 1 --definition my-process --definition-version 1 --overlay-file labels-it.json
-agentic-sdlc workflow overlay approve --id labels-it --overlay-version 1 --actor-type human --approval-source explicit-user --summary "I confirm these project-specific labels and checks"
-agentic-sdlc workflow overlay explain --id labels-it --overlay-version 1
+mpsf workflow overlay propose --id labels-it --overlay-version 1 --definition my-process --definition-version 1 --overlay-file labels-it.json
+mpsf workflow overlay approve --id labels-it --overlay-version 1 --actor-type human --approval-source explicit-user --summary "I confirm these project-specific labels and checks"
+mpsf workflow overlay explain --id labels-it --overlay-version 1
 
-agentic-sdlc workflow instance start --id change-184 --definition change-request --definition-version 1
-agentic-sdlc workflow instance transition --id change-184 --to impact-review --request-id review-1
-agentic-sdlc workflow instance status --id change-184
-agentic-sdlc workflow instance explain --id change-184
+mpsf workflow instance start --id change-184 --definition change-request --definition-version 1
+mpsf workflow instance transition --id change-184 --to impact-review --request-id review-1
+mpsf workflow instance status --id change-184
+mpsf workflow instance explain --id change-184
 ```
 
 For a new governed software project, pin v3 and its story explicitly:
 
 ```bash
-agentic-sdlc workflow instance start \
+mpsf workflow instance start \
   --id DELIVERY-TRIP-POLICY-001 \
   --definition software-project \
   --definition-version 3 \

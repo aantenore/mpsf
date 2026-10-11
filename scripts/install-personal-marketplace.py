@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan and transactionally update the personal Agentic SDLC installation."""
+"""Plan and transactionally update the personal MPSF installation."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ class InstallerArgumentParser(argparse.ArgumentParser):
 def _parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = InstallerArgumentParser(
         description=(
-            "Inspect, plan, or safely update the local Agentic SDLC plugin and "
+            "Inspect, plan, or safely update the local MPSF plugin and "
             "the list Codex uses to find it. Running without a command only "
             "creates a plan; it does not change files."
         )
@@ -1838,11 +1838,11 @@ def _base_human_message(
         if error and rtk_partial_failure:
             return {
                 "outcome": (
-                    "Agentic SDLC è stato aggiornato in locale, ma l’impostazione "
+                    "MPSF è stato aggiornato in locale, ma l’impostazione "
                     "globale facoltativa non è stata completata."
                 ),
                 "impact": (
-                    "Puoi usare Agentic SDLC in locale. Solo l’ottimizzazione "
+                    "Puoi usare MPSF in locale. Solo l’ottimizzazione "
                     "facoltativa dei comandi potrebbe essere incompleta."
                 ),
                 "decision": (
@@ -1887,9 +1887,9 @@ def _base_human_message(
         if command == "check":
             return {
                 "outcome": (
-                    "Agentic SDLC è già aggiornato e pronto per l’uso locale."
+                    "MPSF è già aggiornato e pronto per l’uso locale."
                     if not needs_apply
-                    else "È disponibile un aggiornamento locale per Agentic SDLC."
+                    else "È disponibile un aggiornamento locale per MPSF."
                 ),
                 "impact": (
                     "Questo controllo ha soltanto confrontato i file presenti con "
@@ -1913,13 +1913,13 @@ def _base_human_message(
         if command == "plan":
             return {
                 "outcome": (
-                    "Agentic SDLC è già aggiornato e non richiede modifiche."
+                    "MPSF è già aggiornato e non richiede modifiche."
                     if not needs_apply
-                    else "È pronto un piano sicuro e leggibile per aggiornare Agentic SDLC in locale."
+                    else "È pronto un piano sicuro e leggibile per aggiornare MPSF in locale."
                 ),
                 "impact": (
                     "Nessun file è stato modificato. L’aggiornamento riguarderà "
-                    "solo i file locali di Agentic SDLC e la voce personale che "
+                    "solo i file locali di MPSF e la voce personale che "
                     "consente a Codex di trovarli."
                 ),
                 "decision": (
@@ -1942,9 +1942,9 @@ def _base_human_message(
             }
         return {
             "outcome": (
-                "Agentic SDLC era già aggiornato per l’uso locale."
+                "MPSF era già aggiornato per l’uso locale."
                 if plan["operation"] == "noop"
-                else "Agentic SDLC è stato aggiornato correttamente per l’uso locale."
+                else "MPSF è stato aggiornato correttamente per l’uso locale."
             ),
             "impact": (
                 "La copia locale verificata è pronta per essere attivata in Codex."
@@ -1964,11 +1964,11 @@ def _base_human_message(
     if error and rtk_partial_failure:
         return {
             "outcome": (
-                "Agentic SDLC was updated locally, but the optional global setting "
+                "MPSF was updated locally, but the optional global setting "
                 "was not completed."
             ),
             "impact": (
-                "You can use Agentic SDLC locally. Only the optional command "
+                "You can use MPSF locally. Only the optional command "
                 "optimization may be incomplete."
             ),
             "decision": (
@@ -2009,9 +2009,9 @@ def _base_human_message(
     if command == "check":
         return {
             "outcome": (
-                "Agentic SDLC is up to date and ready to use locally."
+                "MPSF is up to date and ready to use locally."
                 if not needs_apply
-                else "A local Agentic SDLC update is available."
+                else "A local MPSF update is available."
             ),
             "impact": (
                 "This check only compared the files already present with the "
@@ -2035,13 +2035,13 @@ def _base_human_message(
     if command == "plan":
         return {
             "outcome": (
-                "Agentic SDLC is already up to date and needs no changes."
+                "MPSF is already up to date and needs no changes."
                 if not needs_apply
-                else "A safe, readable preview of the local Agentic SDLC update is ready."
+                else "A safe, readable preview of the local MPSF update is ready."
             ),
             "impact": (
                 "No files were changed. The update will affect only the local "
-                "Agentic SDLC files and the personal entry that lets Codex find them."
+                "MPSF files and the personal entry that lets Codex find them."
             ),
             "decision": (
                 "No decision is required."
@@ -2062,9 +2062,9 @@ def _base_human_message(
         }
     return {
         "outcome": (
-            "Agentic SDLC was already up to date for local use."
+            "MPSF was already up to date for local use."
             if plan["operation"] == "noop"
-            else "Agentic SDLC was updated successfully for local use."
+            else "MPSF was updated successfully for local use."
         ),
         "impact": (
             "The verified local copy is ready to be enabled in Codex."
@@ -2146,9 +2146,9 @@ def _human_message(
                 )
             elif command == "plan":
                 message["impact"] = message["impact"].replace(
-                    "L’aggiornamento riguarderà solo i file locali di Agentic SDLC "
+                    "L’aggiornamento riguarderà solo i file locali di MPSF "
                     "e la voce personale che consente a Codex di trovarli.",
-                    "La parte locale aggiornerà i file di Agentic SDLC e la voce "
+                    "La parte locale aggiornerà i file di MPSF e la voce "
                     "personale che consente a Codex di trovarli.",
                 )
                 message["impact"] += (
@@ -2179,9 +2179,9 @@ def _human_message(
                 )
             elif command == "plan":
                 message["impact"] = message["impact"].replace(
-                    "The update will affect only the local Agentic SDLC files and "
+                    "The update will affect only the local MPSF files and "
                     "the personal entry that lets Codex find them.",
-                    "The local part will update the Agentic SDLC files and the "
+                    "The local part will update the MPSF files and the "
                     "personal entry that lets Codex find them.",
                 )
                 message["impact"] += (

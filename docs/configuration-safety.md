@@ -7,7 +7,7 @@ executable. Set the installer-managed entry point once before using the
 commands in this guide:
 
 ```bash
-PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/agentic-sdlc.mjs"
+PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
 node "$PLUGIN_CLI" help config
 ```
 

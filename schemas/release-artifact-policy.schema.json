@@ -56,7 +56,7 @@
       ],
       "properties": {
         "name": {
-          "const": "agentic-sdlc"
+          "enum": ["agentic-sdlc", "mpsf"]
         },
         "archive_root": {
           "type": "string",

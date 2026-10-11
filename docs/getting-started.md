@@ -1,6 +1,6 @@
 # Getting Started
 
-Agentic SDLC lets you ask Codex or Claude Code for an outcome in normal language while a deterministic CLI checks that the agreed requirement, files, tools, delivery target, limits, and evidence remain consistent.
+MPSF lets you ask Codex or Claude Code for an outcome in normal language while a deterministic CLI checks that the agreed requirement, files, tools, delivery target, limits, and evidence remain consistent.
 
 You do not need to create record IDs, write JSON, choose CLI commands, or understand hashes before asking for work. The agent host handles the conversation; the CLI handles deterministic validation and state changes.
 
@@ -14,8 +14,8 @@ In Claude Code:
 
 ```bash
 /plugin marketplace add aantenore/agentic-sdlc
-/plugin install agentic-sdlc@aantenore
-/agentic-sdlc:doctor
+/plugin install mpsf@aantenore
+/mpsf:doctor
 ```
 
 In Codex, follow the installer steps in the [README Quick Start](../README.md#codex).
@@ -34,11 +34,11 @@ Open that folder in a new Claude Code session or Codex task.
 **3. Initialize the lifecycle.** Ask:
 
 ```text
-Initialize Agentic SDLC in this project with the default workflow.
+Initialize MPSF in this project with the default workflow.
 ```
 
 The project gains a `.sdlc/` directory holding the configured phases and every
-record created from now on. `/agentic-sdlc:status` (or asking
+record created from now on. `/mpsf:status` (or asking
 `What is the next safe step?`) shows where the project stands.
 
 **4. Run one small result end to end.** Use the local-only starter, so nothing is
@@ -54,8 +54,8 @@ your approval of each before writing code. The full journey, stage by stage,
 is in [Walk Through One Complete First Project](#walk-through-one-complete-first-project).
 
 In Claude Code the same starters are available as slash commands:
-`/agentic-sdlc:assess`, `/agentic-sdlc:deliver`, `/agentic-sdlc:continue-pr`,
-`/agentic-sdlc:local`, `/agentic-sdlc:observe`, and `/agentic-sdlc:status`.
+`/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`,
+`/mpsf:local`, `/mpsf:observe`, and `/mpsf:status`.
 
 To remove the trial, delete the `sdlc-trial` directory: every record the trial
 created lives in its `.sdlc/` directory.
@@ -79,7 +79,7 @@ Add the real requirement, PR URL, desired local destination, constraints, exclus
 | Part | Its job |
 | --- | --- |
 | Codex conversation | Understand your request, inspect evidence, distinguish fact from inference, explain the proposed work, and ask for decisions in plain language. |
-| Deterministic CLI | Agentic SDLC validates structured intent, approved records, permissions, limits, hashes, state transitions, and evidence. It does not interpret your prose. |
+| Deterministic CLI | MPSF validates structured intent, approved records, permissions, limits, hashes, state transitions, and evidence. It does not interpret your prose. |
 | Project `.sdlc/` directory | Keep the project-specific decisions and evidence with the project. |
 
 Internal names may appear under **Technical details (optional)**. They are audit information, not prerequisites for making the primary decision.
@@ -153,7 +153,7 @@ Include `.gitignore` whenever the work may add or change it.
 
 An empty path list is useful only for governance work that changes no product
 or named output. If product work reaches task start with an empty requirement
-scope, Agentic SDLC stops before preflight and explains how to create a new
+scope, MPSF stops before preflight and explains how to create a new
 requirement revision with `--write-path`. Omitting paths while revising
 inherits the existing scope; supplying any path replaces the whole list.
 Approval never silently repairs an older non-canonical proposal.
@@ -209,7 +209,7 @@ the passing release trace, complete the release step, and close the delivery.
 After those records exist, Codex releases the completed story claim and runs:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs gate check \
+node <plugin-root>/bin/mpsf.mjs gate check \
   --strict \
   --story ST-TRIP-POLICY-001 \
   --lifecycle-complete
@@ -343,7 +343,7 @@ or started. Before `rollback.verify`, `data.migrate`, `data.rollback`, or
    If the first request is already authorized, it is not confirmed again.
 3. While that exact authorization is active, let the external builder create
    only the approved destination root, approved children, and artifact. The
-   Agentic SDLC CLI does not create the directory.
+   MPSF CLI does not create the directory.
 4. Complete the same `build.local` authorization with immutable evidence.
 5. Only after that completion, continue with `rollback.verify`, any declared
    `data.migrate`/`data.rollback` cycle, and `release.local`.
@@ -378,19 +378,19 @@ A pull request is repository publication; it is not a production deployment. A l
 Start with a read-only question:
 
 ```text
-Why is Agentic SDLC blocked? Explain what happened, what remains protected, and the next safe action without changing anything.
+Why is MPSF blocked? Explain what happened, what remains protected, and the next safe action without changing anything.
 ```
 
 Operators can use:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs status
-node <plugin-root>/bin/agentic-sdlc.mjs status --locale it
-node <plugin-root>/bin/agentic-sdlc.mjs doctor --root /path/to/project
-node <plugin-root>/bin/agentic-sdlc.mjs config status --root /path/to/project
+node <plugin-root>/bin/mpsf.mjs status
+node <plugin-root>/bin/mpsf.mjs status --locale it
+node <plugin-root>/bin/mpsf.mjs doctor --root /path/to/project
+node <plugin-root>/bin/mpsf.mjs config status --root /path/to/project
 ```
 
-`status`, `doctor`, and `config status` inspect and explain; they do not approve work or widen permissions. `status` also checks that the project history still matches its recorded fingerprints and lists proposals, such as a proposed requirement, that wait for your approval. Before reading, `status` fetches from the remote so it does not report a stale picture (`orchestration_policy.status_sync.mode`: `fetch` by default, `pull` to also fast-forward, `off` to read the clone as it is; `--sync` overrides it once). If someone merged a plugin-managed pull request directly on GitHub, `status` says so and prints the `autonomy delivery reconcile` command to run in your own terminal. In a folder that is not set up yet, its next step tells you to initialize the project: ask your coding agent to initialize it, or run `agentic-sdlc init`. After `init`, the next step is to propose your first requirement.
+`status`, `doctor`, and `config status` inspect and explain; they do not approve work or widen permissions. `status` also checks that the project history still matches its recorded fingerprints and lists proposals, such as a proposed requirement, that wait for your approval. Before reading, `status` fetches from the remote so it does not report a stale picture (`orchestration_policy.status_sync.mode`: `fetch` by default, `pull` to also fast-forward, `off` to read the clone as it is; `--sync` overrides it once). If someone merged a plugin-managed pull request directly on GitHub, `status` says so and prints the `autonomy delivery reconcile` command to run in your own terminal. In a folder that is not set up yet, its next step tells you to initialize the project: ask your coding agent to initialize it, or run `mpsf init`. After `init`, the next step is to propose your first requirement.
 
 Common pauses are handled as follows:
 
@@ -416,13 +416,13 @@ For installation failure, use the exact `restore` command returned by the instal
 `.sdlc` keeps permanent approvals and usage history, so neither you nor your agent can delete it. If a project was never published or shared and you want a clean start, archive it instead. Ask your agent to show the plan, or run it yourself:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs project archive
+node <plugin-root>/bin/mpsf.mjs project archive
 ```
 
 The plan changes nothing. If anything shows the project was shared (shared refs, a remote that holds project state or already has `.sdlc` in a pushed commit, deliveries, or recorded pushes and merges), it refuses and says why: archiving would hide state that other copies still rely on. Otherwise you apply it in your own terminal with the plan hash, your reason, and your own words:
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs project archive --apply --plan-hash <sha256> \
+node <plugin-root>/bin/mpsf.mjs project archive --apply --plan-hash <sha256> \
   --reason "Restart before first publication" \
   --actor-type human --approval-source explicit-user --summary "Archive this project and start again" --reinit
 ```

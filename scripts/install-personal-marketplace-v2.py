@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Two-phase, reversible local installer for the Agentic SDLC plugin.
+"""Two-phase, reversible local installer for the MPSF plugin.
 
 This is the canonical local installer. It keeps the byte-exact previous
 installation until an independently validated update is explicitly confirmed
@@ -28,9 +28,9 @@ from pathlib import Path
 PLUGIN_NAME = "agentic-sdlc-codex-plugin"
 # The npm package name. It differs from PLUGIN_NAME, which is the Codex install
 # identifier and stays fixed so existing installations update in place.
-PACKAGE_NAME = "agentic-sdlc"
+PACKAGE_NAME = "mpsf"
 # Package name used before the npm rename; accepted only for state that is already installed.
-LEGACY_PACKAGE_NAMES = frozenset({"agentic-sdlc-codex-plugin"})
+LEGACY_PACKAGE_NAMES = frozenset({"agentic-sdlc-codex-plugin", "agentic-sdlc"})
 PROTOCOL_SCHEMA = "agentic-sdlc.local-installer.v2"
 LEGACY_RECEIPT_SCHEMA = "agentic-sdlc.local-installer-receipt.v2"
 RECEIPT_SCHEMA = "agentic-sdlc.local-installer-receipt.v3"
@@ -99,7 +99,7 @@ def _parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = InstallerArgumentParser(
         description=(
             "Prepare, apply, validate, confirm, or restore one exact reversible "
-            "local Agentic SDLC update."
+            "local MPSF update."
         )
     )
     parser.add_argument(
@@ -2344,7 +2344,7 @@ def _codex_plugin_entry(payload: dict[str, object]) -> dict[str, object] | None:
         and entry.get("pluginId") == f"{PLUGIN_NAME}@{V1.DEFAULT_MARKETPLACE_NAME}"
     ]
     if len(matches) > 1:
-        raise InstallError("The Codex plugin list contains duplicate Agentic SDLC entries")
+        raise InstallError("The Codex plugin list contains duplicate MPSF entries")
     return matches[0] if matches else None
 
 
@@ -2478,7 +2478,7 @@ def _capture_codex_before(
     if entry is None:
         if cache_versions:
             raise InstallError(
-                "Codex has an orphaned Agentic SDLC cache without a visible installed "
+                "Codex has an orphaned MPSF cache without a visible installed "
                 "entry; reconcile it before applying a local update"
             )
         return {
@@ -2492,7 +2492,7 @@ def _capture_codex_before(
         raise InstallError("The prior Codex plugin entry has an unsupported installed state")
     if entry.get("enabled") is not True:
         raise InstallError(
-            "The prior Agentic SDLC plugin is disabled, and the official Codex CLI "
+            "The prior MPSF plugin is disabled, and the official Codex CLI "
             "cannot restore that state exactly; enable or remove it before apply"
         )
     destination = _destination_path(home)
@@ -2505,7 +2505,7 @@ def _capture_codex_before(
         executable,
         codex_home,
         staging_identity,
-        label="The prior Agentic SDLC plugin",
+        label="The prior MPSF plugin",
     )
     return {
         "installed": True,
@@ -2530,7 +2530,7 @@ def _verify_codex_candidate(
         str(codex_target["executable"]),
         Path(str(codex_target["home"])),
         destination_identity,
-        label="The candidate Agentic SDLC plugin",
+        label="The candidate MPSF plugin",
     )
 
 
@@ -2546,7 +2546,7 @@ def _verify_codex_reconciliation(
             home,
             executable,
             codex_home,
-            label="The restored Agentic SDLC plugin",
+            label="The restored MPSF plugin",
         )
     staging_identity = _plugin_distribution_identity(
         _destination_path(home),
@@ -2562,7 +2562,7 @@ def _verify_codex_reconciliation(
         executable,
         codex_home,
         staging_identity,
-        label="The restored Agentic SDLC plugin",
+        label="The restored MPSF plugin",
     )
 
 

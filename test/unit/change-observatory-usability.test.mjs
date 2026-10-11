@@ -132,7 +132,7 @@ test("human-facing wording stays host-neutral and keeps both languages in step",
     "Evidence notes",
     "Evidence warnings",
     "Nothing has been recorded yet",
-    "No Agentic SDLC records were found in this folder",
+    "No MPSF records were found in this folder",
     "No status recorded",
     "No contract evolution was recorded.",
     "No intent evidence has been recorded for this project.",
@@ -255,7 +255,7 @@ test("a folder without a knowledge base gets one clear empty state", async (t_) 
   globalThis.fetch = async () => jsonResponse(missing);
   await import(`../../ui/change-observatory/app.js?usability-empty=${Date.now()}`);
   await waitForBrowser(
-    () => /No Agentic SDLC records were found/u.test(textOf(browser.document.querySelector("#primary-view"))),
+    () => /No MPSF records were found/u.test(textOf(browser.document.querySelector("#primary-view"))),
     "the empty state was not rendered",
   );
   const primary = textOf(browser.document.querySelector("#primary-view"));

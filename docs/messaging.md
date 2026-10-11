@@ -9,7 +9,7 @@ Messaging is optional. On a computer where it is not set up, `message send`, `re
 On every computer, in its clone of the project, the same command:
 
 ```bash
-agentic-sdlc message setup [--provider git|github|local] [--repo owner/name] [--issue N]
+mpsf message setup [--provider git|github|local] [--repo owner/name] [--issue N]
 ```
 
 Which channel setup picks: `--provider`; else the one the settings already choose; else GitHub when `--repo`/`--issue` are given or the project already has a channel issue (TravelOps and other existing projects stay where they are); else `git`.
@@ -34,7 +34,7 @@ Every message the plugin writes, on the git channel and on the GitHub issue, car
 
 ### GitHub channel
 
-The repository defaults to the `origin` remote. The channel issue is the one given with `--issue`; otherwise the plugin looks for the issue labelled `agentic-sdlc-channel` (or titled "Agentic SDLC · canale tra computer") and, only if there is none, creates it once. Two computers running setup at the same moment end up on the lowest issue number (the extra one is closed). Repository and issue number are stored in the clone's git folder (`.git/agentic-sdlc/messaging.json`), which git never commits; all worktrees of that clone share it. People can read and write in the same issue from github.com or the GitHub app: a comment without the plugin's hidden trailer reads as an `info` message from the author's GitHub login.
+The repository defaults to the `origin` remote. The channel issue is the one given with `--issue`; otherwise the plugin looks for the issue labelled `agentic-sdlc-channel` (or titled "MPSF · canale tra computer") and, only if there is none, creates it once. Two computers running setup at the same moment end up on the lowest issue number (the extra one is closed). Repository and issue number are stored in the clone's git folder (`.git/agentic-sdlc/messaging.json`), which git never commits; all worktrees of that clone share it. People can read and write in the same issue from github.com or the GitHub app: a comment without the plugin's hidden trailer reads as an `info` message from the author's GitHub login.
 
 A clone that was still set up with the removed ntfy topic is converted by itself the first time any messaging command or hook runs: same repository (the `origin` remote), channel issue found or created, outbox sent through GitHub, automatic-message state kept except the old server's read positions. Nothing to do; if `origin` is not on GitHub, run `message setup --repo owner/name`.
 
@@ -58,7 +58,7 @@ For a channel without GitHub use the `local` provider: a folder holds the channe
 ```bash
 export AGENTIC_SDLC_MESSAGING_PROVIDER=local
 export AGENTIC_SDLC_MESSAGING_LOCAL_DIR=/shared/team-channel   # optional
-agentic-sdlc message setup
+mpsf message setup
 ```
 
 The same choice for the whole team, in `.sdlc/config.json`:
@@ -72,16 +72,16 @@ More on providers, record stores and the coordinator role: [Adapters and roles](
 ## Use it
 
 ```bash
-agentic-sdlc message send --story ST-UX-001 --text "Tests on this story still take 30 minutes here"
-agentic-sdlc message read --since 2h --skip-own
-agentic-sdlc message read --unread                  # only what this clone has not read yet, then marked read
-agentic-sdlc message listen --skip-own --json      # stays open; run it in the background
-agentic-sdlc watch --timeout 30m                    # background alarm: exits at the first relevant message, story or release (see how-it-works)
-agentic-sdlc message outbox [--flush | --drop <id>] # messages waiting to be sent
-agentic-sdlc message identity [--name "Antonio · PC3"] # who this computer is in the channel
-agentic-sdlc message who [--since 7d]               # who is in the channel
-agentic-sdlc message send --kind freeze --until 30m --text "Release in progress"  # no merge/push on main until then
-agentic-sdlc wait list [--all] [--json]             # who waits for what (see "Waits registry")
+mpsf message send --story ST-UX-001 --text "Tests on this story still take 30 minutes here"
+mpsf message read --since 2h --skip-own
+mpsf message read --unread                  # only what this clone has not read yet, then marked read
+mpsf message listen --skip-own --json      # stays open; run it in the background
+mpsf watch --timeout 30m                    # background alarm: exits at the first relevant message, story or release (see how-it-works)
+mpsf message outbox [--flush | --drop <id>] # messages waiting to be sent
+mpsf message identity [--name "Antonio · PC3"] # who this computer is in the channel
+mpsf message who [--since 7d]               # who is in the channel
+mpsf message send --kind freeze --until 30m --text "Release in progress"  # no merge/push on main until then
+mpsf wait list [--all] [--json]             # who waits for what (see "Waits registry")
 ```
 
 ### Identity, join and roster
@@ -109,7 +109,7 @@ A queued answer (`--reply-to X`) counts as an answer in progress: question X no 
 Once the channel is set, the plugin also writes and reads on its own, so agents keep each other informed without being asked:
 
 - it sends a short note (sender, story, reason) when a gate check fails, a story is parked or put on wait (`story wait --on`), or a command stops on a git time limit; the same note for the same story in the same state is sent at most once every 30 minutes, whatever its wording (a failed gate with the same blocker, numbers and paths aside: once an hour); a failing gate check on a story that is already over (merged, closed, released, abandoned or superseded) sends nothing and only prints a local line (0.146.16 and later). A failed gate or a time limit is sent as a `question` ("need help: <error>; reply with --kind answer --reply-to <id>"), so the other computers are reminded until someone answers;
-- when an agentic-sdlc command fails and no automatic note covered it, the host hook reminds the agent, once, to share the problem and ask for help;
+- when an mpsf command fails and no automatic note covered it, the host hook reminds the agent, once, to share the problem and ask for help;
 - before `story claim` and `task start` it shows, on stderr, the messages from the other computers that arrived since this clone last looked (at most 10; the first time, the last 12 hours).
 
 - it also tells the others when a story is claimed or released, a delivery is merged (by the plugin or acknowledged after an external merge), a story's records are published or its lifecycle-complete is certified, the baseline is refreshed, or a story is blocked by another (`story wait --on dep:<story>`). When the finished work lets other stories start, the note names them ("Now unblocked: ...") and ends with a suggested command, shown as a suggestion only: nothing runs by itself;
@@ -145,9 +145,9 @@ Who or what a computer (or a story) is waiting for used to live only in the agen
 **Explicit waits** are declared and closed by hand:
 
 ```bash
-agentic-sdlc wait add --on person:Antonio --until 2h --story ST-UX-002 --reason "layout choice"
-agentic-sdlc wait resolve --id WAIT-20261010120000-a1b2c3 --resolution "two-column layout"
-agentic-sdlc wait list [--all] [--offline] [--json]
+mpsf wait add --on person:Antonio --until 2h --story ST-UX-002 --reason "layout choice"
+mpsf wait resolve --id WAIT-20261010120000-a1b2c3 --resolution "two-column layout"
+mpsf wait list [--all] [--offline] [--json]
 ```
 
 They are kept as dedicated refs on the project remote, the same mechanism as the shared claims, independent of every branch:

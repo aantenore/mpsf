@@ -65,7 +65,7 @@ The user selects the level for each delivery. The effective result is the most r
 Use `--context-file` for authoritative files and `--qa` for answered questions. Ask the user before normal contract creation when questions are still open. Use `--question` with `--allow-incomplete-contract` only for an explicit clarification, migration, or recovery draft. Story contract creation links `story.contract_id` automatically; replacing another contract needs explicit `--replace-story-contract`.
 
 ```bash
-node <plugin-root>/bin/agentic-sdlc.mjs contract create \
+node <plugin-root>/bin/mpsf.mjs contract create \
   --root <target-project> \
   --phase analysis \
   --context-file .sdlc/requirements/REQ-001.json \

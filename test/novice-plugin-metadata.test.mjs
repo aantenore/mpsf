@@ -184,7 +184,7 @@ test("the Claude Code packaging stays version-locked to the package and exposes 
   const claudeManifest = JSON.parse(read(".claude-plugin/plugin.json"));
   const codexManifest = JSON.parse(read(".codex-plugin/plugin.json"));
 
-  assert.equal(claudeManifest.name, "agentic-sdlc");
+  assert.equal(claudeManifest.name, "mpsf");
   assert.equal(claudeManifest.version, packageMetadata.version);
   assert.equal(claudeManifest.version, codexManifest.version);
   assert.equal(claudeManifest.license, packageMetadata.license);
@@ -193,8 +193,15 @@ test("the Claude Code packaging stays version-locked to the package and exposes 
   assert.doesNotMatch(claudeManifest.name, /codex/iu);
 
   const marketplace = JSON.parse(read(".claude-plugin/marketplace.json"));
-  assert.equal(marketplace.plugins.length, 1);
-  const [entry] = marketplace.plugins;
+  assert.equal(marketplace.plugins.length, 2);
+  const [entry, bridge] = marketplace.plugins;
+  // The old name stays as a bridge that installs mpsf, version-locked too.
+  const bridgeManifest = JSON.parse(read("legacy/agentic-sdlc/.claude-plugin/plugin.json"));
+  assert.equal(bridge.name, "agentic-sdlc");
+  assert.equal(bridge.source, "./legacy/agentic-sdlc");
+  assert.equal(bridgeManifest.name, bridge.name);
+  assert.equal(bridgeManifest.version, claudeManifest.version);
+  assert.equal(bridge.version, claudeManifest.version);
   assert.equal(entry.name, claudeManifest.name);
   assert.equal(entry.version, claudeManifest.version);
   assert.equal(entry.source, "./");
@@ -234,7 +241,7 @@ test("the Claude Code packaging stays version-locked to the package and exposes 
   }
 
   for (const relativePath of ["commands/observe.md", "commands/status.md", "commands/doctor.md"]) {
-    assert.match(read(relativePath), /\$\{CLAUDE_PLUGIN_ROOT\}\/bin\/agentic-sdlc\.mjs/u, relativePath);
+    assert.match(read(relativePath), /\$\{CLAUDE_PLUGIN_ROOT\}\/bin\/mpsf\.mjs/u, relativePath);
   }
 
   // Doctor always inspects the project in the working directory when --root is omitted.
@@ -278,7 +285,7 @@ test("the Claude Code installation guide documents the marketplace flow and the 
   const readme = read("README.md");
 
   assert.match(guide, /\/plugin marketplace add aantenore\/agentic-sdlc/u);
-  assert.match(guide, /\/plugin install agentic-sdlc@aantenore/u);
+  assert.match(guide, /\/plugin install mpsf@aantenore/u);
   assert.match(guide, /\$\{CLAUDE_PLUGIN_ROOT\}/u);
   assert.match(guide, /install-personal-marketplace-v2\.py/u);
   assert.match(guide, /does not apply/iu);
