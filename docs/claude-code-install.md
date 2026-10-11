@@ -1,6 +1,6 @@
 # Claude Code installation
 
-MPSF 0.157.2 ships two host packagings from one source tree:
+MPSF 0.157.3 ships two host packagings from one source tree:
 
 | Host | Manifest | Command surface | Installer |
 |---|---|---|---|
@@ -20,7 +20,7 @@ node --version
 ## Install
 
 ```bash
-/plugin marketplace add aantenore/agentic-sdlc
+/plugin marketplace add aantenore/mpsf
 /plugin install mpsf@aantenore
 ```
 
@@ -33,7 +33,7 @@ The plugin was called `agentic-sdlc` before 0.155.0. The marketplace keeps an `a
 To install from a local checkout instead:
 
 ```bash
-git clone https://github.com/aantenore/agentic-sdlc.git
+git clone https://github.com/aantenore/mpsf.git
 /plugin marketplace add /absolute/path/to/agentic-sdlc
 /plugin install mpsf@aantenore
 ```

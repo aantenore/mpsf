@@ -13,12 +13,12 @@
       "name": "mpsf",
       "source": "./",
       "description": "MPSF (My Personal Software Factory): agree the outcome before work starts, deliver verified changes, and explain the recorded lineage in a local visual app.",
-      "version": "0.157.2",
+      "version": "0.157.3",
       "author": {
         "name": "Antonio Antenore",
         "url": "https://github.com/aantenore"
       },
-      "homepage": "https://github.com/aantenore/agentic-sdlc",
+      "homepage": "https://github.com/aantenore/mpsf",
       "license": "MIT",
       "category": "productivity",
       "keywords": [
@@ -33,12 +33,12 @@
       "name": "agentic-sdlc",
       "source": "./legacy/agentic-sdlc",
       "description": "Renamed to mpsf. Updating this entry installs mpsf@aantenore and removes agentic-sdlc.",
-      "version": "0.157.2",
+      "version": "0.157.3",
       "author": {
         "name": "Antonio Antenore",
         "url": "https://github.com/aantenore"
       },
-      "homepage": "https://github.com/aantenore/agentic-sdlc",
+      "homepage": "https://github.com/aantenore/mpsf",
       "license": "MIT",
       "category": "productivity",
       "keywords": [

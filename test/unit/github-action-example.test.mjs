@@ -198,7 +198,7 @@ test("the CLI revision is a marked placeholder that must be set to a release wit
   assert.match(install.run, /exit 1/u);
   assert.match(install.run, /spec="refs\/tags\/\$AGENTIC_SDLC_REF"/u);
   assert.match(install.run, /\^\[0-9a-f\]\{40\}\$/u, "a full commit SHA is accepted too");
-  assert.match(install.run, /fetch --quiet --depth 1 https:\/\/github\.com\/aantenore\/agentic-sdlc\.git "\$spec"/u);
+  assert.match(install.run, /fetch --quiet --depth 1 https:\/\/github\.com\/aantenore\/mpsf\.git "\$spec"/u);
   assert.match(install.run, /test "\$\(git -C "\$dir" rev-parse HEAD\)" = "\$AGENTIC_SDLC_REF"/u);
   // A CLI without the command is reported explicitly, not hidden.
   assert.match(install.run, /help autonomy delivery checks/u);
