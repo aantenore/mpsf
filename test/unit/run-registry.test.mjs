@@ -134,6 +134,7 @@ test("watchdog is disabled with a zero limit", () => {
   assert.equal(startWatchdog({ limitMinutes: 0, spawn: () => assert.fail("must not spawn") }), null);
 });
 
+// startWatchdog unrefs its child; the tests ref it so the loop waits for its exit.
 test("watchdog stops a child blocked in synchronous work that ignores SIGTERM", { timeout: 20_000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "watchdog-"));
   const logFile = path.join(dir, "watchdog.log");
@@ -142,6 +143,7 @@ test("watchdog stops a child blocked in synchronous work that ignores SIGTERM", 
   const blocked = spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); while (true) {}"], { stdio: "ignore" });
   const exited = new Promise((resolve) => blocked.once("exit", (code, signal) => resolve(signal)));
   const watchdog = startWatchdog({ pid: blocked.pid, limitMinutes: 0.01, logFile, recordFile, pollMs: 100, killAfterMs: 500 });
+  watchdog.ref();
   try {
     assert.equal(await exited, "SIGKILL");
     await new Promise((resolve) => (watchdog.exitCode === null ? watchdog.once("exit", resolve) : resolve()));
@@ -156,6 +158,7 @@ test("watchdog stops a child blocked in synchronous work that ignores SIGTERM", 
 test("watchdog exits as soon as the parent is gone", { timeout: 10_000 }, async () => {
   const parent = spawn(process.execPath, ["-e", "setTimeout(() => {}, 200)"], { stdio: "ignore" });
   const watchdog = startWatchdog({ pid: parent.pid, limitMinutes: 30, pollMs: 100 });
+  watchdog.ref();
   const code = await new Promise((resolve) => watchdog.once("exit", resolve));
   assert.equal(code, 0);
 });
