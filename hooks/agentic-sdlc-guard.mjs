@@ -4,7 +4,9 @@
 // 2 and a reason on stderr, the one blocking signal both hosts honour. Any
 // internal failure exits 0 so the host's normal permission flow applies; the
 // CLI enforces every rule on its own.
-// First import: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version takes over this call.
+// MPSF_* variables are aliases of AGENTIC_SDLC_*; applied before anything reads the environment.
+import "../lib/runtime/env-alias.mjs";
+// Then: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version takes over this call.
 import "../lib/runtime/self-forward.mjs";
 
 import { spawnSync } from "node:child_process";

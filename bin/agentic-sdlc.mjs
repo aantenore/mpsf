@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-// First import: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version runs this command instead.
+// MPSF_* variables are aliases of AGENTIC_SDLC_*; applied before anything reads the environment.
+import "../lib/runtime/env-alias.mjs";
+// Then: with AGENTIC_SDLC_AUTO_UPDATE=1 a newer installed version runs this command instead.
 import "../lib/runtime/self-forward.mjs";
 
 import path from "node:path";

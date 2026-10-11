@@ -196,6 +196,9 @@ export async function main({
     // Hosts without a smoke sandbox (Windows, Linux without bwrap) still exercise local-release
     // fixtures; release.local authorization stays fail-closed there.
     env.AGENTIC_SDLC_TEST_DEFER_SMOKE_PROVIDER_PREFLIGHT ??= "1";
+    // Windows fixtures expect the fail-closed path; real AppContainer runs are
+    // covered by test/unit/windows-appcontainer-launcher.test.mjs.
+    if (process.platform === "win32") env.AGENTIC_SDLC_TEST_LOCAL_SMOKE_PROVIDER ??= "unavailable";
     testStream = runTests({ concurrency, files });
     testStream.on("test:pass", () => {
       completedTestCount += 1;

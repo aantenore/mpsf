@@ -2,6 +2,34 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.151.1
+
+- Fresh state reader (`lib/engine/fresh-state.mjs`): one bounded fetch (5 s, at most once a minute per clone) of the base branch and of the presence and role refs; records read from `origin/<base>` with `git ls-tree`/`git show`, never from the working tree of the checked-out branch; how many commits the checkout is behind the base; a dedicated worktree on the base in `<git-common-dir>/agentic-sdlc/base-worktree` for role writes (moved to the base tip only when clean). A clone far behind main no longer trusts its stale claims once callers move to it.
+- `context pack` prints `base: N commits behind origin/main` under its title (`base` in `--json`); the pack and its hash do not change. `AGENTIC_SDLC_FRESH_FETCH=off` skips the fetch.
+- Change Observatory: no change needed, it already reads the base branch from git and shows how far the checkout is behind.
+- Compatibility: nothing new is written to the repository or the remote; older plugins are unaffected.
+
+## 0.151.0
+
+- Local releases now run on Windows. The `release.local` smoke test runs in a fresh AppContainer with no capabilities (`windows-appcontainer-readonly-no-network`): no network, no loopback, writes only in the container's private storage, reads limited to the smoke directory, the runtime's folder and the system folders. Windows PowerShell starts it with a launcher script shipped in the plugin, whose SHA-256 is sealed into the authorization and checked again before the run. Windows 10 1809 or later, no admin rights.
+- Where PowerShell cannot run the launcher in FullLanguage mode (AppLocker, WDAC, execution policy forced by Group Policy) the proposal still stops early with the options (WSL2, pull request).
+- macOS and Linux authorizations are unchanged. Compatibility: the first Windows local release in a project records that it needs this version, so older plugins ask for an update instead of rejecting its receipt.
+
+## 0.150.0
+
+- New `git` messaging provider: the channel lives in the project's own remote, one ref per computer (`refs/agentic-sdlc/channel/<machine-id>`), each message a small signed commit. Any git host, no other service or account; each computer pushes only to its own ref, so there are no conflicts. Reads fetch only the channel refs and walk only new commits; a message pushed late is still delivered; each computer compacts its ref to the last 14 days. Hosts that refuse custom refs get branches `agentic-sdlc/channel/<machine-id>` (with `[skip ci]`), detected at the first refused push.
+- `message setup` uses `git` for new channels; a project that already has a GitHub channel issue keeps it (TravelOps does), and `--repo`/`--issue` or `--provider github` still choose GitHub. Nothing already configured is rewritten.
+- Signed messages on every provider that the plugin writes (git and the GitHub issue), with this computer's Ed25519 key. `message setup` proposes the public key in `.sdlc/machines/<machine-id>.json`: commit and merge it, then the other computers trust that computer. Unregistered keys read as `[unverified: key not registered]`, missing or wrong signatures as `[untrusted]`; a hand-written GitHub comment is trusted when its author is owner, member or collaborator. `message status` shows this computer's key.
+- Change Observatory: the "Now" panel marks unverified and untrusted messages.
+- Compatibility: older plugins do not know the `git` provider and say messaging needs a newer plugin; they keep using the issue on projects that use it. To join a git channel, update the plugin.
+
+## 0.149.3
+
+- First step of the rename to **mpsf** (My Personal Software Factory). The CLI also answers as `mpsf` (`bin/mpsf.mjs`); `agentic-sdlc` keeps working.
+- Every `MPSF_<NAME>` variable is an alias of `AGENTIC_SDLC_<NAME>`; an explicit `AGENTIC_SDLC_*` value wins. The old names are never dropped.
+- The guard, the run registry and the automatic update recognize the plugin under both names.
+- Compatibility: nothing changes for older plugins; records, refs and config are untouched.
+
 ## 0.149.1
 
 - Computers and roles without messages: each computer keeps a presence ref on the project's remote (`refs/agentic-sdlc/presence/<id>`, 30 minutes, renewed every 10 by the host hook), and the `coordinator` and `knowledge` roles go to one alive computer each through create-only lease refs (`refs/agentic-sdlc/roles/<role>/<epoch>`): the pinned host of `host_policy.roles.coordinator` first, else rendezvous hashing among the alive computers. The holder renews after half of the lease and hands over at that renewal when another computer should hold it; a lease of a computer that disappears expires. Alone, a computer holds every role. Without a valid lease, a shared remote, or with `AGENTIC_SDLC_ROLES=off`, every computer does every duty itself, as before. Older plugins ignore these refs.

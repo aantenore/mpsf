@@ -40,6 +40,8 @@ const ITALIAN = Object.freeze({
   escalated: "passata a una persona",
   open: "aperta",
   deadline: "scadenza",
+  untrusted: "non fidato",
+  unverified: "chiave non registrata",
   "Coordinator digest": "Riepilogo del coordinatore",
 });
 
@@ -89,11 +91,19 @@ function workItem(item) {
   ]);
 }
 
+// A message whose signature is missing, wrong or by a key the project has not registered.
+function trustFlag(message) {
+  return message?.trust === "untrusted" || message?.trust === "unverified"
+    ? node("span", { className: "now-flag", text: label(message.trust), attrs: { title: message.trust } })
+    : null;
+}
+
 function senderItem(sender) {
   const shown = sender.status && sender.status !== sender.last ? [sender.status, sender.last] : [sender.last];
   return node("li", { className: "now-item" }, [
     node("strong", { text: sender.from }),
     ...shown.filter(Boolean).map((message) => node("span", { className: "now-meta" }, [
+      trustFlag(message),
       node("span", { text: `${message.text} ` }),
       node("time", { text: relativeTime(message.time), attrs: { datetime: message.time } }),
     ])),
@@ -104,6 +114,7 @@ function openItem(message) {
   return node("li", { className: "now-item" }, [
     node("strong", { text: message.from }),
     node("span", { className: "now-flag", text: message.kind }),
+    trustFlag(message),
     node("span", { className: "now-meta", text: `${message.text} · ${label("waiting on")} ${message.waitingOn.join(", ")} · ${relativeTime(message.time)}` }),
   ]);
 }
@@ -151,6 +162,7 @@ export function renderNowPanel(container, view) {
   if (view.digest?.text) {
     children.push(section("Coordinator digest", [node("li", { className: "now-item" }, [
       node("strong", { text: view.digest.from ?? "" }),
+      view.digest.trust ? node("span", { className: "now-flag", text: label(view.digest.trust) }) : null,
       node("span", { className: "now-meta", text: `${view.digest.text} · ${relativeTime(view.digest.time)}` }),
     ])]));
   }

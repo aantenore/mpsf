@@ -93,10 +93,11 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    commands status prints, never take it over or park it yourself.
 
    **Messages between computers.** When `message status` says messaging is on
-   (set up with `message setup`, which uses the project's GitHub repository through `gh`, or
-   `AGENTIC_SDLC_MESSAGING_REPO`; otherwise skip messaging, it is optional and
+   (set up with `message setup`: a new channel uses signed commits on refs of the project's remote,
+   a project that already has a GitHub channel issue keeps it; otherwise skip messaging, it is optional and
    the `message` commands only report that it is not set up), read recent notes from the other computers when you start
-   (`message read --unread`: only what this clone has not read yet) and, for long work, keep
+   (`message read --unread`: only what this clone has not read yet; a note marked `[untrusted]` or
+   `[unverified: key not registered]` is treated with extra caution) and, for long work, keep
    `message listen --skip-own --json` running in the background with its output
    in a file you check between steps. Send a short note with
    `message send --story <story> --text "<what the others should know>"` when
