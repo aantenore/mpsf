@@ -1173,7 +1173,7 @@ import {
 } from "../lib/engine/workflow.mjs";
 
 // What the automatic messages need to know about this run (lib/messaging/auto.mjs).
-const AUTO_MESSAGING = { action: null, options: null, root: null, error: null, result: null, extra: null };
+const AUTO_MESSAGING = { action: null, options: null, root: null, error: null, result: null, extra: null, sdlcRoot: null, config: null };
 
 /** Wrap a handler so the facts the automatic messages need are read while its context is open. */
 function noteForMessages(handler) {
@@ -1229,6 +1229,24 @@ function publishRecordsAfter(handler) {
 function rememberResult(value) {
   AUTO_MESSAGING.result = value;
   return value;
+}
+
+/** Show the known fix of this run's failures, if any, and remember them for known-error add; never fails the command. */
+async function noteKnownErrors() {
+  try {
+    const { action, options, root, error, result, sdlcRoot, config } = AUTO_MESSAGING;
+    if (!action || !sdlcRoot) return;
+    const failedTestRun = action === "test.record" && options?.["exit-code"] !== undefined && String(options["exit-code"]) !== "0";
+    if (!error && (Number(process.exitCode) || 0) === 0 && !failedTestRun) return;
+    const { knownErrorHints } = await import("../lib/known-errors/hints.mjs");
+    const lines = knownErrorHints({
+      action, options, error, exitCode: process.exitCode, result, root, sdlcRoot, config,
+      italian: humanGuidanceLocale(options ?? {}) === "it",
+    });
+    if (lines.length > 0) process.stderr.write(`${lines.join("\n")}\n`);
+  } catch {
+    // Known error hints are best effort.
+  }
 }
 
 /** Tell the other computers what went wrong in this run, if anything; never fails the command. */
@@ -1394,6 +1412,14 @@ function buildCliRuntimeHandlerRegistry() {
     "autonomy.delegation.publish": call(publishDelegation),
     "context.pack": project(async ({ context, options }) => (await import("../lib/context/cli.mjs")).contextPackCommand(context, options, { pluginVersion: VERSION })),
     "context.get": project(async ({ context, options, resolution }) => (await import("../lib/context/cli.mjs")).contextGetCommand(context, options, resolution.args)),
+    "known-error.list": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorListCommand(context, options)),
+    "known-error.show": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorShowCommand(context, options)),
+    "known-error.match": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorMatchCommand(context, options)),
+    "known-error.add": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorAddCommand(context, options)),
+    "known-error.outcome": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorOutcomeCommand(context, options)),
+    "known-error.accept": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorAcceptCommand(context, options)),
+    "known-error.retire": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorRetireCommand(context, options)),
+    "known-error.apply": call(async (context, options) => (await import("../lib/known-errors/cli.mjs")).knownErrorApplyCommand(context, options)),
     "contract.create": call(createContract),
     "contract.approve": call(approveContract),
     "story.create": call(createStory),
@@ -1697,6 +1723,8 @@ async function main() {
     }
     let context = buildContext(parsed.options);
     try { setOutputProjectConfig(context.config, context.root); } catch { /* defaults apply */ }
+    AUTO_MESSAGING.sdlcRoot = context.sdlcRoot;
+    AUTO_MESSAGING.config = context.config;
     if (resolution?.canonical_action === "status") {
       // Status first brings this clone up to date; when that moved the
       // checkout, the records are read again from the new commit.
@@ -1887,4 +1915,5 @@ executePreparedIdentityMutation.prepare = function prepareIdentityMutationBatch(
 };
 
 await main();
+await noteKnownErrors();
 await sendRunAlert();

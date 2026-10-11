@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "known-error-event.schema.json",
+  "title": "Agentic SDLC Known Error Event v1",
+  "description": "One append-only event of a known error: its fix worked or failed, a person accepted its safe fix, or it was retired.",
+  "type": "object",
+  "required": ["kind", "schema_version", "known_error_id", "type", "actor", "at"],
+  "properties": {
+    "kind": { "const": "known_error_event" },
+    "schema_version": { "const": "known-error-event:v1" },
+    "known_error_id": { "type": "string", "pattern": "^KE-[0-9a-f]{12}$" },
+    "type": { "enum": ["worked", "failed", "accepted", "retired"] },
+    "story_id": { "type": ["string", "null"] },
+    "note": { "type": ["string", "null"] },
+    "superseded_by": { "type": ["string", "null"] },
+    "actions": { "type": "array" },
+    "actor": { "type": "object" },
+    "plugin_version": { "type": "string" },
+    "at": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1549,6 +1549,37 @@ svg {
   font-size: 12px;
 }
 
+.known-error-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7e9ee;
+}
+
+.known-error-row:last-child {
+  border-bottom: 0;
+}
+
+.known-error-copy p,
+.known-error-steps {
+  margin: 4px 0 0;
+}
+
+.known-error-meta {
+  color: var(--ink-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.known-error-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+}
+
 .verification-row {
   display: grid;
   min-height: 44px;

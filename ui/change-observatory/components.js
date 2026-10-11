@@ -1037,6 +1037,38 @@ function verificationPanel(model, state, options = {}) {
   return panel;
 }
 
+function knownErrorsPanel(model, options = {}) {
+  const entries = model.knownErrors ?? [];
+  const saved = entries.reduce((total, entry) => total + entry.worked, 0);
+  const panel = node("section", { className: "section-panel" }, [
+    sectionHeading("Known errors", "Recurring failures with a recorded diagnosis and fix, shown again as soon as the same failure happens"),
+  ]);
+  if (!entries.length) {
+    panel.append(emptyInline("No known error was recorded."));
+    return panel;
+  }
+  panel.append(node("p", { className: "panel-note", text: `${entries.length} known errors · ${saved} analyses saved` , i18n: true }));
+  const list = node("div", { className: "record-list", attrs: { role: "list" } });
+  for (const entry of pagedItems(entries, options)) {
+    list.append(node("div", { className: "known-error-row", attrs: { role: "listitem" } }, [
+      node("div", { className: "known-error-copy" }, [
+        node("strong", { text: `${entry.id} · ${entry.title}` }),
+        node("p", { text: entry.diagnosis }),
+        entry.steps.length ? node("ol", { className: "known-error-steps" }, entry.steps.map((step) => node("li", { text: step }))) : null,
+        node("p", { className: "known-error-meta", text: [entry.check, entry.path, entry.message].filter(Boolean).join(" · ") }),
+      ]),
+      node("div", { className: "known-error-stats" }, [
+        statusText(entry.status),
+        node("span", { text: `${entry.worked}/${entry.used} worked`, i18n: true }),
+        entry.autoApplicable ? node("span", { text: "Accepted safe fix", i18n: true }) : null,
+      ]),
+    ]));
+  }
+  panel.append(list);
+  if (list.children.length < entries.length) panel.append(showMoreFooter(list.children.length, entries.length));
+  return panel;
+}
+
 const INTENT_EVIDENCE_LABELS = Object.freeze({
   shadow: "Shadow",
   original: "Original",
@@ -1205,6 +1237,9 @@ export function renderPrimary(container, model, state) {
       break;
     case "verification":
       content = verificationPanel(model, state, paging);
+      break;
+    case "known-errors":
+      content = knownErrorsPanel(model, paging);
       break;
     case "stories":
       content = storiesView(model, state);

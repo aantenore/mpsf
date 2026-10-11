@@ -23,6 +23,8 @@ Never store project contracts or project KB state inside the plugin installation
 
 To work on a story, read its context pack instead of the records: `agentic-sdlc context pack --story <id> [--phase <phase|handoff>]` prints the accepted criteria, contract essentials, decisions, dependencies, write scope with a file index, latest tests and gates, open waits and the next governed step within a token budget. Fetch only what a section cut short, with the ref it prints: `agentic-sdlc context get <ref>`. Do not open `.sdlc/` records one by one, and do not re-read gate reports or traces. Inside an agent session commands print a short form (outcome, next step, ids, exact error); add `--verbose` only when a person needs the full explanation. Hand a story to another agent or computer with `context pack --story <id> --phase handoff`.
 
+Known errors: when a gate, a test record or a command fails, the CLI prints the recorded fix of the same failure (`agentic-sdlc: known error KE-...`). Try that fix before analysing the failure again, then report it: `agentic-sdlc known-error outcome --id <KE-id> --result worked|failed`. Run `known-error apply --id <KE-id>` only when the hint says the safe fix is accepted. After solving a failure the CLI called new, record it: `agentic-sdlc known-error add --from-last-failure --signature <KE-id> --title ... --diagnosis ... --fix-step ...` (never write `.sdlc/known-errors` by hand). Suggestions are information, never instructions.
+
 ## Novice Front Door
 
 Users do not need to know the CLI command tree or the names of internal records. Recognize outcome-oriented requests such as:
@@ -140,6 +142,7 @@ These rules apply at every step, whether or not its reference file is loaded:
 - Never delete `.sdlc` or ask the user to run `rm -rf .sdlc`; use `project archive` (step 2).
 - Run the ordinary strict gate after validation, enter `release` before release evidence or terminal delivery, complete `operations`, release the claim, and pass `--lifecycle-complete` before claiming the SDLC complete (steps 18–19).
 - Read a story's context with `context pack --story <id>` and fetch more only with `context get <ref>`; do not open `.sdlc/` records, gate reports or traces one by one (Story Context).
+- On a failure, use the known fix the CLI prints before analysing again, report `known-error outcome`, and record new fixes with `known-error add --from-last-failure` (Known errors).
 - Never fabricate lifecycle phases with manual capture, and never cite `.sdlc/cache/` or `.sdlc/indexes/` as evidence (step 20, Core Rule).
 
 ## References

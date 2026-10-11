@@ -1,0 +1,10 @@
+{
+  "schema_version": "agentic-sdlc.known-errors-defaults.v1",
+  "principle": "Defaults of the known error database (.sdlc/known-errors): when a gate, a command or a test run fails, the plugin computes a deterministic signature and shows the recorded diagnosis and fix. A project overrides any value in .sdlc/config.json under host_policy.known_errors.",
+  "enabled": true,
+  "stale_after_days": 90,
+  "max_suggestions": 3,
+  "max_failures_per_run": 5,
+  "last_failures_kept": 10,
+  "message_max_chars": 400
+}

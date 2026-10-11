@@ -696,6 +696,31 @@ function normalizeDiagnostics(values) {
   return [...grouped.values()];
 }
 
+// One entry of the known error database (.sdlc/known-errors).
+export function normalizeKnownError(value) {
+  const item = objectOrEmpty(value);
+  const id = readable(item.id, "");
+  if (!id) return null;
+  const count = (raw) => (Number.isInteger(raw) && raw >= 0 ? raw : 0);
+  return {
+    id,
+    title: readable(item.title, id),
+    status: readable(item.status, "active"),
+    check: readable(item.check, "") || null,
+    path: readable(item.path, "") || null,
+    message: readable(item.message, ""),
+    diagnosis: readable(item.diagnosis, ""),
+    steps: arrayOrEmpty(item.steps).map((step) => readable(step, "")).filter(Boolean),
+    safe: item.safe === true,
+    autoApplicable: item.autoApplicable === true,
+    used: count(item.used),
+    worked: count(item.worked),
+    failed: count(item.failed),
+    lastUsedAt: readable(item.lastUsedAt, "") || null,
+    lastVerifiedAt: readable(item.lastVerifiedAt, "") || null,
+  };
+}
+
 export function normalizeViewModel(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new TypeError("The observatory API returned a non-object payload.");
@@ -813,6 +838,7 @@ export function normalizeViewModel(payload) {
     semanticObservations: arrayOrEmpty(payload.semanticObservations)
       .map(normalizeSemanticObservation)
       .filter(Boolean),
+    knownErrors: arrayOrEmpty(payload.knownErrors).map(normalizeKnownError).filter(Boolean),
     unlinkedLineage: arrayOrEmpty(payload.unlinked ?? payload.unlinkedLineage).map(normalizeItem),
     records: arrayOrEmpty(payload.records).map(normalizeRecord).filter((record) => record.path),
     diagnostics: normalizeDiagnostics([

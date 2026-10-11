@@ -332,6 +332,18 @@
           },
           "additionalProperties": false
         },
+        "known_errors": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "stale_after_days": { "type": "integer", "minimum": 1 },
+            "max_suggestions": { "type": "integer", "minimum": 1 },
+            "max_failures_per_run": { "type": "integer", "minimum": 1 },
+            "last_failures_kept": { "type": "integer", "minimum": 1 },
+            "message_max_chars": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
         "context": {
           "type": "object",
           "properties": {

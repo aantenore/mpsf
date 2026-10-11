@@ -183,6 +183,14 @@ const ITALIAN = Object.freeze({
   "Implementation and sync evidence grouped by recorded intent": "Prove di implementazione e sincronizzazione raggruppate per obiettivo registrato",
   "No change records were found.": "Non sono state trovate modifiche registrate.",
   "Verification evidence": "Prove di verifica",
+  "Known errors": "Errori noti",
+  "Recurring failures with a recorded diagnosis and fix, shown again as soon as the same failure happens": "Fallimenti ricorrenti con diagnosi e soluzione registrate, mostrate appena lo stesso fallimento si ripresenta",
+  "No known error was recorded.": "Non è stato registrato alcun errore noto.",
+  "Accepted safe fix": "Fix sicuro accettato",
+  Suspect: "Sospetto",
+  Stale: "Non usato da tempo",
+  Retired: "Ritirato",
+  "Out of range": "Fuori range",
   "Tests, gates, and validation outcomes": "Test, controlli e risultati della validazione",
   "No verification evidence was recorded.": "Non è stata registrata alcuna prova di verifica.",
   "Recorded rationale and alternatives across delivery": "Motivazioni e alternative registrate durante la consegna",
@@ -673,6 +681,10 @@ function translatePattern(value) {
   if (match) return `${t(match[1])}: Tutti`;
   match = value.match(/^(\d+) (category|categories) · (\d+) (record|records)$/u);
   if (match) return `${match[1]} ${match[1] === "1" ? "categoria" : "categorie"} · ${match[3]} ${match[3] === "1" ? "prova" : "prove"}`;
+  match = value.match(/^(\d+) known errors · (\d+) analyses saved$/u);
+  if (match) return `${match[1]} errori noti · ${match[2]} analisi risparmiate`;
+  match = value.match(/^(\d+)\/(\d+) worked$/u);
+  if (match) return `${match[1]}/${match[2]} risolti`;
   match = value.match(/^(\d+) records$/u);
   if (match) return `${match[1]} prove`;
   match = value.match(/^(\d+) linked (record|records)$/u);
