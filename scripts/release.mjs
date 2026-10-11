@@ -5,6 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { syncManifestVersions } from "./sync-version.mjs";
+
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;
 const VERSION_PATHSPECS = [
   "package.json",
@@ -115,6 +117,8 @@ function main() {
       fs.writeFileSync(f, text.replace(re, newVersion));
       changed.push(f);
     }
+    // Manifests that drifted from the main version are not matched above; set them explicitly.
+    for (const f of syncManifestVersions(process.cwd(), newVersion)) if (!changed.includes(f)) changed.push(f);
     if (!changed.length) throw new Error(`No file contains version ${oldVersion}.`);
     console.log(`  ${changed.length} files: ${changed.join(", ")}`);
 
