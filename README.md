@@ -20,7 +20,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-Agentic SDLC 0.148.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+Agentic SDLC 0.148.1 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -30,6 +30,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.148.1** — fixes: `task start` with an invalid delivery profile returns a blocked decision instead of aborting; an invalid `--autonomy-ceiling` is a user error listing the allowed values; the Codex installer updates a plugin installed under the old package name; docs: hooks work in Codex through `CLAUDE_PLUGIN_ROOT`.
 - **0.148.0** — `context pack` and `context get` give an agent the small slice of a story it needs; commands print a short form inside agent sessions (`--verbose` for the full text); `--json-profile agent|full`; hook output is deduplicated and budgeted.
 - **0.147.0** — messaging is optional (`github`, `local` or `none`); records go through a store (`git-sdlc` or `local-fs`); `host_policy.adapters` and a `coordinator` role in `host_policy.roles`.
 - **0.146.13 to 0.146.17** — more delegable approvals (`delivery.approve`, `baseline.approve`, `story.supersede`), a stricter base-branch guard with a person-only `guard trust-remote`, retries when publishing records, no automatic "need help" for finished stories, a much shorter skill front door, and an early, clear stop for local releases on hosts without a sandbox (Windows).

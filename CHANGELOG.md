@@ -2,6 +2,15 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.148.1
+
+- `task start` with an invalid delivery profile no longer aborts while reading the profile for the drift check: the decision is returned blocked with `autonomy_profile_invalid`.
+- `requirement propose` with an unknown `--autonomy-ceiling` now ends in a user error that lists the allowed values.
+- The Codex installer recognizes a plugin installed under the previous package name (`agentic-sdlc-codex-plugin`) and updates it; candidates still have to use the current name.
+- The `integration-review` workflow template now carries `host_policy` in its configuration.
+- Docs: plugin hooks work in Codex too; it reads the same `hooks/hooks.json` and exports `CLAUDE_PLUGIN_ROOT` to each hook command ([Hooks](docs/claude-code-install.md#hooks)).
+- Tests: a release trace without evidence is refused when it is appended; the merged-records test accepts the story title in the status line; several tests no longer depend on the local hooks, the installed output filter or the single-flight lock.
+
 ## 0.148.0
 
 - **Context packs.** `context pack --story <id>` prints a small, deterministic summary of one story for the phase you are in (accepted criteria, the contract essentials, decisions, dependencies, write scope with a file index, recent tests and gates, waits, next step). `context get <ref>` reads the detail of any section or record the pack points to. Secrets are redacted. See [Token efficiency](docs/token-efficiency.md#context-packs-and-compact-output).
