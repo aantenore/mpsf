@@ -1,0 +1,16 @@
+{
+  "schema_version": "mpsf.config-human-only.v1",
+  "principle": "Parts of .sdlc/config.json that only a person confirms: inside an agent session `config migrate --apply` is refused when the edits since the last confirmation touch one of these JSON pointers (or cannot be listed), and when it changes the autonomy rollout mode. The person runs the same command in their own terminal.",
+  "paths": [
+    "/authority_policy",
+    "/gate_policy",
+    "/host_policy",
+    "/approval_policy",
+    "/autonomy_policy",
+    "/standing_approval_policy",
+    "/delegation_policy",
+    "/release_evidence_policy",
+    "/verification_policy",
+    "/phase_lock_policy"
+  ]
+}
