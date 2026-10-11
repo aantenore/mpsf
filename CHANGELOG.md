@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.7
+
+- Faster checks of baseline files that came with the base branch and of secret scans that start after the delivery base: a fixed number of Git processes instead of up to four per file. Nothing changes in the results.
+- Change Observatory: no change needed.
+- Compatibility: nothing changes for older plugins.
+
 ## 0.157.6
 
 - **Push budget per computer.** Channel messages (git provider), presence and role leases are pushed at most once every 2 minutes per computer (`AGENTIC_SDLC_PUSH_INTERVAL_SECONDS`, 0 = no spacing), with backoff after a failed push (30 s up to 8 min). A message written in between is shown at once here and leaves with the next push, in the same `git push` as presence; `message send` says so. Role lease changes are not delayed; presence renewals get a fixed jitter per computer (10 to 15 minutes).
