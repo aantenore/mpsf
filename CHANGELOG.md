@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.9
+
+- Security: a message signed by an unregistered key can no longer read as `trusted` by being re-sent with a registered key fingerprint (the signature cache now checks the claimed key on every read), and a forged copy read first can no longer make the genuine message `untrusted`. Change Observatory: no change. Compatibility: signatures are unchanged; older plugins read new messages as before.
+
 ## 0.159.8
 
 - Documentation and CLI help reviewed against the code: README, `docs/`, skills, slash commands and templates corrected where they had drifted (guard scope, messaging providers and strings, keep-going order, watch events, observatory sources, record store guarantees, JSON agent profile, publication retries, delegations, test triage). CLI help: corrected option values and defaults, missing options added, and accurate impact text for actions that publish to the git remote or the channel. Change Observatory: no change. Compatibility: nothing changes for older plugins.
