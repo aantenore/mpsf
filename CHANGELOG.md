@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.156.2
+
+- Faster story commit checks: working out a story's own commits (base commits, records-only commits, a commit and its revert) and the paths they touch now costs a fixed handful of Git processes per story instead of about five per commit. Nothing changes in the results.
+- Change Observatory: no change needed.
+- Compatibility: nothing changes for older plugins.
+
 ## 0.156.1
 
 - Coordinator duties for claims and waits, as standalone idempotent commands with `--dry-run` and `--json`, that do nothing on a computer not holding the coordinator role: `coordinator free-claims` frees a claim only when its lease ended with no push, no declared wait and no live presence of its holder, and saves the freed story's handoff pack (otherwise a person decides, with the commands shown); `coordinator settle-waits` closes expired waits and stale questions; `coordinator handoff --story <id>` builds a handoff pack on demand. Both automatic duties start by themselves on the coordinator (`config/role-duties.json`). Records are the existing release and wait-resolve records: older plugins read them as before.
