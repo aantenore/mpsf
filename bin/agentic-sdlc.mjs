@@ -4,6 +4,7 @@
 import "../lib/runtime/self-forward.mjs";
 
 import path from "node:path";
+import { compactOutputLines, compactOutputRequested, setOutputProjectConfig } from "../lib/context/compact-output.mjs";
 import zlib from "node:zlib";
 // File system, child processes, OS, randomness, process, console and clock
 // come from the host seam, so every code path can run against test doubles.
@@ -1391,6 +1392,8 @@ function buildCliRuntimeHandlerRegistry() {
     "autonomy.delegation.revoke": call(revokeDelegation),
     "autonomy.delegation.list": call(listDelegations),
     "autonomy.delegation.publish": call(publishDelegation),
+    "context.pack": project(async ({ context, options }) => (await import("../lib/context/cli.mjs")).contextPackCommand(context, options, { pluginVersion: VERSION })),
+    "context.get": project(async ({ context, options, resolution }) => (await import("../lib/context/cli.mjs")).contextGetCommand(context, options, resolution.args)),
     "contract.create": call(createContract),
     "contract.approve": call(approveContract),
     "story.create": call(createStory),
@@ -1693,6 +1696,7 @@ async function main() {
       return;
     }
     let context = buildContext(parsed.options);
+    try { setOutputProjectConfig(context.config); } catch { /* defaults apply */ }
     if (resolution?.canonical_action === "status") {
       // Status first brings this clone up to date; when that moved the
       // checkout, the records are read again from the new commit.
@@ -1817,15 +1821,28 @@ async function main() {
         },
       );
       const customGuidance = userErrorHumanGuidance(error, italian);
+      const compactErrors = compactOutputRequested(parsed.options);
+      if (compactErrors && !customGuidance) {
+        // Agent form: the exact error and its cause, nothing else.
+        console.error([
+          `error: ${normalized.error.message}`,
+          ...(normalized.error.details?.cause
+            ? [`cause: ${Object.entries(normalized.error.details.cause).map(([key, value]) => `${key}=${value}`).join(" ")}`]
+            : []),
+        ].join("\n"));
+        process.exitCode = failureExitCode;
+        return;
+      }
       if (customGuidance) {
-        console.error(humanGuidanceLines(
+        const guidanceLines = humanGuidanceLines(
           customGuidance,
           [
             `Error: ${normalized.error.message}`,
             `Correlation ID: ${CLI_OPERATION_CONTEXT.correlation_id}`,
           ],
           parsed.options,
-        ).join("\n"));
+        );
+        console.error((compactErrors ? compactOutputLines(guidanceLines) : guidanceLines).join("\n"));
         process.exitCode = failureExitCode;
         return;
       }

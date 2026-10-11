@@ -1,0 +1,39 @@
+{
+  "schema_version": "agentic-sdlc.context-defaults.v1",
+  "principle": "Defaults of the context module: how much text the CLI, the host hooks and a story's context pack may put in front of an agent. A project overrides any value in .sdlc/config.json under host_policy.context.",
+  "output": {
+    "mode": "auto",
+    "max_tokens": 300,
+    "max_detail_lines": 6
+  },
+  "hooks": {
+    "dedupe": true,
+    "max_lines": 12,
+    "ledger_max_keys": 500,
+    "ledger_max_age_days": 7,
+    "budget_tokens": {
+      "session_start": 700,
+      "user_prompt_submit": 250,
+      "post_tool_use": 200,
+      "pre_tool_use": 150,
+      "stop": 150
+    }
+  },
+  "pack": {
+    "budget_tokens": 2000,
+    "file_index_max_entries": 40,
+    "symbols_per_file": 8,
+    "test_runs": 3,
+    "decisions": 8,
+    "phase_sections": {
+      "discovery": { "story": 2, "requirement": 4, "decisions": 2, "dependencies": 2, "waits": 1, "next": 1 },
+      "analysis": { "story": 2, "requirement": 4, "decisions": 2, "dependencies": 2, "waits": 1, "next": 1 },
+      "design": { "story": 2, "requirement": 3, "contract": 2, "decisions": 2, "dependencies": 1, "scope": 1, "waits": 1, "next": 1 },
+      "implementation": { "story": 1, "requirement": 3, "contract": 2, "decisions": 1, "dependencies": 1, "scope": 3, "evidence": 2, "waits": 1, "next": 1 },
+      "validation": { "story": 1, "requirement": 3, "contract": 1, "scope": 1, "evidence": 4, "waits": 1, "next": 1 },
+      "release": { "story": 1, "requirement": 1, "dependencies": 2, "evidence": 4, "waits": 1, "next": 1 },
+      "operations": { "story": 1, "requirement": 1, "dependencies": 1, "evidence": 3, "waits": 1, "next": 1 },
+      "handoff": { "story": 2, "requirement": 3, "contract": 1, "decisions": 2, "dependencies": 1, "scope": 2, "evidence": 2, "waits": 2, "next": 1 }
+    }
+  }
+}

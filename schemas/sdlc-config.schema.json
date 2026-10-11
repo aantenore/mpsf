@@ -331,6 +331,55 @@
             }
           },
           "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "principle": { "type": "string" },
+            "output": {
+              "type": "object",
+              "properties": {
+                "mode": { "enum": ["auto", "compact", "full"] },
+                "json_profile": { "enum": ["auto", "agent", "full"] },
+                "max_tokens": { "type": "integer", "minimum": 1 },
+                "max_detail_lines": { "type": "integer", "minimum": 1 }
+              },
+              "additionalProperties": false
+            },
+            "hooks": {
+              "type": "object",
+              "properties": {
+                "dedupe": { "type": "boolean" },
+                "max_lines": { "type": "integer", "minimum": 1 },
+                "ledger_max_keys": { "type": "integer", "minimum": 1 },
+                "ledger_max_age_days": { "type": "integer", "minimum": 1 },
+                "budget_tokens": {
+                  "type": "object",
+                  "additionalProperties": { "type": "integer", "minimum": 1 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "pack": {
+              "type": "object",
+              "properties": {
+                "budget_tokens": { "type": "integer", "minimum": 1 },
+                "file_index_max_entries": { "type": "integer", "minimum": 1 },
+                "symbols_per_file": { "type": "integer", "minimum": 1 },
+                "test_runs": { "type": "integer", "minimum": 1 },
+                "decisions": { "type": "integer", "minimum": 1 },
+                "phase_sections": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

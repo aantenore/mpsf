@@ -51,6 +51,7 @@ export function isolationEnv(baseDir = tempRoot()) {
     dir,
     env: {
       AGENTIC_SDLC_AUTO_PUBLISH: "off",
+      AGENTIC_SDLC_OUTPUT: "full",
       GIT_CEILING_DIRECTORIES: tempRoot(),
       GIT_CONFIG_GLOBAL: config,
       GIT_CONFIG_NOSYSTEM: "1",
