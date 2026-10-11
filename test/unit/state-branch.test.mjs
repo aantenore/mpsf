@@ -7,9 +7,11 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { createFileRecordStore } from "../../lib/adapters/records/fs-store.mjs";
 import { createSharedRefSource } from "../../lib/change-observatory/shared-ref-source.mjs";
 import { pullStateRecords, pushStateRecords, stateMigrateCommand } from "../../lib/engine/state-branch.mjs";
-import { isStateRecordPath, stateShardKey, withStateGitignore } from "../../lib/state-branch.mjs";
+import { isStateRecordPath, stateShardKey, stateTracePair, withStateGitignore } from "../../lib/state-branch.mjs";
+import { verifyTraceIntegrity } from "../../lib/trace-integrity.mjs";
 
 function git(cwd, ...args) {
   const result = spawnSync("git", ["-C", cwd, ...args], {
@@ -51,6 +53,14 @@ test("state paths, shard keys and ignore lines", () => {
   assert.equal(isStateRecordPath(".sdlc/gates/ST-1-strict.json"), true);
   assert.equal(isStateRecordPath(".sdlc/gates/ST-1-final.json"), false);
   assert.equal(isStateRecordPath(".sdlc/traces/project.jsonl"), false);
+  // Level 2: histories, workflow instances and final receipts too, never transient files.
+  assert.equal(isStateRecordPath(".sdlc/gates/ST-1-final.json", ".sdlc", 2), true);
+  assert.equal(isStateRecordPath(".sdlc/traces/project.jsonl", ".sdlc", 2), true);
+  assert.equal(isStateRecordPath(".sdlc/traces/.integrity/project.jsonl.checkpoint.json.previous", ".sdlc", 2), false);
+  assert.equal(isStateRecordPath(".sdlc/workflows/instances/WF-ST-1/checkpoint.json", ".sdlc", 2), true);
+  assert.equal(isStateRecordPath(".sdlc/workflows/instances/.locks/WF-ST-1.lock", ".sdlc", 2), false);
+  assert.equal(isStateRecordPath(".sdlc/stories/ST-1/story.json", ".sdlc", 2), false);
+  assert.equal(stateTracePair(".sdlc/traces/.integrity/p.jsonl.checkpoint.json").trace, ".sdlc/traces/p.jsonl");
   assert.equal(isStateRecordPath(".sdlc/stories/ST-1/story.json"), false);
   assert.equal(stateShardKey(".sdlc/autonomy/executions/AUT-PR-X/start.json"), "ST-X");
   assert.equal(stateShardKey(".sdlc/gates/ST-1-strict.json"), "ST-1");
@@ -58,6 +68,9 @@ test("state paths, shard keys and ignore lines", () => {
   const ignore = withStateGitignore("cache/**/*\n");
   assert.match(ignore, /!gates\/\*-final\.json/u);
   assert.equal(withStateGitignore(ignore), null);
+  const second = withStateGitignore(ignore, 2);
+  assert.match(second, /\ntraces\/\n/u);
+  assert.equal(withStateGitignore(second, 2), null);
 });
 
 test("migrate, push from one clone, pull in another, observatory overlay", async (t) => {
@@ -73,8 +86,9 @@ test("migrate, push from one clone, pull in another, observatory overlay", async
   }
   assert.equal(read(one, ".sdlc/config.json"), "{}\n");
   assert.ok(fs.existsSync(path.join(one, ".sdlc/compatibility/sdlc-state-records.json")));
-  // Untracked but still here; the final gate stays tracked.
-  assert.equal(git(one, "ls-files", ".sdlc/autonomy", ".sdlc/gates"), ".sdlc/gates/ST-1-final.json");
+  // Untracked but still here, final receipts included.
+  assert.equal(git(one, "ls-files", ".sdlc/autonomy", ".sdlc/gates"), "");
+  assert.ok(fs.existsSync(path.join(one, ".sdlc/compatibility/sdlc-state-traces.json")));
   assert.ok(fs.existsSync(path.join(one, ".sdlc/autonomy/actions/AUT-ACT-1.json")));
   git(one, "add", "-A");
   git(one, "commit", "--quiet", "-m", "move records [skip ci]");
@@ -91,7 +105,7 @@ test("migrate, push from one clone, pull in another, observatory overlay", async
   git(base, "clone", "--quiet", path.join(base, "shared.git"), two);
   assert.ok(!fs.existsSync(path.join(two, ".sdlc/autonomy/actions/AUT-ACT-1.json")));
   const pulled = pullStateRecords({ root: two }, { force: true });
-  assert.equal(pulled.pulled, 3);
+  assert.equal(pulled.pulled, 4);
   assert.equal(read(two, ".sdlc/autonomy/actions/AUT-ACT-2.json"), "{\"n\":2}\n");
   assert.equal(git(two, "status", "--porcelain"), "");
 
@@ -114,4 +128,38 @@ test("migrate, push from one clone, pull in another, observatory overlay", async
   assert.ok(fs.existsSync(path.join(snapshotRoot, ".sdlc/autonomy/actions/AUT-ACT-3.json")));
   assert.equal(read(snapshotRoot, ".sdlc/gates/ST-1-strict.json"), "{\"v\":2}\n");
   assert.equal(source.info().stateRef, "refs/remotes/origin/sdlc-state");
+});
+
+test("a history both computers extended is rebased, never overwritten", async (t) => {
+  const { base, one, two } = fixture();
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const traces = (root) => createFileRecordStore({ id: "t", root, sdlcRoot: path.join(root, ".sdlc"), guarantees: [], sharedState: {}, publish: () => null });
+  traces(one).appendTrace("project", { type: "step", summary: "first" });
+  const original = process.stdout.write;
+  process.stdout.write = () => true;
+  try {
+    stateMigrateCommand({ root: one }, { json: true });
+  } finally {
+    process.stdout.write = original;
+  }
+  git(one, "add", "-A");
+  git(one, "commit", "--quiet", "-m", "move records");
+  git(one, "push", "--quiet", "origin", "HEAD:main");
+  git(base, "clone", "--quiet", path.join(base, "shared.git"), two);
+  pullStateRecords({ root: two }, { force: true });
+  assert.equal(traces(two).readTrace("project").length, 1);
+
+  traces(one).appendTrace("project", { type: "step", summary: "from one" });
+  traces(two).appendTrace("project", { type: "step", summary: "from two" });
+  assert.equal(pushStateRecords({ root: one }, { force: true }).status, "pushed");
+  // Two's push finds the branch extended: its own event goes after one's, re-sealed.
+  assert.equal(pushStateRecords({ root: two }, { force: true }).status, "pushed");
+  const summaries = traces(two).readTrace("project").map((event) => event.summary);
+  assert.deepEqual(summaries, ["first", "from one", "from two"]);
+  const tracePath = path.join(two, ".sdlc/traces/project.jsonl");
+  assert.equal(verifyTraceIntegrity({ boundaryRoot: path.join(two, ".sdlc"), tracePath }).valid, true);
+  // One is behind now: the pull takes the branch's history as it is.
+  const pulled = pullStateRecords({ root: one }, { force: true });
+  assert.ok(pulled.pulled >= 1);
+  assert.deepEqual(traces(one).readTrace("project").map((event) => event.summary), summaries);
 });

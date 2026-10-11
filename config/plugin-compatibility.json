@@ -89,6 +89,10 @@
     "sdlc-state-records": {
       "since": "0.154.0",
       "summary": "Operational records (action receipts, executions, gate reports) kept on the sdlc-state branch"
+    },
+    "sdlc-state-traces": {
+      "since": "0.159.0",
+      "summary": "Traces, workflow instances and final gate receipts kept on the sdlc-state branch"
     }
   }
 }

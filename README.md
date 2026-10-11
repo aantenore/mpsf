@@ -27,7 +27,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF 0.158.3 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF 0.159.0 gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.0** — traces, workflow instances and final gate receipts on the `sdlc-state` branch too (re-run `state migrate`): histories both computers extended are rebased, never overwritten; dependency checks, closing records, the fork warning and story sync read them from there.
 - **0.158.3** — CLI messages and examples say `mpsf <command>`; `agentic-sdlc` stays an alias.
 - **0.158.0** — `coordinator merge` also on GitLab (merge requests) and Gitea/Forgejo: forge picked from the remote, token from the environment or the system keychain.
 - **0.157.7** — base-drift and secret-scan coverage checks read Git a fixed number of times instead of several times per file.

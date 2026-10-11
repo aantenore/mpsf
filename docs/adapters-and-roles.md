@@ -65,7 +65,9 @@ Each store declares what it guarantees, and the strictest checks ask for them:
 
 Delivery action receipts (`autonomy/actions/`), autonomy executions (`autonomy/executions/`) and gate reports (`gates/`, except the final receipts `gates/<story>-final.json`) are written often and read rarely. On a busy project they make most of the commits on the base branch. With the state branch they stay plain files in `.sdlc/`, so every command reads them as before, but git no longer tracks them on the base branch; an orphan branch of the same remote carries them.
 
-Stays on the base branch: requirements, contracts, decisions, baseline, config, stories (`story.json`, claims, steps), dependencies, final gate receipts, and for now traces and workflow checkpoints (one unit with the trace hash chain).
+Stays on the base branch: requirements, contracts, decisions, baseline, config, stories (`story.json`, claims, steps) and dependencies.
+
+From 0.159.0 (level 2) the traces with their checkpoints, the workflow instances and the final gate receipts move too. A history both computers extended is never overwritten: the events only this computer has are re-sealed after the branch's (as `trace rebase` does) and then pushed fast-forward. Dependency checks, closing-record warnings, the trace fork warning and story sync read them from the state branch. A project migrated with 0.154 runs `state migrate` again to move them; do it on a checkout whose records are up to date with the base branch (`story sync` first).
 
 ```bash
 mpsf state migrate --dry-run   # what would move
@@ -74,7 +76,7 @@ git commit -m "Operational records on sdlc-state" && git push   # through your u
 mpsf state status              # where they are, how many are not pushed yet
 ```
 
-`state migrate` adds `.sdlc/compatibility/sdlc-state-records.json`. That file switches every computer to the state branch and makes plugins older than 0.154.0 ask for an update instead of missing records. No configuration key is needed. To change the defaults, set `host_policy.adapters.records` to `{ "provider": "sdlc-state", "options": { "branch": "sdlc-state", "remote": "origin", "push_interval_seconds": 120, "pull_interval_seconds": 60 } }` through `config migrate`.
+`state migrate` adds `.sdlc/compatibility/sdlc-state-records.json` and `sdlc-state-traces.json`. They switch every computer to the state branch and make plugins older than 0.154.0 (0.159.0 for level 2) ask for an update instead of missing records. No configuration key is needed. To change the defaults, set `host_policy.adapters.records` to `{ "provider": "sdlc-state", "options": { "branch": "sdlc-state", "remote": "origin", "push_interval_seconds": 120, "pull_interval_seconds": 60 } }` through `config migrate`.
 
 How the records move:
 - The host hooks run `state sync --if-due` in the background at session start and at every stop, and `state push` at session end. `state pull`, `state push` and `state sync` do it by hand.

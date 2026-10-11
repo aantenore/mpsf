@@ -2,6 +2,14 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.0
+
+- **Traces, workflow instances and final gate receipts on `sdlc-state` (level 2).** `state migrate` now also moves `traces/` (with checkpoints), `workflows/instances/` and `gates/<story>-final.json`; a project migrated with 0.154 runs it again. Run it on a checkout up to date with the base branch.
+- Hash-chained histories are never overwritten: when this computer and the branch both added events, `state push` and `state pull` re-seal this computer's events after the branch's (keeping their original seals, like `trace rebase`) and push fast-forward.
+- Dependency checks on the base branch, the closing-records warning, the trace fork warning (`state sync` instead of `trace rebase`) and story sync read these records from the state branch; story sync and publish-records no longer rebuild the project history onto the base branch for such projects.
+- The Change Observatory shows them from the state branch.
+- Needs 0.159.0 on every computer once a project moves them; older plugins are told to update.
+
 ## 0.158.3
 
 - CLI messages, help usage and printed examples say `mpsf <command>`; `agentic-sdlc` keeps working as an alias and help, completion and dispatch accept either name. Prefixes other computers read (`[auto]` channel messages, `agentic-sdlc:` known-error hints, schema ids) are unchanged.
