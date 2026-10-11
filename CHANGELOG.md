@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.153.2
+
+- `knowledge distill` reads the records of origin/<base> after one bounded fetch (`lib/engine/fresh-state.mjs`), so the knowledge role works on the shared state, not on this computer's checkout; without a base branch it reads the working tree as before. The JSON result names the `source`.
+
 ## 0.153.1
 
 - The computer holding a role runs its duties by itself: the host hook starts each one, detached so no hook waits for it, at most every few minutes (`config/role-duties.json`). Automatic today: `coordinator free-claims` and `settle-waits` (once available) and `coordinator check-records`. `coordinator digest`, `update-requests`, `merge`, `main-green` and `knowledge distill` are listed but stay manual until a person turns them on, because they message other computers, merge into the base branch or write a story into the checkout. `roles status` lists the duties started here; `AGENTIC_SDLC_ROLE_DUTIES=off` stops them on a computer.

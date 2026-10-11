@@ -10,7 +10,7 @@ import { buildObservatoryViewModel } from "../../lib/change-observatory/normaliz
 import { contextUsageRows } from "../../lib/change-observatory/now-panel.mjs";
 import { budgetedPack } from "../../lib/context/cli.mjs";
 import { createFsRecordReader } from "../../lib/context/reader.mjs";
-import { knowledgeDistillCommand } from "../../lib/knowledge/cli.mjs";
+import { knowledgeDistillCommand, knowledgeSourceReader, knownErrorsFrom } from "../../lib/knowledge/cli.mjs";
 import { collectCandidates, planDistillation } from "../../lib/knowledge/distill.mjs";
 import { resolveKnowledgePolicy } from "../../lib/knowledge/policy.mjs";
 import { knowledgeForStory, readKnowledge } from "../../lib/knowledge/records.mjs";
@@ -141,6 +141,7 @@ test("distill without a role lease runs here, then the Observatory panel", async
   try {
     result = await knowledgeDistillCommand(context, { json: true }, {
       env: { AGENTIC_SDLC_SESSION_ID: "s4" },
+      fresh: () => ({ sha: null }),
       // The governed writer needs a CLI project boundary; the records are the same.
       writeRecord: (file, value) => write(root, path.relative(root, file), value),
     });
@@ -148,9 +149,23 @@ test("distill without a role lease runs here, then the Observatory panel", async
     console.log = log;
   }
   assert.equal(result.role.mode, "everyone");
+  assert.equal(result.source, "working-tree");
   assert.equal(result.created.length >= 2, true);
   assert.equal(fs.existsSync(path.join(root, result.created[0])), true);
   const view = await buildObservatoryViewModel(root, { clock: () => new Date("2026-10-12T00:00:00Z") });
   assert.equal(view.knowledge.length, result.created.length);
   assert.equal(view.knowledge[0].type, "trap");
+});
+
+test("distillation reads the base branch, not the checkout", () => {
+  const { root } = fixture();
+  spawnSync("git", ["-C", root, "add", ".sdlc"]);
+  spawnSync("git", ["-C", root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base"]);
+  const sha = spawnSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim();
+  fs.rmSync(path.join(root, ".sdlc/gates"), { recursive: true });
+  const { reader, source } = knowledgeSourceReader({ root }, { fresh: () => ({ sha, remote: "origin", branch: "main" }) });
+  assert.equal(source, "origin/main");
+  assert.equal(knownErrorsFrom(reader).length, 1);
+  const candidates = collectCandidates({ reader, policy: resolveKnowledgePolicy(null), knownErrors: knownErrorsFrom(reader), root });
+  assert.equal(candidates.find((item) => item.type === "trap").stories.length, 2, "gates deleted in the checkout still count from the base");
 });
