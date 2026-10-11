@@ -1,6 +1,0 @@
-{
-  "commit_sha": "272456e69d84a098fb9f0f334d2e3eeb41568836",
-  "source_commit": "e7145c4a7bf7a0d21e741ae8fd468b7fff709749",
-  "summary": "feat(release): enforce verified draft publication",
-  "verification": "All four release-workflow unit tests passed, including immutable action pins and tamper rejection."
-}

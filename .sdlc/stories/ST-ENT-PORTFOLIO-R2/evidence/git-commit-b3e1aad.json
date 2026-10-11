@@ -1,9 +1,0 @@
-{
-  "commit": "b3e1aadea93dfa4ba20c2386ac996ab80b44a51c",
-  "tree": "5b1434af9cf46b117bfe0f780e83ba631dcce7e4",
-  "parent": "5bbf918f0cb472f70196f6baf45455487ef964c5",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): tighten portfolio runtime bounds",
-  "scope": "Record caps, privacy pinning across eviction, and deterministic cleanup hardening."
-}

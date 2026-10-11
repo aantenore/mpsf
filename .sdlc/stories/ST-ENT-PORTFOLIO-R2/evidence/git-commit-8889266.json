@@ -1,9 +1,0 @@
-{
-  "commit": "8889266cf1703cf54f630ce061a44aeeefc1f66d",
-  "tree": "1f94880ed0ee1c10c678d3c63afe855952e73b3e",
-  "parent": "f6740218079f0e35abd0ea6f730b32202c65ecd8",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "feat(cli): add one-shot portfolio status",
-  "scope": "Compact one-shot portfolio status command with stable JSON and immediate process termination."
-}

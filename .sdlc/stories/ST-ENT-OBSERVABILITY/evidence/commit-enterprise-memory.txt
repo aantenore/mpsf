@@ -1,6 +1,0 @@
-commit=d54dfae45943f58ed7cfd90e062672e9b18c82b3
-authorization_receipt=AUT-ACT-20260718142534357-7b0879
-scope=bounded canonical traversal, stable warm-cache invalidation, and deterministic enterprise memory usage
-tests=39 focused model-cache tests and 40 enterprise benchmark tests passed
-benchmark=6 consecutive isolated runs passed after the final concurrency bound; maximum observed RSS was 249675776 bytes and warm p95 remained between 11.7 and 13.2 milliseconds
-performance_boundary=the 268435456-byte RSS threshold was not raised and Windows keeps the ordered-snapshot fallback

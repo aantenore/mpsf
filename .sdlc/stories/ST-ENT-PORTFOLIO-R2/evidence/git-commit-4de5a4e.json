@@ -1,9 +1,0 @@
-{
-  "commit": "4de5a4e959557dfb2473d15d6371feb2a908b89c",
-  "tree": "20460c9740e98baa2dea0a3e8fa3e8f74ed532df",
-  "parent": "ab9390d17d4719160bb90ea8236eed1958f2dcf5",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): bound portfolio shutdown disposal",
-  "scope": "Server shutdown now bounds disposal waits for active portfolio leases while preserving deferred cleanup after the operation releases."
-}

@@ -1,9 +1,0 @@
-{
-  "commit": "f03d15fa99a5c734518efa08987ad19466a01ccd",
-  "tree": "eeca0eb92359fa85dbaf1475dfe73a990760a5a0",
-  "parent": "c9b72f9a31def879c214d4284fbfc17e5be87de9",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "feat(observatory): serve bounded portfolio views",
-  "scope": "Bounded portfolio collection, runtime and server APIs with isolated failure handling and tests."
-}

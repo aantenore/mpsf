@@ -1,5 +1,0 @@
-commit=bbe3c6f80fc0848913daabb18844e2aa8763fe42
-authorization_receipt=AUT-ACT-20260718115418993-7ce1ac
-scope=bounded file reads, redaction, correlation contexts, closed-cardinality metrics, SLO evaluation, redacted support bundles, and local trace tamper evidence
-tests=33 passed (14 observability core, 19 trace integrity)
-assurance=hashes provide local content-integrity evidence and do not authenticate origin

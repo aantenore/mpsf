@@ -1,6 +1,0 @@
-{
-  "commit": "d6fbc1f9782cc1150cc18ba97901168c2460a389",
-  "parent": "4293f9cce57542818d83b5ca3077fa497f70c00c",
-  "subject": "fix(delivery): make provider proofs clone-portable",
-  "verification": "Comparator and provider regressions passed 14 of 14 on Node 18, 20, and 24; the relocated strict-gate E2E passed; npm run check passed; a clean clone reported no historical provider-subject path errors; independent review approved the boundary-preserving fix."
-}

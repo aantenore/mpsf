@@ -1,4 +1,0 @@
-commit=b05f2fafdc0b4ba82443d52219dc5342fb35746a
-parent=8e1a15a370186f678fb320216903f60c56c9d356
-message=chore(sdlc): record verified UX delivery
-scope=immutable governance records, approved contract, validation evidence, and completion output for ST-ENT-UX

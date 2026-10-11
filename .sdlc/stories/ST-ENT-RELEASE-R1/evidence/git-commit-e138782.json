@@ -1,6 +1,0 @@
-{
-  "commit_sha": "e13878285b984efc3b84399568121d5b80532de6",
-  "source_commit": "3dea1f754e93e91fcc8a8a82b8fb026e92144e85",
-  "summary": "test(release): isolate npm CLI fallback fixtures",
-  "verification": "All 11 artifact-verifier unit tests passed with deterministic npm CLI fixture isolation."
-}

@@ -1,5 +1,0 @@
-commit=6fa595a37f6a36110340ed25b39f2deb084147b4
-authorization_receipt=AUT-ACT-20260718120055952-63132f
-scope=correlated CLI responses, redacted trace persistence, evidence snapshots, strict-gate tamper and drift verification
-tests=21 passed (4 CLI observability, 17 CLI end-to-end)
-negative_tests=unexpected error canary, trace edit, and evidence drift all failed closed without raw content disclosure

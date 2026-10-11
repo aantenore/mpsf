@@ -1,9 +1,0 @@
-{
-  "commit": "ca369993c15e33938ae96b0f5658fef37c3a38a7",
-  "tree": "45ee6a24051b8075558a0f767931bba8aefc96a8",
-  "parent": "f03d15fa99a5c734518efa08987ad19466a01ccd",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): preserve portfolio policy overrides",
-  "scope": "Preserve declared portfolio policy overrides through runtime and server construction."
-}

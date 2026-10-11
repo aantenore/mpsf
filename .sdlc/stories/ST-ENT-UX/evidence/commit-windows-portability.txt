@@ -1,5 +1,0 @@
-commit=2dd5ed48eb4d551890283c01a69e50ab3b115e17
-parent=b05f2fafdc0b4ba82443d52219dc5342fb35746a
-message=fix(windows): make UX tools encoding-safe
-scope=stdin-driven Bash completion probes and deterministic UTF-8 installer output with a cp1252 regression test
-local_validation=node CLI self-service 8/8; Python installer 17/17; syntax and diff checks passed

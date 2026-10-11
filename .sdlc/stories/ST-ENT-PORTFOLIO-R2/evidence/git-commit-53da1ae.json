@@ -1,9 +1,0 @@
-{
-  "commit": "53da1ae2b5ae5572f0cf63f3b909313c1a8b2ebb",
-  "tree": "f56a4b9e4ace9e01ff28c30f16280c5761938c10",
-  "parent": "4f34c0dd48da0c98f8d45747a1c4be5042d42d81",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "test(observatory): align portfolio health fixture",
-  "scope": "Integrated browser fixture now carries the exact portfolio v1 health and attention counters required by the backend contract."
-}

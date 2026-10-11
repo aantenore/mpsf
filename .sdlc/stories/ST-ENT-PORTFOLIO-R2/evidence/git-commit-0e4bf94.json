@@ -1,9 +1,0 @@
-{
-  "commit": "0e4bf94c4299ac433905cda50cad2b530b16f86a",
-  "tree": "f3ba5af5f5d847a4c346d70e4ea555c87df350fa",
-  "parent": "53da1ae2b5ae5572f0cf63f3b909313c1a8b2ebb",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): clear stale portfolio refresh data",
-  "scope": "A failed portfolio refresh now removes the prior project summary before showing the unavailable state, with app-level regression coverage."
-}

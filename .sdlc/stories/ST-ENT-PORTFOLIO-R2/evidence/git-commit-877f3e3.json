@@ -1,9 +1,0 @@
-{
-  "commit": "877f3e31c86086b50fd3e1f21f2e430973f9b174",
-  "tree": "97dbb44d6f4396408a5147994abaef0f5ebc6630",
-  "parent": "dc4adbc136867a782e5f2f1818c04ae8ffa6ea4a",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "feat(observatory): validate explicit portfolio manifests",
-  "scope": "Explicit bounded portfolio manifest validation, exact directory identity handling, schema, and focused tests."
-}

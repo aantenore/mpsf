@@ -1,9 +1,0 @@
-{
-  "commit": "c9b72f9a31def879c214d4284fbfc17e5be87de9",
-  "tree": "c331d05b29cdcf8a12ba0fb92173b845efd9e00d",
-  "parent": "877f3e31c86086b50fd3e1f21f2e430973f9b174",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "refactor(observatory): extract reusable project runtime",
-  "scope": "Reusable per-project Change Observatory runtime with focused unit coverage."
-}

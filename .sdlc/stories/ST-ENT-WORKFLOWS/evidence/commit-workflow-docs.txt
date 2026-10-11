@@ -1,7 +1,0 @@
-action: git.commit
-profile: AUT-PR-ENT-WORKFLOWS-V2
-authorization_receipt: AUT-ACT-20260718032006517-1984da
-commit: d167471493a3336a3fef6bbd03a8525367bf4553
-subject: docs(workflows): explain reusable governed processes
-verification: commit exists on codex/ST-ENT-WORKFLOWS and contains only product documentation and reusable knowledge-base templates
-human_readability: explains steps versus permissions first, gives plain-language autonomy choices per PR or local release, and moves definition, overlay, instance, hashes, and stored labels into later technical detail

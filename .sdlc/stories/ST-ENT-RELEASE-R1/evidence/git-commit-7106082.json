@@ -1,5 +1,0 @@
-{
-  "commit_sha": "71060824b6f84fc464a4ac8aa6db767496741a12",
-  "summary": "chore(release): prepare version 0.12.0",
-  "verification": "Package and plugin manifest versions agree at 0.12.0, all 12 artifact-verifier unit tests passed, and no live release-facing 0.11.0 references remain in the updated surfaces."
-}

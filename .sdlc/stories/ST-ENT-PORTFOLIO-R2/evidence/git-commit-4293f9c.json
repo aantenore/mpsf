@@ -1,6 +1,0 @@
-{
-  "commit": "4293f9cce57542818d83b5ca3077fa497f70c00c",
-  "parent": "a2c600571cc3818a82e88125f2ac4ea80abc6f46",
-  "subject": "chore(portfolio): seal final delivery evidence",
-  "verification": "The refreshed exact baseline was approved, the strict story gate passed with zero errors, Node 24 passed 922 of 922 tests plus the enforcing enterprise benchmark, and the committed governance evidence matches the authorized index snapshot."
-}

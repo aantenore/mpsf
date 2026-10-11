@@ -1,6 +1,0 @@
-{
-  "commit_sha": "95d03b603f6332e6745b643f6f1c95880b00aefc",
-  "source_commit": "1412e57ca09442e6ac432d241301aef60bc1b170",
-  "summary": "fix(delivery): accept exact post-merge base transitions",
-  "verification": "Provider registry tests passed 12/12 and merge transition tests passed 5/5 on Node 18, 20 and 24. Full Node 24 autonomy E2E passed 10/10 and the historical PR 10 strict gate remained valid."
-}

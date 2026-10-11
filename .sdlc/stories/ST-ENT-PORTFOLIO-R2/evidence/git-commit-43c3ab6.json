@@ -1,9 +1,0 @@
-{
-  "commit": "43c3ab620befef25f11f2064e4afe5cfd6db312b",
-  "tree": "d54fd2fd2dbaecfb701592f60a8a0528d7229b95",
-  "parent": "0e4bf94c4299ac433905cda50cad2b530b16f86a",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): redact portfolio aggregate states",
-  "scope": "State-like aggregate fields now fail closed after operational redaction and records without IDs use opaque path digests, with secret canaries."
-}

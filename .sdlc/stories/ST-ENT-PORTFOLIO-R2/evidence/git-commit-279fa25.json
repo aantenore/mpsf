@@ -1,6 +1,0 @@
-{
-  "commit": "279fa25b1fa418e2629d79fd31b3b597418b6ad5",
-  "parent": "d6fbc1f9782cc1150cc18ba97901168c2460a389",
-  "subject": "chore(check): cover provider subject matcher",
-  "verification": "npm run check passed with the clone-portability matcher included in the enforced static syntax surface."
-}

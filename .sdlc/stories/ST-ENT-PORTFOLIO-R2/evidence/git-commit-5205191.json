@@ -1,7 +1,0 @@
-{
-  "commit": "5205191b6392ecb05d3839192872039835e718f3",
-  "parent": "164c7450ec33ec2e3619e7d95827bdf29e1b1f5a",
-  "subject": "chore(portfolio): record PR publication evidence",
-  "pull_request": "https://github.com/aantenore/agentic-sdlc-codex-plugin/pull/10",
-  "verification": "The GitHub provider observed one exact open non-draft PR at the authorized head."
-}

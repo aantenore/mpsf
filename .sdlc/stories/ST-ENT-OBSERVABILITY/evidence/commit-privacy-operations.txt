@@ -1,5 +1,0 @@
-commit=beccc63baaa60cd5a7e7bd900788b452fa196045
-authorization_receipt=AUT-ACT-20260718142451403-779d9a
-scope=local operational observability, fail-closed redaction, authenticated loopback APIs, human-readable UI guidance, and bounded support bundles
-tests=724 passed in the complete Node test matrix; 223 focused Observatory and operational observability tests passed before final hardening
-security_boundary=no external telemetry sink; credentials, PII, URL userinfo, private reasoning, unsafe paths, and unbounded error bodies are excluded before persistence or presentation

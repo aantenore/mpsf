@@ -1,9 +1,0 @@
-{
-  "commit": "c1a2e5c782b0501216171d86b60336101bbe95c8",
-  "tree": "fe46da29ee10f059bbf0e5520d31ddb8be54f03b",
-  "parent": "33bce033a6ca1f9907093e81e13f577ac1133a6f",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "docs(observatory): explain explicit portfolios",
-  "scope": "User-facing documentation for explicit bounded portfolio operation and limits."
-}

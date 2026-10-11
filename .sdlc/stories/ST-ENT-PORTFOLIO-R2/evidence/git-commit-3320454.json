@@ -1,6 +1,0 @@
-{
-  "commit": "33204546513e7e2d87550f9d2c81d911b6d75063",
-  "parent": "5205191b6392ecb05d3839192872039835e718f3",
-  "subject": "fix(portfolio): accept Windows short-path aliases",
-  "verification": "Node 18, 20, and 24 targeted tests passed; the full Node 24 suite passed 922 of 922 tests and the enforcing enterprise benchmark; independent review approved the physical-identity boundary fix."
-}

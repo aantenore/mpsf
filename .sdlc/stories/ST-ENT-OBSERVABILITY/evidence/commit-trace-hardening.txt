@@ -1,5 +1,0 @@
-commit=baae378e289314e6672a4080fea276b249352872
-authorization_receipt=AUT-ACT-20260718142357492-771f0a
-scope=sealed workflow traces, bounded evidence manifests, safe lock recovery, and exact legacy compatibility
-tests=724 passed in the complete Node test matrix; focused trace and workflow integrity suites passed
-security_boundary=workflow and general trace writers share one lock order; large evidence is represented by a validated manifest without implicit raw-content reads or hashes

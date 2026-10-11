@@ -1,9 +1,0 @@
-{
-  "commit": "dc4adbc136867a782e5f2f1818c04ae8ffa6ea4a",
-  "tree": "666b21ad41e73f783c24289ebd9e231e03b8df01",
-  "parent": "d7989cc527815dec128134ba018a47fb25f35021",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "chore(portfolio): expand exact package scope",
-  "scope": "Superseded the requirement with the exact package and schema write paths, refreshed the contract, and activated a fresh non-reusable portfolio PR profile."
-}

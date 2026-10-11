@@ -1,6 +1,0 @@
-{
-  "commit_sha": "d266f26bef0ec008a94a20d02801f9c92a795819",
-  "source_commit": "81b6fb1597cf2905fec61a991f3b08f4369afd44",
-  "summary": "feat(release): add policy-driven package verification",
-  "verification": "The atomic integration preserves the portfolio and clone-portability syntax checks while adding the release artifact verifier and safe tar reader. npm run check passed before commit."
-}

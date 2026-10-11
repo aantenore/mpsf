@@ -1,6 +1,0 @@
-{
-  "commit": "a2c600571cc3818a82e88125f2ac4ea80abc6f46",
-  "parent": "4429fb8d8bf8d22f4f8ab050b485defd028c5cec",
-  "subject": "test(benchmark): tolerate fixture scheduling",
-  "verification": "The exact process-tree timeout test passed on Node 18, 20, and 24 after widening only the marker observation window; ten serial and twelve parallel diagnostic repetitions also passed, and the worker timeout and termination assertions remain unchanged."
-}

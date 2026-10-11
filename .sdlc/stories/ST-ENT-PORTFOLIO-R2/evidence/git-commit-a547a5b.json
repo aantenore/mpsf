@@ -1,9 +1,0 @@
-{
-  "commit": "a547a5b9cb732371d3c1d66dae7eb0c8d6284e80",
-  "tree": "7e1e89b4dec00116847d4cef7f7b3ff15ee61194",
-  "parent": "ca369993c15e33938ae96b0f5658fef37c3a38a7",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "feat(observatory): launch explicit portfolios",
-  "scope": "CLI and command catalog support for launching only explicitly declared portfolio manifests."
-}

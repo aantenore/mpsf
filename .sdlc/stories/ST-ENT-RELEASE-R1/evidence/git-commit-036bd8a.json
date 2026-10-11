@@ -1,6 +1,0 @@
-{
-  "commit_sha": "036bd8adefd78f5085998140f1c83dc7e9d38190",
-  "summary": "chore(release): agree 0.12 delivery contract",
-  "scope": "Atomic requirement, contract, per-PR autonomy, task-start and claim records for the 0.12.0 release delivery.",
-  "identity": "Antonio Antenore <ant_ant95@hotmail.it>"
-}

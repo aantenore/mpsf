@@ -1,9 +1,0 @@
-{
-  "commit": "5bbf918f0cb472f70196f6baf45455487ef964c5",
-  "tree": "52a8398a58d69541063bfe30088384ff4a5cbd2f",
-  "parent": "8889266cf1703cf54f630ce061a44aeeefc1f66d",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "docs(observatory): explain bounded portfolio status",
-  "scope": "Documentation of lightweight status, bounded detail caching, lifecycle and privacy behavior."
-}

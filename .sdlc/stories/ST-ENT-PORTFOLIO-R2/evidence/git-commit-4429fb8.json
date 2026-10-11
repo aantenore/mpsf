@@ -1,6 +1,0 @@
-{
-  "commit": "4429fb8d8bf8d22f4f8ab050b485defd028c5cec",
-  "parent": "33204546513e7e2d87550f9d2c81d911b6d75063",
-  "subject": "test(windows): harden loaded-runner deadlines",
-  "verification": "The exact timing regressions passed on Node 18, 20, and 24; the worker check still enforces a five-second event-relative bound, the Windows CLI timeout remains finite, and independent review found no blockers."
-}

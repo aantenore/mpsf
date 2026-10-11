@@ -1,6 +1,0 @@
-{
-  "commit_sha": "f8ce6e6a27e385557728a09c8f04624227c88312",
-  "source_commit": "2ca1d609f4e577ef3a99180c484dc8907ca5d109",
-  "summary": "fix(cli): align focused help with runtime inputs",
-  "verification": "Focused help now exposes all mandatory lifecycle inputs. Targeted tests passed on Node 18, 20 and 24; static checks and enterprise benchmark also passed."
-}

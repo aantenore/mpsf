@@ -1,7 +1,0 @@
-action: git.commit
-profile: AUT-PR-ENT-WORKFLOWS-V2
-authorization_receipt: AUT-ACT-20260718031921749-8ceb77
-commit: ae8cdaf33a74b4e7b66403dbd077a097b827695b
-subject: test(workflows): lock legacy compatibility
-verification: commit exists on codex/ST-ENT-WORKFLOWS and contains only the backward-compatibility contract test
-focused_tests: six legacy phases, exact assessment v1 graph, two normal checkpoints, and frozen 0.11.0 configuration hash passed

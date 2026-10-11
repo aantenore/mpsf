@@ -1,8 +1,0 @@
-schema_version: delivery-action-evidence:v1
-story_id: ST-ENT-OBSERVABILITY
-delivery_profile_id: AUT-PR-ENT-OBSERVABILITY
-action: git.commit
-authorization_receipt: AUT-ACT-20260718113959949-d28fa8
-commit_sha: ef098b34a004a09ea1279b591901f467e8523389
-summary: Contracted the exact observability delivery, refreshed its current-state baseline, recorded the non-reusable PR boundary, and confirmed task start.
-verified_by: Codex

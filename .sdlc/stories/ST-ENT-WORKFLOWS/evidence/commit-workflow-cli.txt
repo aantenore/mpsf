@@ -1,7 +1,0 @@
-action: git.commit
-profile: AUT-PR-ENT-WORKFLOWS-V2
-authorization_receipt: AUT-ACT-20260718031859993-b0a2b4
-commit: 16661771b97b6ee6e733b20f2d5c0a2e219b2c57
-subject: feat(cli): add configurable workflow commands
-verification: commit exists on codex/ST-ENT-WORKFLOWS and contains only the CLI dispatcher, command catalog, and end-to-end workflow CLI tests
-focused_tests: included preset, proposed definition, explicit approval, overlay preview and approval, pinned start, transition, retry, status, help, completion, and human-first output passed

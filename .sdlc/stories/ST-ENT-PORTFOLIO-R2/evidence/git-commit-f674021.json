@@ -1,9 +1,0 @@
-{
-  "commit": "f6740218079f0e35abd0ea6f730b32202c65ecd8",
-  "tree": "028d30901b3ae3238abd5dc108db6f02ee64308d",
-  "parent": "fa0da01a72e160b389233fa27151199b93119a2d",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "feat(observatory): bound lazy portfolio summaries",
-  "scope": "Dedicated lightweight summaries, health aggregates, observable LRU eviction, disposal, readiness and cache events."
-}

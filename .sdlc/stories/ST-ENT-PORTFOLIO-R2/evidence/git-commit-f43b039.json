@@ -1,9 +1,0 @@
-{
-  "commit": "f43b03945854a7afaff958dc3611e8d0240f029b",
-  "tree": "19712c6c95fd3924a9c01965fca117d0ff09481e",
-  "parent": "4de5a4e959557dfb2473d15d6371feb2a908b89c",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): record deferred portfolio disposal",
-  "scope": "Portfolio cache telemetry now records bounded deferred-disposal events without introducing unbounded metric labels."
-}

@@ -1,9 +1,0 @@
-{
-  "commit": "d7989cc527815dec128134ba018a47fb25f35021",
-  "tree": "870ecf3b5f78199186dbc89da532521a8dc4a27e",
-  "parent": "a135641fa474e623ac07ccd428d4bd9eff438dc2",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "chore(portfolio): bind requirement and PR autonomy",
-  "scope": "Approved requirement, refreshed baseline, normalized implementation contract, revoked unused draft profile, and exact non-reusable PR profile."
-}

@@ -1,9 +1,0 @@
-{
-  "commit": "33bce033a6ca1f9907093e81e13f577ac1133a6f",
-  "tree": "d53b4480c416e568d4c447a8d957acd05727b253",
-  "parent": "a547a5b9cb732371d3c1d66dae7eb0c8d6284e80",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "feat(observatory): navigate portfolio projects",
-  "scope": "Portfolio project navigation, client model and UI components with server and presentation coverage."
-}

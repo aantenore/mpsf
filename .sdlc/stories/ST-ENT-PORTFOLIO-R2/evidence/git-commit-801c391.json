@@ -1,9 +1,0 @@
-{
-  "commit": "801c3914811d23b8902afb4d2c8c1c898b6a0ebf",
-  "tree": "48737f9f9f9467d33228eebbc43f618976e145fb",
-  "parent": "f43b03945854a7afaff958dc3611e8d0240f029b",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(governance): deduplicate step trace evidence",
-  "scope": "Story step completion now emits each canonical evidence path once even when the same artifact is both explicit evidence and an approved linked output."
-}

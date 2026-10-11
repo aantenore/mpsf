@@ -1,4 +1,0 @@
-commit 8e1a15a370186f678fb320216903f60c56c9d356
-parent a48677e9da8ed8901d5441ec9841a558fa9402ec
-message docs(ux): explain self-service delivery in plain language
-scope self-service CLI, portable installation, Change Observatory, README navigation, and human-readable autonomy guidance

@@ -1,9 +1,0 @@
-{
-  "commit": "4f34c0dd48da0c98f8d45747a1c4be5042d42d81",
-  "tree": "6a2f0e609e040c07ec7c06c5f7a233a0d5fe3d3a",
-  "parent": "b3e1aadea93dfa4ba20c2386ac996ab80b44a51c",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): keep portfolio navigation project-safe",
-  "scope": "Project-owned UI state, immediate stale-data clearing, validated URL history, scoped raw links and accessible English/Italian structure."
-}

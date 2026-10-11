@@ -1,6 +1,0 @@
-{
-  "commit_sha": "6cf1b89f59d6430fdde8b938044446309f10fd97",
-  "source_commit": "c3c47bd92e3e72eb5bfc2e78a19e03cf35fb454",
-  "summary": "fix(release): make verified publication retry-safe",
-  "verification": "All nine release workflow and guard tests passed, including remote asset tamper rejection and exact workflow-run ownership."
-}

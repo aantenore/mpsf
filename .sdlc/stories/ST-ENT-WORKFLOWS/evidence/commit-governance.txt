@@ -1,3 +1,0 @@
-commit=fbb4b746adebdfb6413dfb2d1c9024f2c3f5fe21
-subject=chore(sdlc): start governed workflow delivery
-scope=UX closeout evidence and refreshed workflow baseline, contract, delivery profile, task-start receipt, and claim

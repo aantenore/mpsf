@@ -1,6 +1,0 @@
-{
-  "commit_sha": "99fa821f47c6533eefaf6bb230bf2184432b2186",
-  "source_commit": "3852b38ba9eeec729145ff7c8868de770753a13a",
-  "summary": "feat(release): add reversible installer v2",
-  "verification": "All 27 transactional installer tests passed before the atomic commit. The installer uses explicit plan, apply, validate, confirm and restore phases with durable receipts."
-}

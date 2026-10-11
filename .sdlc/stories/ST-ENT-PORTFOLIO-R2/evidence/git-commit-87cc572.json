@@ -1,9 +1,0 @@
-{
-  "commit": "87cc57253e204bf185b6a60f54ba05529b2f57e8",
-  "tree": "6e65643867bfc27dedb0736de360232e9e2d64e9",
-  "parent": "801c3914811d23b8902afb4d2c8c1c898b6a0ebf",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "chore(portfolio): record verified delivery evidence",
-  "scope": "Records the approved project snapshot, exact action receipts, immutable test and implementation evidence, corrected trace lineage, completed steps, and passing strict gate."
-}

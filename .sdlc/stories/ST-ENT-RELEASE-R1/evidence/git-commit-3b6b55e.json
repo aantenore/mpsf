@@ -1,6 +1,0 @@
-{
-  "commit_sha": "3b6b55e4d9d26b21f0464bb5cafceda86b5ca1df",
-  "source_commit": "f39967d87b8ad55c15b0242a155ae8ac2f1375d1",
-  "summary": "fix(release): harden package verification boundaries",
-  "verification": "All 18 targeted artifact-verifier and tar-reader tests passed before the atomic commit."
-}

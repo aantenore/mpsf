@@ -1,9 +1,0 @@
-{
-  "commit": "ab9390d17d4719160bb90ea8236eed1958f2dcf5",
-  "tree": "cd4c0257308ce25316507002e1e8374385464b90",
-  "parent": "43c3ab620befef25f11f2064e4afe5cfd6db312b",
-  "author": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "committer": "Antonio Antenore <ant_ant95@hotmail.it>",
-  "subject": "fix(observatory): anonymize fallback aggregate ids",
-  "scope": "Records without canonical IDs now receive scan-order identifiers that disclose neither filenames nor fingerprints of removed source metadata."
-}

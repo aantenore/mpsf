@@ -1,6 +1,0 @@
-Commit: 81eea852c1a746e615f58e09e5bcc61b5635732b
-Purpose: Preserve exact 64-bit filesystem identities on Windows and keep trace diagnostics portable across operating systems.
-Root cause: NTFS file identifiers can exceed JavaScript's safe integer range. The earlier numeric comparison could reject an unchanged file and then hide valid Observatory records.
-Safety boundary: The bounded reader still verifies the opened handle before and after every read, revalidates the pathname, and enforces the original byte limit.
-Verification: All 735 Node tests passed, the complete enterprise benchmark passed without changing its thresholds, and the syntax check passed.
-Identity: Antonio Antenore <ant_ant95@hotmail.it>

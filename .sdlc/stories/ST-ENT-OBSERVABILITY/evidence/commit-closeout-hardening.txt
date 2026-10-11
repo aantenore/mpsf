@@ -1,6 +1,0 @@
-commit=54ce89df788b2b1fff4460b3d7e64b70b81a23f0
-authorization_receipt=AUT-ACT-20260718154258263-429ceb
-scope=content-addressed evidence compatibility, event-time authorization boundaries, durable policy sources, privacy-safe UI errors, and human-readable policy-change guidance
-review=independent source review passed after closing the credential-alias fail-closed gap
-focused_tests=24 tests passed across autonomy lifecycle, Observatory API errors, localization, and credential-context safety
-identity=Antonio Antenore <ant_ant95@hotmail.it>

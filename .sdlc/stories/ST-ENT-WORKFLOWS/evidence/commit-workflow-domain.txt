@@ -1,7 +1,0 @@
-action: git.commit
-profile: AUT-PR-ENT-WORKFLOWS-V2
-authorization_receipt: AUT-ACT-20260718031827481-f773b3
-commit: 72e162f6f7e464a3633cb20bf11ce1cb64fbafd9
-subject: feat(workflows): add versioned workflow domain
-verification: commit exists on codex/ST-ENT-WORKFLOWS and contains only workflow domain, preset, schema, package-check, and focused domain test paths
-focused_tests: workflow engine, preset, schema, CLI, and compatibility tests passed before commit

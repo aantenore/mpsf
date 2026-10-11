@@ -1,9 +1,0 @@
-{
-  "schema_version": "git-push-evidence:v1",
-  "remote": "origin",
-  "repository": "github.com/aantenore/agentic-sdlc-codex-plugin",
-  "branch": "codex/ST-ENT-UX",
-  "source_sha": "b05f2fafdc0b4ba82443d52219dc5342fb35746a",
-  "observed_remote_sha": "b05f2fafdc0b4ba82443d52219dc5342fb35746a",
-  "outcome": "passed"
-}

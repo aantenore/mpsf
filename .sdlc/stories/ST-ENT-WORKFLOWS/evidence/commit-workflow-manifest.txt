@@ -1,7 +1,0 @@
-action: git.commit
-profile: AUT-PR-ENT-WORKFLOWS-V2
-authorization_receipt: AUT-ACT-20260718032804855-ab67d7
-commit: 26fcac06b04da97571dc684c152fc244b32f46cb
-subject: chore(workflows): keep package manifest stable
-verification: package.json is byte-identical to the approved project snapshot; workflow modules remain imported by the CLI and exercised by the full Node test suite
-rationale: avoid turning a source-only syntax-check list into a capability-policy change; focused module syntax checks and 547 regression tests already passed

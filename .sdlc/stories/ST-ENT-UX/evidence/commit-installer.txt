@@ -1,4 +1,0 @@
-commit eac1884aa0be74910a13e67b2a19c23fd757fb5c
-parent 86d1f815cf6e02d49473374a883e90d2b4855d3a
-message feat(installer): add transactional local updates
-scope read-only check and plan, plan-hash-bound apply, lock, recovery, rollback, custom destination, EN/IT help, and tests

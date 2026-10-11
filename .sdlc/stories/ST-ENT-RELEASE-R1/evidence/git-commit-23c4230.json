@@ -1,5 +1,0 @@
-{
-  "commit_sha": "23c423008b16e662a9912f3d18caa2333efbfdc7",
-  "summary": "feat(release): make installer v2 canonical",
-  "verification": "All 22 targeted release tests and all 27 installer transaction tests passed. Installer V2 is the documented canonical path, retains rollback state, and does not modify global Codex or RTK configuration."
-}

@@ -1,5 +1,0 @@
-Commit: a61c2095cf017d70c741e0dc0264a2eb75f69cee
-Subject: docs(sdlc): approve enterprise control plane program
-Parent: 927dc93e97ea0c8aadc913b3a729edab44afaa10
-Scope: Approved baseline, requirement revision, work breakdown, dependencies, story records, capability boundary, work brief, per-PR execution profile, and task-start evidence for ST-ENT-FOUNDATION.
-Verification: Git created one non-merge commit from the authorized parent with the exact authorized file set.

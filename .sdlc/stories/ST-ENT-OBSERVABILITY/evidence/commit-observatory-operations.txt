@@ -1,5 +1,0 @@
-commit=d29c3c6397b84758233c593c3b394cabdbc54fb1
-authorization_receipt=AUT-ACT-20260718120212009-b61560
-scope=double-boundary presentation redaction, correlated HTTP errors, live/ready split, closed metrics, advisory SLOs, support bundle, ETag client revalidation
-tests=42 passed across server, CLI launch, configuration, operations, privacy, and UI cache
-read_only=all HTTP endpoint tests preserve the canonical project tree byte-for-byte

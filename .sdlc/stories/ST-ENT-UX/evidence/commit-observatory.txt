@@ -1,4 +1,0 @@
-commit a48677e9da8ed8901d5441ec9841a558fa9402ec
-parent eac1884aa0be74910a13e67b2a19c23fd757fb5c
-message feat(observatory): add bilingual progressive guidance
-scope EN/IT human projection, progressive disclosure, safe next actions, path and command filtering, and tests

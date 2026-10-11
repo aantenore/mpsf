@@ -1,8 +1,0 @@
-{
-  "remote": "origin",
-  "repository": "github.com/aantenore/agentic-sdlc-codex-plugin",
-  "destination_ref": "refs/heads/codex/ST-ENT-PORTFOLIO",
-  "observed_sha": "6acce0d1d5dfb45e49a0eac83cf7c5f547a7684f",
-  "force": false,
-  "verified_with": "git ls-remote --heads origin refs/heads/codex/ST-ENT-PORTFOLIO"
-}

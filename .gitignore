@@ -5,6 +5,3 @@ __pycache__/
 *.pyc
 *.pyo
 tmp/
-.sdlc/indexes/*.json
-.sdlc/reports/*.tmp
-.sdlc/**/*.lock
