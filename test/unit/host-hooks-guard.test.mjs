@@ -134,6 +134,41 @@ test("delivery usage records change only through the CLI, so no receipt or ledge
   }
 });
 
+test("delivery action receipts and story claims, which the merge and push guard reads, change only through the CLI", () => {
+  for (const payload of [
+    { tool_name: "Write", tool_input: { file_path: "/work/p/.sdlc/autonomy/actions/fake.json", content: "{}" } },
+    { tool_name: "Edit", tool_input: { file_path: ".sdlc\\autonomy\\actions\\AUT-ACT-1.json" } },
+    { tool_name: "Write", tool_input: { file_path: "/work/p/.sdlc/stories/ST-1/claim.json", content: "{}" } },
+    codexPatch(".sdlc/stories/ST-1/claim.json"),
+    shell("echo '{}' > .sdlc/autonomy/actions/fake.json"),
+    shell("node -e \"require('fs').writeFileSync('.sdlc/autonomy/actions/fake.json','{}')\""),
+    shell("cp /tmp/r.json .sdlc/autonomy/actions/"),
+    shell("cd .sdlc/autonomy/actions && tee a.json < /tmp/r.json"),
+    shell("cd .sdlc/stories/ST-1 && echo '{}' > claim.json"),
+    shell("rm .sdlc/stories/ST-1/claim.json"),
+    shell("rm .sdlc/stories/*/cl*"),
+    shell("rm -rf .sdlc/stories/ST-1"),
+  ]) {
+    assert.equal(evaluatePreToolUse(payload)?.decision, "deny", JSON.stringify(payload));
+  }
+  for (const payload of [
+    shell("cat .sdlc/autonomy/actions/AUT-ACT-1.json"),
+    shell("cd .sdlc/stories/ST-1 && cat claim.json"),
+    shell("echo note > .sdlc/stories/ST-1/notes.md"),
+    shell("rm .sdlc/stories/ST-1/tmp*.md"),
+    { tool_name: "Write", tool_input: { file_path: "/work/p/.sdlc/stories/ST-1/story-plan.md", content: "x" } },
+  ]) {
+    assert.equal(evaluatePreToolUse(payload), null, JSON.stringify(payload));
+  }
+});
+
+test("the record tree cannot be deleted through a path prefix or a glob", () => {
+  for (const command of ["rm -rf $PWD/.sdlc/autonomy", "rm -rf /tmp/p/.sdlc/autonomy", "rm -rf ../p/.sdlc", "rm -rf /tmp/p/.sdlc", "rm -rf .sdlc/auto*", "rm -rf .sdlc/a*", "git rm -r .sdlc/auto*"]) {
+    assert.equal(evaluatePreToolUse(shell(command))?.decision, "deny", command);
+  }
+  assert.equal(evaluatePreToolUse(shell("rm -rf build/sdlc dist")), null);
+});
+
 test("the shared refs of standing approvals are never rewritten by hand", () => {
   for (const command of [
     "git push origin :refs/agentic-sdlc/standing/SA-X/abc/revoked",
