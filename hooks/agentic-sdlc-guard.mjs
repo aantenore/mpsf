@@ -135,9 +135,10 @@ async function coordinationMessages(payload, hookEventName, extraContext = async
     // best effort
   }
   try {
-    // This computer's presence and role leases on the remote: at most every few minutes, bounded.
-    const { rolesTick } = await import("../lib/engine/role-leases.mjs");
-    await rolesTick(root, { sessionId: payload.session_id });
+    // This computer's presence and role leases on the remote: at most every few minutes, in a
+    // detached process, so the network never holds up the hook or the messages it shows.
+    const { claimTickSlot } = await import("../lib/engine/role-leases.mjs");
+    if (claimTickSlot(root, { sessionId: payload.session_id })) runDetached("roles-tick", root, payload.session_id);
   } catch {
     // best effort
   }
@@ -309,10 +310,14 @@ const SESSION_END_KILL_AFTER_MS = 800;
  * a cut push only means they lapse on their own.
  */
 function releaseInBackground(payload) {
+  const root = governedRoot(payload.cwd);
+  if (root) runDetached("session-release", root, payload.session_id);
+}
+
+/** Runs one event of this hook in a detached process; never throws. */
+function runDetached(event, root, sessionId) {
   try {
-    const root = governedRoot(payload.cwd);
-    if (!root) return;
-    spawn(process.execPath, [fileURLToPath(import.meta.url), "session-release", root, String(payload.session_id ?? "")], {
+    spawn(process.execPath, [fileURLToPath(import.meta.url), event, root, String(sessionId ?? "")], {
       detached: true,
       stdio: "ignore",
       windowsHide: true,
@@ -362,6 +367,9 @@ try {
     syncStateBranch(payload, ["push"]);
     releaseInBackground(payload);
     await reapRuns(payload, { killAfterMs: SESSION_END_KILL_AFTER_MS });
+  } else if (event === "roles-tick") {
+    const { rolesTick } = await import("../lib/engine/role-leases.mjs");
+    await rolesTick(process.argv[3], { sessionId: process.argv[4] || null, force: true });
   } else if (event === "session-release") {
     const { releaseAtSessionEnd } = await import("../lib/engine/role-leases.mjs");
     releaseAtSessionEnd(process.argv[3], { sessionId: process.argv[4] || null });

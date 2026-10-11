@@ -1789,7 +1789,7 @@ async function main() {
       failUsage(`Unknown command: ${parsed.positionals.slice(0, 2).join(" ")}`);
     }
     // A pinned coordinator's reserved actions run only on the computer holding the role.
-    const reserved = (await import("../lib/engine/role-guard.mjs")).checkReservedAction({ root: context.root, config: context.config, resolution, options: parsed.options });
+    const reserved = await (await import("../lib/engine/role-guard.mjs")).checkReservedAction({ root: context.root, config: context.config, resolution, options: parsed.options });
     if (!reserved.allowed) fail(reserved.reason);
     if (readsMessagesBefore(resolution.canonical_action)) {
       try {

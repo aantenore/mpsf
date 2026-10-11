@@ -43,8 +43,8 @@ test("only a pinned coordinator's reserved actions are refused, and only while a
   assert.equal(reservedActionDecision({ ...base, config: { host_policy: { roles: { coordinator: { hosts: [] } } } } }).allowed, true);
 });
 
-test("a project without a pinned coordinator never reads the remote for this", () => {
-  assert.deepEqual(checkReservedAction({ root: "/nonexistent", config: {}, resolution: { canonical_action: "wait.resolve" } }), { allowed: true });
+test("a project without a pinned coordinator never reads the remote for this", async () => {
+  assert.deepEqual(await checkReservedAction({ root: "/nonexistent", config: {}, resolution: { canonical_action: "baseline.refresh" } }), { allowed: true });
 });
 
 test("role duties: only automatic ones, for roles held, with a command, at most every interval", () => {
@@ -160,4 +160,30 @@ test("throttles never stall when the clock went back", async () => {
   assert.equal(recentlyAt(undefined, 5 * MIN, NOW), false);
   const duties = [{ key: "a", role: "coordinator", command: ["a"], every_ms: 15 * MIN, auto: true }];
   assert.equal(dueRoleDuties({ duties, roles: ["coordinator"], last: { a: NOW + 60 * MIN }, now: NOW, hasCommand: () => true }).length, 1);
+});
+
+test("with fallback hold, the pinned host takes the free lease when it needs a reserved action; the others are refused", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { createBareOrigin } = await import("../helpers/test-isolation.mjs");
+  const { forgetSharedRefState } = await import("../../lib/engine/shared-refs.mjs");
+  const seed = createFixtureDir("role-guard-seed-");
+  execFileSync("git", ["init", "-q"], { cwd: seed });
+  const bare = createBareOrigin(seed);
+  const config = { orchestration_policy: { coordination: { mode: "auto", remote: "origin", timeout_seconds: 5 } }, ...pinned({ fallback: "hold" }) };
+  const clone = (host) => {
+    const dir = createFixtureDir(`role-guard-${host}-`);
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    execFileSync("git", ["remote", "add", "origin", bare], { cwd: dir });
+    fs.mkdirSync(path.join(dir, ".sdlc"));
+    fs.writeFileSync(path.join(dir, ".sdlc", "config.json"), JSON.stringify(config));
+    return { root: dir, env: { ...process.env, AGENTIC_SDLC_HOST_LABEL: host } };
+  };
+  forgetSharedRefState();
+  const a = clone("pc-a");
+  const b = clone("pc-b");
+  const resolution = { canonical_action: "baseline.refresh" };
+  assert.equal((await checkReservedAction({ root: a.root, config, resolution, env: a.env })).allowed, true);
+  const refused = await checkReservedAction({ root: b.root, config, resolution, env: b.env });
+  assert.equal(refused.allowed, false);
+  assert.equal(refused.coordinator, "pc-a");
 });
