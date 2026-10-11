@@ -287,6 +287,16 @@ export function storyStatus(story) {
   const certification = story?.iteration?.certification;
   if (story?.state === "delivered") {
     if (certification?.state === "current") {
+      // The server reads the final report from the records without verifying
+      // its files and commits again; only a gate check does.
+      if (certification.verification === "not_rechecked") {
+        return {
+          key: "certified",
+          verification: "not_rechecked",
+          label: t("Certified, not re-checked"),
+          reason: t("The final report is recorded and no later record changes it; its files were not re-checked here (gate check verifies them)"),
+        };
+      }
       return { key: "certified", label: t("Certified"), reason: t("The final report is valid for the current records") };
     }
     if (certification?.state === "stale") {

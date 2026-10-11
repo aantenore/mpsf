@@ -46,7 +46,7 @@ import { assertPluginSatisfiesProject } from "../lib/engine/plugin-compatibility
 import {
   sealedReceiptTrustEnabled,
   withReadSnapshot,
-  withSealedReceiptTrust,
+  withLiveStoryChecks,
 } from "../lib/engine/read-snapshot.mjs";
 import { supersedeDeliveryEvidence } from "../lib/engine/evidence-supersede.mjs";
 import { reconcileExternalMerge } from "../lib/engine/external-merge.mjs";
@@ -1288,11 +1288,12 @@ function buildCliRuntimeHandlerRegistry() {
     }
     return handler(invocation);
   };
-  // Commands that write a story's records read Git live but trust the other
-  // stories' sealed final receipts; `storyIds` names the stories they verify.
-  const storyWrite = (handler, storyIds) => project(({ context, options }) =>
-    withSealedReceiptTrust(storyIds(context, options), () => handler(context, options)));
-  // Read-only reports answer repeated Git questions once per run.
+  // Commands that write a story's records read Git live and verify in full
+  // every final receipt they depend on, including other stories'.
+  const storyWrite = (handler) => project(({ context, options }) =>
+    withLiveStoryChecks(() => handler(context, options)));
+  // Read-only reports answer repeated Git questions once per run and may trust
+  // sealed final receipts, which they label as not re-checked.
   const report = (handler) => project(({ context, options }) =>
     withReadSnapshot(() => handler(context, options), {
       fastChecks: sealedReceiptTrustEnabled(),
@@ -1409,7 +1410,7 @@ function buildCliRuntimeHandlerRegistry() {
     "autonomy.delivery.amend": call(amendDeliveryAutonomy),
     "autonomy.delivery.revoke": call(revokeDeliveryAutonomy),
     "autonomy.delivery.action": project(factsAfter(publishRecordsAfter(({ context, options }) =>
-      withSealedReceiptTrust(deliveryProfileStoryIds(context, options), () => evaluateDeliveryAction(context, options))))),
+      withLiveStoryChecks(() => evaluateDeliveryAction(context, options))))),
     "autonomy.delivery.close": call(closeDeliveryAutonomy),
     "autonomy.delivery.reconcile": call(noteForMessages(reconcileExternalMerge)),
     "autonomy.delivery.evidence.supersede": call((context, options) => rememberResult(supersedeDeliveryEvidence(context, options))),
@@ -1477,8 +1478,7 @@ function buildCliRuntimeHandlerRegistry() {
     "story.overlap": report(showStoryOverlap),
     "story.overlap.confirm": call(confirmStoryOverlap),
     "story.base.acknowledge": call(acknowledgeStoryBaseCommit),
-    "story.complete-step": storyWrite(completeStoryStep, (context, options) =>
-      (options.id ? [normalizeId(String(options.id))] : [])),
+    "story.complete-step": storyWrite(completeStoryStep),
     "story.prepare-handoff": call(prepareStoryHandoff),
     "story.handoff.close": call(closeHandoff),
     "story.handoff": call(createStoryHandoff),
@@ -1549,27 +1549,13 @@ function buildCliRuntimeHandlerRegistry() {
     "report.query": call(reportQuery),
     "index.rebuild": call(rebuildIndex),
     "kb.search": project(({ context, options, resolution }) => searchKnowledgeBase(context, options, resolution.args)),
-    // A gate answers repeated Git questions once per run and, for one story,
-    // trusts the other stories' sealed final receipts while verifying its own
-    // in full (AGENTIC_SDLC_STATUS_CHECKS=full verifies them all). The
-    // lifecycle-complete gate writes and re-checks the final receipt, so it
-    // keeps reading live and only trusts the other stories' sealed receipts.
+    // A gate answers repeated Git questions once per run and verifies in full
+    // every final receipt it depends on: a dependency's sealed receipt is
+    // never trusted to unblock or certify work. The lifecycle-complete gate
+    // writes and re-checks the final receipt, so it keeps reading live.
     "gate.check": project(verified(factsAfter(publishRecordsAfter(({ context, options }) => rememberResult(options["lifecycle-complete"] === true
-      ? withSealedReceiptTrust(
-        options.story
-          && !options["release-manifest"]
-          && String(options.scope || "story") === "story"
-          ? [normalizeId(String(options.story))]
-          : [],
-        () => gateCheck(context, options),
-      )
-      : withReadSnapshot(() => gateCheck(context, options), {
-        fastChecks: Boolean(options.story)
-          && !options["release-manifest"]
-          && String(options.scope || "story") === "story"
-          && sealedReceiptTrustEnabled(),
-        verifyStoryId: options.story ? normalizeId(String(options.story)) : null,
-      })))))),
+      ? withLiveStoryChecks(() => gateCheck(context, options))
+      : withReadSnapshot(() => gateCheck(context, options))))))),
     "orchestrate.status": report(showOrchestrationStatus),
     "orchestrate.plan": report(showOrchestrationPlan),
     "route.decide": call(decideRoute),

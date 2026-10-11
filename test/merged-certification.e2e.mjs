@@ -826,3 +826,71 @@ test("a pull request carries the story's records with its code, and its story re
   // A pull request without the story's records is refused when the project asks:
   // test/delivery-checks.e2e.mjs covers that refusal.
 });
+
+// ---------------------------------------------------------------------------
+// Default (fast) status checks
+// ---------------------------------------------------------------------------
+
+const FAST = Object.freeze({ env: { AGENTIC_SDLC_STATUS_CHECKS: "fast" } });
+
+/** A story that waits for `upstreamId` to be done before its implementation. */
+function addDependentStory(project, upstreamId, requirementId, dependentId = "ST-DEPENDENT") {
+  mustRun([
+    "story", "create", "--no-derived-verification", "--root", project,
+    "--id", dependentId,
+    "--title", `Build on ${upstreamId}`,
+    "--phase", "implementation",
+    "--status", "ready",
+    "--requirement", requirementId,
+    "--acceptance", `Observable evidence exists for ${dependentId}.`,
+  ], project);
+  mustRun([
+    "dependency", "propose", "--root", project,
+    "--id", `DEP-${dependentId}`,
+    "--edge", `${dependentId}:${upstreamId}:blocks:implementation:done`,
+  ], project);
+  mustRun([
+    "dependency", "approve", "--root", project,
+    "--id", `DEP-${dependentId}`,
+    ...humanApproval(`Approve the dependency of ${dependentId}`),
+  ], project);
+  return dependentId;
+}
+
+test("fast status labels a sealed final receipt it did not verify again as not re-checked", () => {
+  const { project, story } = sealedFixture();
+  const fast = mustRunJson(["orchestrate", "status", "--root", project], project, FAST)
+    .stories.find((entry) => entry.id === story.storyId);
+  assert.equal(fast.lifecycle_source, "workflow_final_receipt", JSON.stringify(fast, null, 2));
+  assert.equal(fast.lifecycle_verification, "not_rechecked", JSON.stringify(fast, null, 2));
+  const status = mustRunJson(["status", "--root", project], project, FAST);
+  assert.equal(status.certifications_not_rechecked?.count, 1, JSON.stringify(status.certifications_not_rechecked));
+  const full = mustRunJson(["orchestrate", "status", "--root", project], project)
+    .stories.find((entry) => entry.id === story.storyId);
+  assert.equal(full.lifecycle_verification, undefined, JSON.stringify(full, null, 2));
+  assert.equal(mustRunJson(["status", "--root", project], project).certifications_not_rechecked, undefined);
+});
+
+for (const [name, invalidate] of [
+  ["a certified file changed after sealing", (project) => {
+    writeProjectFile(project, "src/feature.mjs", "export const feature = 2;\n");
+  }],
+  ["a line added to the trace after sealing", (project, story) => {
+    appendBytes(project, `.sdlc/traces/${story.storyId}.jsonl`, "{\"type\":\"test\",\"outcome\":\"failed\",\"summary\":\"later failure\"}\n");
+  }],
+]) {
+  test(`in the default mode, an upstream receipt voided by ${name} neither unblocks nor certifies its dependent`, () => {
+    const { project, story } = sealedFixture();
+    const dependent = addDependentStory(project, story.storyId, story.requirementId);
+    invalidate(project, story);
+    // The fast view still shows the upstream story completed, labelled as not re-checked.
+    const shown = mustRunJson(["orchestrate", "status", "--root", project], project, FAST)
+      .stories.find((entry) => entry.id === story.storyId);
+    assert.equal(shown.lifecycle_verification, "not_rechecked", JSON.stringify(shown, null, 2));
+    // The gate verifies the upstream receipt and refuses the dependent story.
+    const gate = run(["gate", "check", "--root", project, "--strict", "--story", dependent, "--json"], project, FAST);
+    const gateText = `${gate.stdout}\n${gate.stderr}`;
+    assert.notEqual(gate.status, 0, gateText);
+    assert.match(gateText, new RegExp(`${dependent} depends on ${story.storyId} \\[blocked\\]`, "u"));
+  });
+}

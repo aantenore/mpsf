@@ -65,6 +65,8 @@ test("each story gets its status from the records: certified, to recertify, merg
   const model = await buildObservatoryViewModel(root, { clock: () => new Date(FIXED_TIME) });
   const byId = new Map(model.iterations.map((iteration) => [iteration.id, iteration]));
   assert.equal(byId.get("ST-CERT").certification.state, "current");
+  // Read from the records only: the view never claims it verified the files.
+  assert.equal(byId.get("ST-CERT").certification.verification, "not_rechecked");
   assert.equal(byId.get("ST-STALE").certification.state, "stale");
   assert.equal(byId.get("ST-STALE").certification.newerRecord.id, "TR-REL-2");
   assert.equal(byId.get("ST-MERGED").certification, undefined);
@@ -76,7 +78,9 @@ test("each story gets its status from the records: certified, to recertify, merg
       ["ST-CERT", "ST-STALE", "ST-MERGED", "ST-LIVE"].map((id) => storyStatus(stories.get(id)).key),
       ["certified", "recertify", "merged", "live"],
     );
-    assert.equal(storyStatus(stories.get("ST-CERT")).label, "Certificata");
+    assert.equal(storyStatus(stories.get("ST-CERT")).label, "Certificata, non riverificata");
+    assert.equal(storyStatus(stories.get("ST-CERT")).verification, "not_rechecked");
+    assert.match(storyStatus(stories.get("ST-CERT")).reason, /non sono stati riverificati/u);
     assert.equal(storyStatus(stories.get("ST-STALE")).label, "Certificazione da rifare");
     assert.match(storyStatus(stories.get("ST-STALE")).reason, /TR-REL-2/u);
     assert.equal(storyStatus(stories.get("ST-MERGED")).label, "Mergiata");
@@ -88,4 +92,10 @@ test("each story gets its status from the records: certified, to recertify, merg
     setLocale("en");
   }
   assert.equal(storyStatus(stories.get("ST-STALE")).label, "Certification to redo");
+  assert.equal(storyStatus(stories.get("ST-CERT")).label, "Certified, not re-checked");
+  // A model without the marker (an older server) keeps the plain label.
+  const legacy = stories.get("ST-CERT");
+  const { verification, ...legacyCertification } = legacy.iteration.certification;
+  assert.equal(verification, "not_rechecked");
+  assert.equal(storyStatus({ ...legacy, iteration: { ...legacy.iteration, certification: legacyCertification } }).label, "Certified");
 });

@@ -458,6 +458,8 @@ const ITALIAN = Object.freeze({
   "Waiting": "In attesa",
   "Parked": "Parcheggiata",
   "Certified": "Certificata",
+  "Certified, not re-checked": "Certificata, non riverificata",
+  "The final report is recorded and no later record changes it; its files were not re-checked here (gate check verifies them)": "Il report finale è registrato e nessun record successivo lo modifica; i suoi file non sono stati riverificati qui (li verifica gate check)",
   "Certification to redo": "Certificazione da rifare",
   "Merged": "Mergiata",
   "Reserved": "Prenotata",
