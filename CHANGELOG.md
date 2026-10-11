@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.17
+
+- Guard: un-exporting the session markers (`export -n`, `declare +x`), running mpsf with an emptied environment (`env -i`, `env -`, `exec -c`, `sudo`), and person-only subcommands hidden in a variable, substitution or xargs are refused. Merges and base-branch pushes through git or gh aliases (inline or configured), refspecs in variables, `push --all`, xargs, inline scripts, GraphQL merge or ref mutations and REST or curl writes to merge and ref endpoints are refused unless an authorization covers them; a target the guard cannot read is never covered, so write it out literally. Not closable by pattern matching: a script file the agent writes and then runs. Change Observatory: no change. Compatibility: nothing changes for older plugins.
+
 ## 0.159.16
 
 - Channel messages injected into the agent's context now carry the same `[untrusted]` / `[unverified: key not registered]` marks as `message read`; an `[untrusted]` question or request is listed only among the other messages, never among those the agent must answer before continuing; and a newer version announced by an untrusted or unverified message no longer starts the opt-in auto-update. Change Observatory: no change. Compatibility: older plugins on other computers are unaffected; unsigned messages of the local provider behave as before.

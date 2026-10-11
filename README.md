@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.17** — the guard closes session-marker, alias, variable and API bypasses of the merge and push rules.
 - **0.159.16** — messages injected into the agent show their trust; untrusted requests and version announcements are ignored.
 - **0.159.15** — an agent can no longer confirm edits to gates, trusted keys or host policy with `config migrate --apply`.
 - **0.159.14** — how-it-works examples name the current version.
