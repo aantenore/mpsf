@@ -2,6 +2,14 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.151.3
+
+- Claims are renewed by work, not by a fixed date. Each computer's presence ref now carries, for each story it holds, when it was last worked on: branch reflog, worktree index and HEAD log, story records, workflow checkpoint. Every computer counts that like a push, so a claim being worked on never lapses and a forgotten one lapses one time to live after the last work, also when its computer is off.
+- New projects get `claim_policy.default_ttl_seconds: 7200` (two hours) instead of 86400; existing projects keep their value.
+- When a session ends and no other session of the same clone worked in the last 15 minutes, a detached push (outside the 3-second SessionEnd limit) marks the computer's presence expired and hands back its roles, so another computer takes them at its next tick. Claims are not released.
+- Change Observatory: the "Now" panel shows the computers (alive or not, stories, roles, plugin version, last seen) and who holds each role.
+- Compatibility: older plugins ignore the new presence field and read only `expires_at` and pushes, which is the conservative view; presences written by 0.149.1 count as activity at their time.
+
 ## 0.151.2
 
 - Agent and channel texts that were only in Italian are now in English: hook instructions and notes (keep-going, watch, guard, prepared starts, process hygiene), channel `[auto]` status, free and join/welcome messages, wait suggestions, `next` and `roles status`. `wait add|resolve|list`, `roles status` and the "Waiting on" section of `status` print Italian with `--locale it`.
