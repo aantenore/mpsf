@@ -192,3 +192,21 @@ test("local claims: a claim past its recorded expiry stays live while its work s
   fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ claim_policy: { default_ttl_seconds: null } }));
   assert.deepEqual(localActiveClaims(root, args), []);
 });
+
+test("local claims: an agent working in the story's worktree renews its claim; the story folder's own times do not", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { noteWorktreeActivity } = await import("../../lib/runtime/worktree-activity.mjs");
+  const now = Date.now();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sdlc-presence-work-"));
+  execFileSync("git", ["init", "-q", "-b", "b/ST-A-001"], { cwd: root });
+  fs.mkdirSync(path.join(root, ".sdlc", "stories", "ST-A-001"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sdlc", "config.json"), JSON.stringify({ claim_policy: { default_ttl_seconds: 7200 } }));
+  fs.writeFileSync(path.join(root, ".sdlc", "stories", "ST-A-001", "claim.json"), JSON.stringify({
+    story_id: "ST-A-001", status: "active", branch: "b/ST-A-001", claimed_at: new Date(now - 5 * 3600_000).toISOString(), expires_at: new Date(now - 3 * 3600_000).toISOString(),
+  }));
+  const args = { now: now + 3 * 3600_000, branchExists: () => true };
+  // Nothing in git, a fresh story folder: three hours later the claim has lapsed.
+  assert.deepEqual(localActiveClaims(root, args), []);
+  noteWorktreeActivity(root, now + 2 * 3600_000);
+  assert.deepEqual(localActiveClaims(root, args).map((item) => item.story), ["ST-A-001"]);
+});

@@ -128,6 +128,13 @@ async function coordinationMessages(payload, hookEventName, extraContext = async
     // best effort
   }
   try {
+    // An agent working in this folder renews the claim of the story checked out here.
+    const { noteWorktreeActivity } = await import("../lib/runtime/worktree-activity.mjs");
+    noteWorktreeActivity(root);
+  } catch {
+    // best effort
+  }
+  try {
     // This computer's presence and role leases on the remote: at most every few minutes, bounded.
     const { rolesTick } = await import("../lib/engine/role-leases.mjs");
     await rolesTick(root, { sessionId: payload.session_id });
