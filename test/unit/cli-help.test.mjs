@@ -19,7 +19,7 @@ test("root help explains practical behavior before technical details", () => {
   assert.match(primary, /This CLI is for structured recovery and automation/u);
   assert.match(primary, /requirement -> story -> work brief\/output -> autonomy -> story workflow start -> one task start -> story claim -> complete each phase and advance -> validation gate -> enter release -> delivery\/release evidence -> final lifecycle gate/u);
   assert.doesNotMatch(primary, FORBIDDEN_PRIMARY_JARGON);
-  assert.doesNotMatch(primary, /(?:agentic-sdlc|--[a-z])/iu);
+  assert.doesNotMatch(primary, /(?:agentic-sdlc|mpsf|--[a-z])/iu);
   assert.match(technical, /Usage:/u);
   assert.match(technical, /\n  status\s+Show the current outcome/u);
 
@@ -41,8 +41,8 @@ test("Italian leaf help is understandable without plugin terminology", () => {
   assert.match(primary, /Cosa resta protetto:/u);
   assert.match(primary, /Prossimo passo:/u);
   assert.doesNotMatch(primary, FORBIDDEN_PRIMARY_JARGON);
-  assert.doesNotMatch(primary, /(?:agentic-sdlc|--[a-z])/iu);
-  assert.match(technical, /agentic-sdlc autonomy delivery approve/u);
+  assert.doesNotMatch(primary, /(?:agentic-sdlc|mpsf|--[a-z])/iu);
+  assert.match(technical, /mpsf autonomy delivery approve/u);
   assert.match(technical, /--authorization/u);
   assert.match(technical, /serve --summary oppure --approval-evidence/u);
   assert.doesNotMatch(technical, /requires --summary|required with|--summary or --approval-evidence/u);
@@ -93,7 +93,7 @@ test("delivery help exposes required runtime inputs rather than internal aliases
   );
   assert.equal(
     action.examples.filter((example) => /--action build\.local/u.test(example))[0],
-    "agentic-sdlc autonomy delivery action --id AUT-LOCAL-009 --action build.local",
+    "mpsf autonomy delivery action --id AUT-LOCAL-009 --action build.local",
   );
   assert.equal(
     action.examples.some((example) =>
@@ -116,7 +116,7 @@ test("trace append help includes a runnable example and its operational flags", 
     assert.equal(flags.has(flag), true, flag);
   }
   assert.equal(model.examples.length, 1);
-  assert.match(model.examples[0], /^agentic-sdlc trace append --type decision --summary/u);
+  assert.match(model.examples[0], /^mpsf trace append --type decision --summary/u);
 });
 
 test("requirement and contract help include safe runnable examples and exact runtime flags", () => {
@@ -162,13 +162,13 @@ test("requirement and contract help include safe runnable examples and exact run
   assert.match(supersedeFlags.get("--host-receipt-file")?.required_when, /trusted host or CI proof/u);
   assert.match(
     supersede.usage,
-    /^agentic-sdlc requirement supersede --id <current-id> --new-id <approved-direct-revision-id>/u,
+    /^mpsf requirement supersede --id <current-id> --new-id <approved-direct-revision-id>/u,
   );
   assert.equal(supersede.examples.length, 1);
   assert.doesNotMatch(supersede.examples[0], /<[^>]+>/u);
   assert.match(
     supersede.examples[0],
-    /^agentic-sdlc requirement supersede --id REQ-BOOKING-001 --new-id REQ-BOOKING-002 --reason/u,
+    /^mpsf requirement supersede --id REQ-BOOKING-001 --new-id REQ-BOOKING-002 --reason/u,
   );
 
   const italianSupersede = buildHelpModel(["requirement", "supersede"], { locale: "it" });
@@ -211,7 +211,7 @@ test("core work commands keep human guidance plain and runtime flags in optional
     const output = renderHelp(expectation.path, { locale: "it" });
     const [primary, technical] = output.split("Dettagli tecnici (facoltativi):");
     assert.doesNotMatch(primary, FORBIDDEN_PRIMARY_JARGON, expectation.path.join(" "));
-    assert.doesNotMatch(primary, /(?:agentic-sdlc|--[a-z])/iu, expectation.path.join(" "));
+    assert.doesNotMatch(primary, /(?:agentic-sdlc|mpsf|--[a-z])/iu, expectation.path.join(" "));
     for (const flag of expectation.flags) {
       assert.match(technical, new RegExp(flag, "u"), `${expectation.path.join(" ")} should expose ${flag}`);
     }
@@ -323,7 +323,7 @@ test("first-project lifecycle help exposes the exact assessment, evidence, and g
     "gate check",
   ]) {
     const model = describe(command);
-    assert.match(model.usage, new RegExp(`^agentic-sdlc ${command}`, "u"), command);
+    assert.match(model.usage, new RegExp(`^mpsf ${command}`, "u"), command);
     assert.equal(model.examples.length > 0, true, `${command} should include a useful example`);
     assert.doesNotMatch(model.examples[0], /<[^>]+>/u, `${command} example should not contain placeholders`);
   }
@@ -384,7 +384,7 @@ test("optimization and budget focused help expose executable and metering bounda
     "budget status",
   ]) {
     const model = describe(command);
-    assert.match(model.usage, new RegExp(`^agentic-sdlc ${command}`, "u"), command);
+    assert.match(model.usage, new RegExp(`^mpsf ${command}`, "u"), command);
     assert.equal(model.examples.length > 0, true, `${command} should include a useful example`);
     assert.doesNotMatch(model.examples[0], /<[^>]+>/u, `${command} example should not contain placeholders`);
   }

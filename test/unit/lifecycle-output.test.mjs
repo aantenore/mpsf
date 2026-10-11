@@ -106,12 +106,12 @@ test("formatTaskStartDecision lists blocking reasons, questions, approval reques
     blocking_reasons: ["missing_contract"],
     questions: ["What should ship first?"],
     approval_requests: [{ title: "Approve scope", summary: "scope", user_prompt: "Approve?" }],
-    next_commands: ["agentic-sdlc contract create"],
+    next_commands: ["mpsf contract create"],
   }));
   assert.ok(lines.some((line) => line.includes("Blocking reason codes: missing_contract")));
   assert.ok(lines.some((line) => line.includes("  - What should ship first?")));
   assert.ok(lines.some((line) => line.includes("Approve scope: Approve?")));
-  assert.ok(lines.some((line) => line.includes("  - agentic-sdlc contract create")));
+  assert.ok(lines.some((line) => line.includes("  - mpsf contract create")));
 });
 
 test("formatTaskStartDecision reports no blocking reasons and omits the lifecycle warning when absent", () => {

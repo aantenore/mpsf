@@ -53,9 +53,9 @@ test("annotateIds: first mention only, no double annotation, opt-out", () => {
 test("keep-going reason names the story with its description", () => {
   const root = project();
   try {
-    const claims = [{ storyId: "ST-A", next: { label: "implementa", command: "agentic-sdlc status", phase: "implementation" } }];
+    const claims = [{ storyId: "ST-A", next: { label: "implementa", command: "mpsf status", phase: "implementation" } }];
     const decision = decideKeepGoing({ claims, label: (id) => storyLabel(root, id) });
-    assert.match(decision.reason, /- ST-A \(Login page\): implementa -> `agentic-sdlc status`/u);
+    assert.match(decision.reason, /- ST-A \(Login page\): implementa -> `mpsf status`/u);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

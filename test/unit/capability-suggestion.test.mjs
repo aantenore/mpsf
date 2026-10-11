@@ -30,7 +30,7 @@ function record(overrides = {}) {
     profileId: "CAP-PROFILE-ST-001",
     tags: ["react"],
     matches: [match("skill", "react-review"), match("mcp", "docs"), match("plugin", "widgets")],
-    commands: ["agentic-sdlc capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory"],
+    commands: ["mpsf capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory"],
     ...overrides,
   });
 }

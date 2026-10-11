@@ -240,7 +240,7 @@ export function renderKnowledgeBaseMissing(container, model) {
       ]),
       node("p", { text: "To start recording: ask your agent to initialize MPSF for this project, or run the initialize command in a terminal inside the project folder, then press Refresh.", i18n: true }),
       node("p", {}, [
-        node("code", { text: "agentic-sdlc init" }),
+        node("code", { text: "mpsf init" }),
       ]),
       node("p", { text: "If this is the wrong folder, press Ctrl+C in the terminal and start the observatory again from, or pointing at, your project folder.", i18n: true }),
     ]),

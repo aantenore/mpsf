@@ -74,9 +74,9 @@ test("summary lines are kept trimmed, empty ones dropped", () => {
 });
 
 test("detail priority, cap and marker", () => {
-  const details = ["plain a", "plain b", "Run agentic-sdlc status", "plain c", "Story ST-A-001 blocked", "plain d"];
+  const details = ["plain a", "plain b", "Run mpsf status", "plain c", "Story ST-A-001 blocked", "plain d"];
   const out = compactGuidanceLines(block({ details }), { maxDetailLines: 3 });
-  assert.deepEqual(out.slice(2), ["- Run agentic-sdlc status", "- Story ST-A-001 blocked", "- plain a", "… 3 more: --verbose"]);
+  assert.deepEqual(out.slice(2), ["- Run mpsf status", "- Story ST-A-001 blocked", "- plain a", "… 3 more: --verbose"]);
   const all = compactGuidanceLines(block({ details }), { maxDetailLines: 10 });
   assert.ok(!all.some((line) => line.includes("more: --verbose")));
 });

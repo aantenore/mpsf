@@ -163,7 +163,7 @@ test("capability inventory explains itself in plain English and Italian with det
       ? ["Risultato:", "Cosa cambia in pratica:", "Cosa devi decidere:", "Cosa resta protetto:", "Prossimo passo:"]
       : ["Outcome:", "What this changes in practice:", "What you need to decide:", "What remains protected:", "Next step:"];
     for (const label of labels) assert.ok(primary.includes(label), `${locale} output lacks ${label}`);
-    assert.doesNotMatch(primary, /\.sdlc\/|--[a-z]|agentic-sdlc\s+[a-z]|\b(?:profile|schema|hash|receipt)\b/iu);
+    assert.doesNotMatch(primary, /\.sdlc\/|--[a-z]|(?:agentic-sdlc|mpsf)\s+[a-z]|\b(?:profile|schema|hash|receipt)\b/iu);
     assert.match(details, /react-review/u);
     assert.match(details, /go-services/u);
     assert.match(details, /~\/\.codex\/config\.toml/u);
@@ -538,8 +538,8 @@ test("task start offers installed tools that name the declared stack, without ch
   );
   assert.deepEqual(suggestion.tags, ["frontend", "node", "react", "typescript"]);
   assert.deepEqual(suggestion.commands, [
-    "agentic-sdlc capability profile propose --id CAP-PROFILE-ST-001 --story ST-001 --phase implementation --context-file package.json",
-    "agentic-sdlc capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory",
+    "mpsf capability profile propose --id CAP-PROFILE-ST-001 --story ST-001 --phase implementation --context-file package.json",
+    "mpsf capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory",
   ]);
   assert.match(withTools.assistant_message, /Installed tools that look relevant to this work: .*react-review \(skill\)/u);
   assert.equal(JSON.stringify(withTools).includes(SENTINEL), false);
@@ -568,7 +568,7 @@ test("the task start suggestion reads in plain language first and keeps commands
     assert.match(line, /react-review/u);
     assert.doesNotMatch(
       primary,
-      /\.sdlc\/|--[a-z]|agentic-sdlc\s+[a-z]|\b(?:profile|schema|hash|receipt|checkpoint)\b|\b(?:REQ|AUT|AUTH|CAP|ST|ACT|PR)-[A-Z0-9]/iu,
+      /\.sdlc\/|--[a-z]|(?:agentic-sdlc|mpsf)\s+[a-z]|\b(?:profile|schema|hash|receipt|checkpoint)\b|\b(?:REQ|AUT|AUTH|CAP|ST|ACT|PR)-[A-Z0-9]/iu,
       "the primary part carries no commands, identifiers, or internal terms",
     );
     assert.equal(line.includes("schema-react-helper"), false, "a name with an internal term stays in the details");
@@ -610,7 +610,7 @@ test("with an approved profile the suggestion points at the recommendation and s
   assert.equal(suggestion.basis, "approved_profile");
   assert.equal(suggestion.profile_id, "CAP-PROFILE-ST-001");
   assert.deepEqual(suggestion.commands, [
-    "agentic-sdlc capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory",
+    "mpsf capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory",
   ]);
   assert.match(suggestion.message, /ask me to put them forward for your review/u);
   assert.doesNotMatch(suggestion.message, /evidence and boundaries need your review first/u);
@@ -668,14 +668,14 @@ test("status carries the same suggestion for the first operational story", () =>
   const status = statusJson(project, home);
   assert.equal(status.capability_suggestion.story_id, "ST-001");
   assert.deepEqual(status.capability_suggestion.matches.map((match) => match.name).sort(), ["node-debug", "react-review"]);
-  assert.equal(status.capability_suggestion.commands[1], "agentic-sdlc capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory");
+  assert.equal(status.capability_suggestion.commands[1], "mpsf capability recommend --id CAP-REC-ST-001 --profile CAP-PROFILE-ST-001 --from-inventory");
 
   for (const locale of ["en", "it"]) {
     const text = mustRun(["status", "--root", project, "--locale", locale], { cwd: project, home }).stdout;
     const divider = locale === "it" ? "Dettagli tecnici (facoltativi):" : "Technical details (optional):";
     const [primary, details] = text.split(divider);
     assert.match(primary, new RegExp(`${locale === "it" ? "Suggerimento strumenti" : "Tool suggestion"}: .*react-review`, "u"));
-    assert.doesNotMatch(primary, /--[a-z]|agentic-sdlc\s+[a-z]|\b(?:profile|schema|hash)\b/iu);
+    assert.doesNotMatch(primary, /--[a-z]|(?:agentic-sdlc|mpsf)\s+[a-z]|\b(?:profile|schema|hash)\b/iu);
     assert.match(details, /capability profile propose --id CAP-PROFILE-ST-001/u);
   }
 

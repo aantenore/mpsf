@@ -275,7 +275,7 @@ test("story sync keeps uncommitted code changes in the stash when they no longer
   assert.equal(synced.status, "synced");
   assert.equal(synced.code_changes_stash.status, "kept");
   assert.equal(fs.readFileSync(path.join(second, "src/shared.txt"), "utf8"), "base edit\n");
-  assert.match(git(second, ["stash", "list"]).stdout, /agentic-sdlc story sync ST-SYNC-001/u);
+  assert.match(git(second, ["stash", "list"]).stdout, /mpsf story sync ST-SYNC-001/u);
   assert.equal(git(second, ["show", "stash@{0}:src/shared.txt"]).stdout, "local edit\n");
 });
 

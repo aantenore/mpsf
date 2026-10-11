@@ -101,7 +101,7 @@ test("status and doctor warn before publishing when the project history forked, 
     command: "trace rebase --onto origin/main --apply",
   });
   const text = mustRun(["status", "--root", second, "--sync", "off"]).stdout;
-  assert.match(text, /Project history forked from origin\/main: 2 event\(s\) only here, 1 only on origin\/main\. Before publishing run agentic-sdlc trace rebase --onto origin\/main --apply/u);
+  assert.match(text, /Project history forked from origin\/main: 2 event\(s\) only here, 1 only on origin\/main\. Before publishing run mpsf trace rebase --onto origin\/main --apply/u);
   const doctor = mustRunJson(["doctor", "--root", second]);
   const check = doctor.checks.find((entry) => entry.id === "project-history-divergence");
   assert.equal(check.warning, true);

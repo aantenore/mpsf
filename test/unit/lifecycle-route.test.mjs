@@ -320,7 +320,7 @@ test("canonicalIntentQuestion lists every required canonical intent field", () =
 });
 
 test("canonicalIntentCommand returns the fixed route decide invocation", () => {
-  assert.equal(canonicalIntentCommand(), "agentic-sdlc route decide --intent-json '<canonical-intent-json>'");
+  assert.equal(canonicalIntentCommand(), "mpsf route decide --intent-json '<canonical-intent-json>'");
 });
 
 test("normalizeIntentArray records an error and returns an empty array for a non-array value", () => {

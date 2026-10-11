@@ -119,7 +119,7 @@ async function coordinationMessages(payload, hookEventName, extraContext = async
     event: hookEventName === "PostToolUse" ? "post_tool_use" : "user_prompt_submit",
     payload,
     root,
-    pointer: "agentic-sdlc wait list",
+    pointer: "mpsf wait list",
   }) : "";
   try {
     const { checkPresence } = await import("../lib/messaging/presence.mjs");
@@ -156,7 +156,7 @@ async function pendingProcessWarning(root) {
 }
 
 async function preToolUse(payload) {
-  // Every rule protects agentic-sdlc records, so other projects are never touched.
+  // Every rule protects mpsf records, so other projects are never touched.
   if (!insideGovernedProject(payload.cwd)) return;
   const root = governedRoot(payload.cwd);
   const verdict = evaluatePreToolUse(payload, {
@@ -178,7 +178,7 @@ async function preToolUse(payload) {
     return;
   }
   const rawWarning = orchestratorEditWarning(payload, mode);
-  const warning = rawWarning ? await budgeted(rawWarning, { event: "pre_tool_use", payload, root, pointer: "agentic-sdlc wait list" }) : "";
+  const warning = rawWarning ? await budgeted(rawWarning, { event: "pre_tool_use", payload, root, pointer: "mpsf wait list" }) : "";
   if (warning) process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: warning } })}\n`);
 }
 
@@ -204,7 +204,7 @@ async function pluginUpdateNotice(root) {
   const verdict = evaluateRequirements(entries);
   if (verdict.satisfied) return "";
   return `MPSF: ${pluginUpdateLine(verdict.required_plugin_version)}\n`
-    + "Tell the user before any other agentic-sdlc work: commands that change the project are refused until the plugin is updated.\n";
+    + "Tell the user before any other mpsf work: commands that change the project are refused until the plugin is updated.\n";
 }
 
 /** Opt-in plugin update (AGENTIC_SDLC_AUTO_UPDATE=1): detached and throttled; never blocks or fails the hook. */
@@ -240,7 +240,7 @@ async function sessionStart(payload) {
     event: "session_start",
     payload,
     root,
-    pointer: "agentic-sdlc context pack --story <id>",
+    pointer: "mpsf context pack --story <id>",
     extraTokens: Math.ceil(notice.length / 4),
   });
   if (filtered) process.stdout.write(`${filtered}\n`);
@@ -336,7 +336,7 @@ async function keepGoing(payload) {
   if (!merged) return;
   const { filterHookOutput } = await import("../lib/host-hooks/injection-budget.mjs");
   // Only the free-text fields are filtered; decision and reason stay intact.
-  const filtered = merged.systemMessage ? await budgeted(merged.systemMessage, { event: "stop", payload, root, pointer: "agentic-sdlc wait list" }) : "";
+  const filtered = merged.systemMessage ? await budgeted(merged.systemMessage, { event: "stop", payload, root, pointer: "mpsf wait list" }) : "";
   const shown = filterHookOutput(merged, (text) => (text === merged.systemMessage ? filtered : text));
   if (shown) process.stdout.write(`${JSON.stringify(shown)}\n`);
 }

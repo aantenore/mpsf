@@ -153,9 +153,9 @@ test("a story split into several stories leaves its dependents for a person to r
   assert.deepEqual(result.dependents.map((item) => item.story_id), ["ST-CHAT-001", "ST-CHAT-001A", "ST-CHAT-001C", "ST-IMPR-001"]);
   assert.ok(result.dependents.every((item) => item.effect === "needs_review" && item.depends_on === "ST-ORCH-001"));
   assert.equal(result.dependency_review.required, true);
-  assert.match(result.dependency_review.commands[0], /^agentic-sdlc dependency revise --id DEP-REV-ST-ORCH-001 /u);
+  assert.match(result.dependency_review.commands[0], /^mpsf dependency revise --id DEP-REV-ST-ORCH-001 /u);
   assert.match(result.dependency_review.commands[0], /--redirect ST-CHAT-001A:ST-ORCH-001:<ST-ORCH-001A\|ST-ORCH-001B\|ST-ORCH-001C>/u);
-  assert.match(result.dependency_review.commands[1], /^agentic-sdlc dependency approve --id DEP-REV-ST-ORCH-001 /u);
+  assert.match(result.dependency_review.commands[1], /^mpsf dependency approve --id DEP-REV-ST-ORCH-001 /u);
 
   const closure = readJson(sdlcPath(project, "stories", "ST-ORCH-001", "closure.json"));
   assert.deepEqual(validateAgainstSchema(closure, "story-closure.schema.json", { schemaDir }).errors, []);

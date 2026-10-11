@@ -79,10 +79,10 @@ test("a repeated warning with other numbers is deduped", () => {
 
 test("max_lines caps with a pointer marker", () => {
   const text = ["Elenco:", ...Array.from({ length: 30 }, (_, i) => `  - voce ${"x".repeat(i + 1)}`)].join("\n");
-  const result = filterInjection(text, { event: "post_tool_use", policy: resolveContextPolicy({ host_policy: { context: { hooks: { max_lines: 5, budget_tokens: { post_tool_use: 5000 } } } } }), pointer: "agentic-sdlc wait list" });
+  const result = filterInjection(text, { event: "post_tool_use", policy: resolveContextPolicy({ host_policy: { context: { hooks: { max_lines: 5, budget_tokens: { post_tool_use: 5000 } } } } }), pointer: "mpsf wait list" });
   const lines = result.text.split("\n");
   assert.equal(lines.length, 5);
-  assert.equal(lines.at(-1), "… 27 more: agentic-sdlc wait list");
+  assert.equal(lines.at(-1), "… 27 more: mpsf wait list");
   assert.equal(result.stats.suppressed_lines, 27);
 });
 
@@ -90,7 +90,7 @@ test("token budget per event", () => {
   const text = ["Elenco:", ...Array.from({ length: 10 }, (_, i) => `  - ${String(i).repeat(1)} ${"parola ".repeat(20)}${i}x`)].join("\n");
   const small = filterInjection(text, { event: "pre_tool_use", policy: resolveContextPolicy({ host_policy: { context: { hooks: { max_lines: 50, budget_tokens: { pre_tool_use: 60 } } } } }) });
   assert.ok(small.stats.output_tokens <= 60);
-  assert.match(small.text, /more: agentic-sdlc wait list$/u);
+  assert.match(small.text, /more: mpsf wait list$/u);
   const large = filterInjection(text, { event: "pre_tool_use", policy: resolveContextPolicy({ host_policy: { context: { hooks: { max_lines: 50, budget_tokens: { pre_tool_use: 5000 } } } } }) });
   assert.equal(large.text, text);
 });
@@ -131,9 +131,9 @@ test("measurement: injected size before and after", () => {
     const warning2 = "Fermati 4 processi oltre 12 min: 21, 22, 23, 24.";
     const rows = [];
     const measure = (name, before, after) => rows.push(`${name.padEnd(34)} before ${String(before.length).padStart(5)} ch ${String(estimateTokens(before)).padStart(4)} tok | after ${String(after.length).padStart(5)} ch ${String(estimateTokens(after)).padStart(4)} tok`);
-    const ss1 = budget(session, "session_start", { sessionId: "m", commonDir: dir, pointer: "agentic-sdlc context pack --story <id>" });
+    const ss1 = budget(session, "session_start", { sessionId: "m", commonDir: dir, pointer: "mpsf context pack --story <id>" });
     measure("SessionStart first", session, ss1);
-    const ss2 = budget(session, "session_start", { sessionId: "m", commonDir: dir, pointer: "agentic-sdlc context pack --story <id>" });
+    const ss2 = budget(session, "session_start", { sessionId: "m", commonDir: dir, pointer: "mpsf context pack --story <id>" });
     measure("SessionStart resumed (same session)", session, ss2);
     assert.equal(ss2, "");
     const p1 = budget(MESSAGES, "post_tool_use", { sessionId: "m", commonDir: dir });

@@ -1703,7 +1703,7 @@ async function main() {
     if (positionalMessageText) {
       if (resolution.args.length > 1 || parsed.options.text !== undefined) {
         failUsage("message send takes the text either as --text <text> or as one argument, not both. "
-          + "See 'agentic-sdlc help message send'.");
+          + "See 'mpsf help message send'.");
       }
       parsed.options.text = resolution.args[0];
     }
@@ -1711,7 +1711,7 @@ async function main() {
       const commandPath = resolution.canonical_path.join(" ");
       failUsage(
         `Unexpected argument '${resolution.args[0]}' for '${commandPath}'; it accepts only --options. `
-        + `See 'agentic-sdlc help ${commandPath}'.`,
+        + `See 'mpsf help ${commandPath}'.`,
       );
     }
     if (handler?.stage === "bootstrap" && resolution.canonical_action !== "observe") {

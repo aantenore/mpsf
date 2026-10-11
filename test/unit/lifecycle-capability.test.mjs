@@ -329,7 +329,7 @@ test("normalizeAvailableCapabilityNames returns just the names", () => {
 // buildDefaultCapabilityRecommendations
 // ---------------------------------------------------------------------------
 
-test("buildDefaultCapabilityRecommendations always recommends the agentic-sdlc skill as available", () => {
+test("buildDefaultCapabilityRecommendations always recommends the mpsf skill as available", () => {
   const [first] = buildDefaultCapabilityRecommendations({ detected_stack: [] }, {});
   assert.equal(first.type, "skill");
   assert.equal(first.name, "agentic-sdlc");

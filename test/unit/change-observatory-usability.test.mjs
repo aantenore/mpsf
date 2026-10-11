@@ -260,7 +260,7 @@ test("a folder without a knowledge base gets one clear empty state", async (t_) 
   );
   const primary = textOf(browser.document.querySelector("#primary-view"));
   assert.match(primary, /Checked path: \.sdlc/u);
-  assert.match(primary, /agentic-sdlc init/u);
+  assert.match(primary, /mpsf init/u);
   assert.match(primary, /ask your agent to initialize/u);
   assert.equal(browser.document.querySelector("#summary-region").hidden, true, "no repeated empty answers");
   assert.equal(browser.document.querySelector("#diagnostics-region").hidden, true);
