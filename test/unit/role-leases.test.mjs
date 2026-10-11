@@ -166,3 +166,28 @@ test("a claim past its recorded expiry holds while a presence shows work on it, 
   assert.equal(claimLeaseHolds(context, claim, { nowMs: NOW }), true);
   assert.equal(claimLeaseHolds({ ...context }, claim, { nowMs: NOW + 120 * MIN }), false);
 });
+
+test("push budget: messages written within the interval wait and leave with the next presence push", async () => {
+  const { createGitProvider } = await import("../../lib/messaging/providers/git.mjs");
+  const seed = createFixtureDir("roles-budget-seed-");
+  execFileSync("git", ["init", "-q"], { cwd: seed });
+  const bare = createBareOrigin(seed);
+  const a = clone(bare, "pc-a");
+  const env = { ...a.env, AGENTIC_SDLC_PUSH_INTERVAL_SECONDS: "120" };
+  forgetSharedRefState();
+  const provider = createGitProvider({ now: () => NOW, env });
+  const first = await provider.publish({ config: { root: a.dir }, message: { from: "A", text: "one" } });
+  const second = await provider.publish({ config: { root: a.dir }, message: { from: "A", text: "two" } });
+  assert.equal(first.pending_push, undefined);
+  assert.equal(second.pending_push, true);
+  const channelCount = () => execFileSync("git", ["for-each-ref", "--format=%(refname)", "refs/agentic-sdlc/channel"], { cwd: bare, encoding: "utf8" }).trim().split("\n")
+    .map((ref) => execFileSync("git", ["rev-list", "--count", ref], { cwd: bare, encoding: "utf8" }).trim());
+  assert.deepEqual(channelCount(), ["1"]);
+  // Local readers see it at once.
+  assert.deepEqual((await provider.poll({ config: { root: a.dir }, since: "all" })).map((m) => m.text), ["one", "two"]);
+  // The first tick (a presence change: urgent) carries the waiting message in the same push.
+  const tick = await rolesTick(a.dir, { env, now: NOW + MIN });
+  assert.equal(tick.pushed, true, JSON.stringify(tick));
+  assert.equal(tick.messages, 1);
+  assert.deepEqual(channelCount(), ["2"]);
+});

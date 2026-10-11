@@ -61,6 +61,8 @@ export function isolationEnv(baseDir = tempRoot()) {
       AGENTIC_SDLC_MACHINE_DIR: path.join(dir, "machine"),
       // Role duties start detached CLI runs: a test asks for them explicitly.
       AGENTIC_SDLC_ROLE_DUTIES: "off",
+      // Coordination pushes go at once; a test of the push budget sets its own spacing.
+      AGENTIC_SDLC_PUSH_INTERVAL_SECONDS: "0",
       [ISOLATION_MARKER_ENV]: "1",
     },
   };
