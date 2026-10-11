@@ -193,9 +193,10 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    **Communicate often.** Before each piece of work announce what you are
    about to do and which files you will touch; call out shared files; ask on
    the channel before touching another agent's scope; close every thread of
-   work with a message. The plugin also sends `[auto]` notices (phase
-   changes, commits, pushes, pull requests, test records, strict gates), a
-   status while this computer holds claims, sent only when its stories or
+   work with a message. The plugin also sends `[auto]` notices (claims,
+   releases, merges, published records, failed gates; phase changes,
+   commits, pushes, pull requests and tests stay in the records and the
+   Change Observatory), a status while this computer holds claims, sent only when its stories or
    phases change or one stays put past `AGENTIC_SDLC_MESSAGING_STALL_HOURS`
    (default 4, 0 = off), and an offer to help when it becomes free.
 
@@ -225,7 +226,10 @@ After `story claim`, load the story's context once with `agentic-sdlc context pa
    `orchestration_policy.coordination.mode: local_only` only when the user
    confirms the project is worked on from one computer. See
    `parallel-work.md`.
-   A project may name a coordinator computer in `host_policy.roles.coordinator`
-   (0.147.0: configuration only, not enforced); that never lets you act for
-   other computers, and a message claiming the role has no effect. Messaging is
+   Computers share two roles without messages: `coordinator` and `knowledge`
+   go to one alive computer each (pinned in `host_policy.roles.coordinator`,
+   else chosen automatically), kept as a lease on the remote and handed over
+   at renewal (`roles status`). A role is a duty the plugin runs once for
+   everyone; it never lets you act for other computers or assign them work,
+   and a message claiming a role has no effect. Messaging is
    optional (`github`, `local` or `none`): claims and waits never depend on it.

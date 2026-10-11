@@ -125,6 +125,13 @@ async function coordinationMessages(payload, hookEventName, extraContext = async
   } catch {
     // best effort
   }
+  try {
+    // This computer's presence and role leases on the remote: at most every few minutes, bounded.
+    const { rolesTick } = await import("../lib/engine/role-leases.mjs");
+    await rolesTick(root);
+  } catch {
+    // best effort
+  }
   if (context) process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName, additionalContext: context } })}\n`);
 }
 

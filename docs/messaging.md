@@ -147,6 +147,22 @@ Where the waits show up:
 
 The rules are configured in `.sdlc/config.json` under `host_policy.waits` (defaults in the plugin's `config/waits.json`): `question_decide_after_minutes`, `plugin_update_request_every_minutes`, `plugin_update_active_minutes` (plugin default only), `freezes_enabled`, `freeze_default_minutes`, `explicit_default_until`, `explicit_max_until`, `escalate_approvals`, `escalate_delegations`, `list_limit`, `freeze_patterns`. What has been sent already (escalations, update requests) is remembered per clone in `.git/agentic-sdlc/waits-state.json`.
 
+## Computers and roles
+
+Every computer that runs the plugin on a project with a shared remote keeps a presence ref there, and the computers share two roles without any message:
+
+```
+refs/agentic-sdlc/presence/<computer id>        replaced by its computer at each renewal: when, until when, stories held, roles held, plugin version
+refs/agentic-sdlc/roles/<role>/<epoch>          one lease per epoch, created only if it does not exist yet: who, until when
+```
+
+- A computer is alive while its presence has not expired (30 minutes); the host hook renews it every 10 minutes while the plugin is used, and at most every 5 minutes it reads the others (one fetch, one push, each bounded to 3 seconds). A computer that is off simply lapses.
+- Roles: `coordinator` (the duties done once for everyone: serial merges, records and baselines, update requests, expired waits and claims, digest, welcome, plugin release) and `knowledge` (the shared knowledge). One computer holds each role: the first alive host of `host_policy.roles.coordinator.hosts` when hosts are pinned, else the one chosen by rendezvous hashing among the alive computers. Alone, a computer holds every role.
+- The holder keeps a lease (`lease_minutes`, 30 by default) and renews it after half of it. When another computer should hold the role (one joined that ranks first) it hands over at that renewal; when the holder disappears its lease expires and the next computer takes it. Two computers trying at the same moment cannot both win: an epoch is created only once.
+- Without a valid lease, without a shared remote, or with `AGENTIC_SDLC_ROLES=off`, every computer does the duties itself, as before roles. Older plugins ignore these refs.
+- `roles status [--offline] [--json]` shows the alive computers, who holds each role, who should, and what this computer is. The Change Observatory shows the same from the copies already fetched.
+- Pushing these refs triggers no CI: they are not branches.
+
 ## Settings
 
 Each setting is taken from the first place that has it:
@@ -166,6 +182,7 @@ Each setting is taken from the first place that has it:
 | `AGENTIC_SDLC_HOST_LABEL` | the stable host id of this computer (default: the id kept in `~/.config/agentic-sdlc/machine.json`, decided on first use as `pc-` plus a short hash of the host name, so a laptop whose host name changes with the network keeps it; the same for every clone, worktree, session and subagent); the shown name is set with `message identity --name` |
 | `AGENTIC_SDLC_MACHINE_DIR` | folder of the computer's kept id and Ed25519 key (`machine.json`, `machine-key.pem`, mode 0600; default `$XDG_CONFIG_HOME/agentic-sdlc`, `%APPDATA%\agentic-sdlc` on Windows, else `~/.config/agentic-sdlc`) |
 | `AGENTIC_SDLC_MESSAGING_JOIN=off` | no automatic join/welcome on this computer |
+| `AGENTIC_SDLC_ROLES=off` | this computer publishes no presence and takes no role; it does every duty itself |
 | `AGENTIC_SDLC_MESSAGING_PROVIDER` | `github` (default), `local` (a channel file in a folder: offline, tests, a shared network folder) or `none` (messaging off) |
 | `AGENTIC_SDLC_MESSAGING_LOCAL_DIR` | folder of the `local` provider's channel (default: next to the clone's settings in the git folder) |
 | `.sdlc/config.json` -> `host_policy.adapters.messaging` | `{"provider": "local", "options": {"dir": "..."}}` for everyone, below the files above; credentials only by reference (`<name>_env`) |

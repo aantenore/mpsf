@@ -1335,6 +1335,7 @@ function buildCliRuntimeHandlerRegistry() {
     "wait.add": bootstrap(async ({ options }) => (await import("../lib/engine/wait-registry.mjs")).waitAdd(options)),
     "wait.resolve": bootstrap(async ({ options }) => (await import("../lib/engine/wait-registry.mjs")).waitResolve(options)),
     "wait.list": bootstrap(async ({ options }) => (await import("../lib/engine/wait-registry.mjs")).waitList(options)),
+    "roles.status": bootstrap(async ({ options }) => (await import("../lib/engine/role-leases.mjs")).rolesStatusCommand(options)),
     run: bootstrap(({ options, parsed }) => runCommand(options, parsed.passthrough)),
     "processes.reap": bootstrap(({ options }) => processesReap(options)),
     "guard.trust-remote": bootstrap(({ options }) => guardTrustRemote(options)),
