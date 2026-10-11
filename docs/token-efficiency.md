@@ -82,7 +82,7 @@ agentic-sdlc context get sec:ST-UX-002/implementation/scope        # a section t
 agentic-sdlc context get rec:.sdlc/requirements/REQ-001.json#/acceptance_criteria
 ```
 
-The pack holds the accepted criteria, the contract essentials, decisions, dependencies, the write scope with a file index (paths and symbol names, no file contents), recent tests and gates, waits and the next governed step. Each section has its own budget and a cut section ends with a `context get` reference. The same input gives the same `pack_hash`; secrets are redacted; the cache lives in `.sdlc/cache/context/` and is rebuilt when a record it read changes (`--no-cache` forces it). Records are read through the record store, with the filesystem as fallback.
+The pack holds the accepted criteria, the contract essentials, decisions, dependencies, the write scope with a file index (paths and symbol names, no file contents), recent tests and gates, waits and the next governed step. Each section has its own budget and a cut section ends with a `context get` reference. The same input gives the same `pack_hash`; secrets are redacted; the cache lives in `.sdlc/cache/context/` and is rebuilt when a record it read changes (`--no-cache` forces it). Records are read through the record store, with the filesystem as fallback. Under the title, `base: N commits behind origin/main` says how far the checkout is from the base branch, after a bounded fetch at most once a minute (`AGENTIC_SDLC_FRESH_FETCH=off` skips it); it is not part of the hash.
 
 **Short command output.** Inside an agent session commands print the outcome, the next step, ids and the exact error instead of the long explanation. `--verbose` restores the full text, `--compact` forces the short form, `AGENTIC_SDLC_OUTPUT=auto|compact|full` sets it for a computer.
 
@@ -113,7 +113,7 @@ Projects that set `host_policy.context` need 0.148.0 on every computer; older pl
 ## RTK command gateway
 
 [RTK](https://github.com/rtk-ai/rtk) filters noisy command output before it
-enters model context. Agentic SDLC 0.150.1 integrates RTK 0.43+ behind a
+enters model context. Agentic SDLC 0.151.2 integrates RTK 0.43+ behind a
 configurable, shell-free gateway; RTK remains an optional, separately installed
 binary.
 

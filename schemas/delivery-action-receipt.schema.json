@@ -157,7 +157,7 @@
                 "properties": {
                   "command": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
                   "cwd": { "type": "string", "minLength": 1 },
-                  "sandbox": { "enum": ["macos-sandbox-exec-readonly-no-network", "linux-bwrap-readonly-no-network"] },
+                  "sandbox": { "enum": ["macos-sandbox-exec-readonly-no-network", "linux-bwrap-readonly-no-network", "windows-appcontainer-readonly-no-network"] },
                   "exit_code": { "type": ["integer", "null"] },
                   "signal": { "type": ["string", "null"] },
                   "error_code": { "type": ["string", "null"] },
