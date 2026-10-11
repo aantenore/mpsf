@@ -69,10 +69,10 @@ test("role duties: only automatic ones, for roles held, with a command, at most 
   assert.deepEqual(run.started, ["coordinator-free-claims"]);
   assert.equal(run.last["coordinator-free-claims"], NOW);
   assert.deepEqual(startRoleDuties(dir, { roles: ["coordinator"], env: { AGENTIC_SDLC_ROLE_DUTIES: "off" }, now: NOW, duties, hasCommand, spawn: () => true }).started, []);
-  // The plugin's own list loads, and digest, update requests, merges and main-green wait for a person.
+  // The plugin's own list loads; digest, update requests and merges wait for a person.
   const shipped = loadRoleDuties();
   assert.ok(shipped.length > 0);
-  for (const key of ["coordinator-digest", "coordinator-update-requests", "coordinator-merge", "coordinator-main-green"]) {
+  for (const key of ["coordinator-digest", "coordinator-update-requests", "coordinator-merge"]) {
     assert.equal(shipped.find((item) => item.key === key)?.auto, false, key);
   }
   for (const key of ["coordinator-main-green", "knowledge-distill"]) assert.equal(shipped.find((item) => item.key === key)?.publish, "base", key);
