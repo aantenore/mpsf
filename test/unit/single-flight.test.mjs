@@ -74,7 +74,7 @@ test("a dead, foreign or over-limit holder is taken over", () => {
 
 test("busy message, wait setting and reaper", () => {
   const text = busyMessage({ command: "gate check", story: "ST-A-001", holder: { pid: 12, started_at: new Date(Date.now() - 180_000).toISOString() } });
-  assert.match(text, /^gate check for ST-A-001 is already running \(pid 12, started 3 min ago\); wait for it, or 'agentic-sdlc runs stop --pid 12' if stuck\.$/u);
+  assert.match(text, /^gate check for ST-A-001 is already running \(pid 12, started 3 min ago\); wait for it, or 'mpsf runs stop --pid 12' if stuck\.$/u);
   assert.equal(waitSeconds({}), 0);
   assert.equal(waitSeconds({ AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS: "5" }), 5);
   const root = repo();

@@ -98,7 +98,7 @@ test("a waiting or delegated claim is not idle: parallel story and no blocking s
   const waiting = { ...claim, waiting: "dipendenza ST-0 non ancora mergiata" };
   const result = decideKeepGoing({ claims: [waiting], available: ["ST-5", "ST-6"], ready: ["ST-6"] });
   assert.equal(result.block, true);
-  assert.match(result.reason, /work in parallel on ST-6 -> `agentic-sdlc story claim --id ST-6/u);
+  assert.match(result.reason, /work in parallel on ST-6 -> `mpsf story claim --id ST-6/u);
   assert.doesNotMatch(result.reason, /complete-step/u);
   const none = decideKeepGoing({ claims: [waiting], available: ["ST-5"], ready: [] });
   assert.equal(none.block, false);
@@ -278,7 +278,7 @@ test("own claims of this computer show their next step, or delegated work with t
     }
     const work = collectWork(root, { working: { "ST-B": { until: "2099-01-01T00:00:00Z", reason: "subagent" } } });
     const decision = decideKeepGoing(work);
-    assert.match(decision.reason, /ST-A: .*agentic-sdlc story complete-step/u);
+    assert.match(decision.reason, /ST-A: .*mpsf story complete-step/u);
     assert.match(decision.note, /ST-B: work delegated/u);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -503,15 +503,15 @@ test("anti-loop compares suggestions without the changing counts", () => {
 test("a step that needs a person with an open request is shown as waiting and does not block", () => {
   const release = { storyId: "ST-1", next: nextStoryStep({ storyId: "ST-1", completedSteps: ["discovery", "analysis", "design", "implementation", "validation"] }) };
   const state = { own: ["m1"], attention: { window: [
-    { id: "m1", kind: "request", text: "ST-1: serve `agentic-sdlc autonomy delivery reconcile --id AUT-PR-1` da una persona" },
-    { id: "m2", kind: "request", text: "ST-9 `agentic-sdlc autonomy delivery amend --id X`" },
+    { id: "m1", kind: "request", text: "ST-1: serve `mpsf autonomy delivery reconcile --id AUT-PR-1` da una persona" },
+    { id: "m2", kind: "request", text: "ST-9 `mpsf autonomy delivery amend --id X`" },
   ] } };
   const requests = personRequests(state);
   assert.equal(requests.length, 1);
   const waiting = withPersonRequest(release, requests);
   const result = decideKeepGoing({ claims: [waiting] });
   assert.equal(result.block, false);
-  assert.match(result.note, /ST-1: waiting on a person: agentic-sdlc autonomy delivery reconcile --id AUT-PR-1/u);
+  assert.match(result.note, /ST-1: waiting on a person: mpsf autonomy delivery reconcile --id AUT-PR-1/u);
   // Answered request: the step is proposed again.
   const answered = personRequests({ ...state, attention: { window: [...state.attention.window, { id: "m3", kind: "answer", reply_to: "m1", text: "ok" }] } });
   assert.equal(withPersonRequest(release, answered).awaitingPerson, undefined);
@@ -519,7 +519,7 @@ test("a step that needs a person with an open request is shown as waiting and do
 
 test("suggestion-only stops: the same set in any order passes with a short note, a new set blocks", () => {
   const w1 = { ...claim, storyId: "ST-1", waiting: "attesa umana" };
-  const w2 = { ...claim, storyId: "ST-2", awaitingPerson: { command: "agentic-sdlc approve" } };
+  const w2 = { ...claim, storyId: "ST-2", awaitingPerson: { command: "mpsf approve" } };
   const first = decideKeepGoing({ claims: [w1, w2], available: ["ST-5"], now: 1000 });
   assert.equal(first.block, true);
   const second = decideKeepGoing({ claims: [w2, w1], available: ["ST-5"], previous: first.state, now: 2000 });
@@ -558,14 +558,14 @@ test("unpublished records, no marker and stable: block once, then dedupe", () =>
 });
 
 test("a step only a person takes is a note for this session's person and never blocks", () => {
-  const person = { wait_id: "approval:A1", person: true, text: "serve la tua persona (approval BRK-1): chiediglielo in questa sessione, non sul canale", command: "agentic-sdlc breakdown approve --id BRK-1" };
+  const person = { wait_id: "approval:A1", person: true, text: "serve la tua persona (approval BRK-1): chiediglielo in questa sessione, non sul canale", command: "mpsf breakdown approve --id BRK-1" };
   const decision = decideKeepGoing({ waits: { list: [], suggestions: [person], freeze: null } });
   assert.equal(decision.block, false);
   assert.match(decision.note, /serve la tua persona \(approval BRK-1\).*breakdown approve --id BRK-1/u);
   // Once escalated, a wait naming a person-only step marks its story as waiting for that person.
   const requests = escalatedPersonRequests([
-    { state: "escalated", waiter: { story: "ST-1" }, blocker: { type: "approval", command: "agentic-sdlc autonomy delivery reconcile --id AUT-1" } },
-    { state: "open", waiter: { story: "ST-2" }, blocker: { type: "approval", command: "agentic-sdlc autonomy delivery reconcile --id AUT-2" } },
+    { state: "escalated", waiter: { story: "ST-1" }, blocker: { type: "approval", command: "mpsf autonomy delivery reconcile --id AUT-1" } },
+    { state: "open", waiter: { story: "ST-2" }, blocker: { type: "approval", command: "mpsf autonomy delivery reconcile --id AUT-2" } },
   ]);
   assert.equal(requests.length, 1);
   const claim = withPersonRequest({ storyId: "ST-1", next: { phase: "release" } }, requests);

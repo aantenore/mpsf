@@ -177,7 +177,7 @@ test("Stop hook: blocks once without a watch, passes with an active watch, anti-
     const common = path.join(root, ".git");
     const t0 = 5_000_000;
     const first = watchPromptDecision(common, { env: {}, now: t0, isAlive: () => true });
-    assert.match(first, /agentic-sdlc watch --timeout 30m/u);
+    assert.match(first, /mpsf watch --timeout 30m/u);
     assert.match(first, /run_in_background/u);
     assert.equal(watchPromptDecision(common, { env: {}, now: t0 + 60_000 }), null);
     assert.match(watchPromptDecision(common, { env: {}, now: t0 + 10 * 60_000 + 1 }), /watch/u);

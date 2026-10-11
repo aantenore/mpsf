@@ -30,7 +30,7 @@ test("an empty project is guided to init", (context) => {
   const result = runStatus(root);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /new empty project/u);
-  assert.match(result.stderr, /agentic-sdlc init/u);
+  assert.match(result.stderr, /mpsf init/u);
   assert.doesNotMatch(result.stderr, /onboard existing-project/u);
 });
 
@@ -42,7 +42,7 @@ test("a freshly git-initialized folder with no files is still guided to init", (
   const result = runStatus(root);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /new empty project/u);
-  assert.match(result.stderr, /agentic-sdlc init/u);
+  assert.match(result.stderr, /mpsf init/u);
   assert.doesNotMatch(result.stderr, /onboard existing-project/u);
 });
 
@@ -68,15 +68,15 @@ test("doctor prints the recovery command its config guidance refers to", (contex
   const root = temporaryRoot(context, "doctor-uninitialized");
 
   const human = runCli(root, ["doctor"]);
-  assert.match(human.stdout, /N\/A effective-config: .*optional details\. Initialization command: agentic-sdlc init/u);
+  assert.match(human.stdout, /N\/A effective-config: .*optional details\. Initialization command: mpsf init/u);
 
   const payload = JSON.parse(runCli(root, ["doctor", "--json"]).stdout);
   const check = payload.checks.find((entry) => entry.id === "effective-config");
   assert.equal(check.status, "not_applicable");
-  assert.match(check.details, /Initialization command: agentic-sdlc init/u);
+  assert.match(check.details, /Initialization command: mpsf init/u);
 
-  assert.deepEqual(configStatusCommand("drifted"), { label: "Preview command", command: "agentic-sdlc config migrate" });
-  assert.deepEqual(configStatusCommand("legacy_compat"), { label: "Preview command", command: "agentic-sdlc config migrate" });
+  assert.deepEqual(configStatusCommand("drifted"), { label: "Preview command", command: "mpsf config migrate" });
+  assert.deepEqual(configStatusCommand("legacy_compat"), { label: "Preview command", command: "mpsf config migrate" });
   assert.equal(configStatusCommand("locked"), null);
 });
 

@@ -171,7 +171,7 @@ test("trace verify reports intact and tampered history with a non-zero exit and 
   ]);
   const refusal = json(append);
   assert.equal(refusal.error.code, "TRACE_INTEGRITY_VIOLATION");
-  assert.match(refusal.error.message, /agentic-sdlc trace verify/u);
+  assert.match(refusal.error.message, /mpsf trace verify/u);
   assert.doesNotMatch(refusal.error.message, /Run the integrity check/u);
 });
 
@@ -290,7 +290,7 @@ test("report query with free text says there is no answer and shows a working ex
   const project = initializedProject("query-text");
   const result = mustRun(["report", "query", "--root", project, "--query", "Which decisions were made?"]);
   assert.match(result.stdout, /^Outcome: No answer: this question needs a structured query\./u);
-  const example = /Example: agentic-sdlc report query --query-json '([^']+)'/u.exec(result.stdout);
+  const example = /Example: mpsf report query --query-json '([^']+)'/u.exec(result.stdout);
   assert.ok(example, result.stdout);
   mustRun(["report", "query", "--root", project, "--query-json", example[1], "--json"]);
   const italian = mustRun(["report", "query", "--root", project, "--query", "Quali decisioni?", "--locale", "it"]);
@@ -379,7 +379,7 @@ test("an uninitialized folder puts the initialize instruction in the primary nex
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-sdlc-trace-status-empty-"));
   tempProjects.add(folder);
   const status = mustFail(["status", "--root", folder]);
-  assert.match(status.stderr, /Next step: Initialize the project: ask your coding agent to initialize it, or run agentic-sdlc init\./u);
+  assert.match(status.stderr, /Next step: Initialize the project: ask your coding agent to initialize it, or run mpsf init\./u);
   const italian = mustFail(["status", "--root", folder, "--locale", "it"]);
   assert.match(italian.stderr, /Prossimo passo: Inizializza il progetto/u);
 });
@@ -483,7 +483,7 @@ test("status and approval requests list a proposed requirement waiting for appro
   const request = requests.requests.find((item) => item.type === "requirement_approval");
   assert.ok(request, JSON.stringify(requests));
   assert.equal(request.subject_id, "REQ-BOOKING-001");
-  assert.match(request.suggested_command, /^agentic-sdlc requirement approve --id REQ-BOOKING-001 /u);
+  assert.match(request.suggested_command, /^mpsf requirement approve --id REQ-BOOKING-001 /u);
   const human = mustRun(["approval", "requests", "--root", project]);
   assert.match(human.stdout, /1\. Proposed requirement/u);
   const italian = mustRun(["approval", "requests", "--root", project, "--locale", "it"]);

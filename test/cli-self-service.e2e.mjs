@@ -35,7 +35,7 @@ function mustRun(args, options) {
 function documentedExampleArguments(example) {
   const tokens = [...example.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/gu)]
     .map((match) => match[1] ?? match[2] ?? match[3]);
-  assert.equal(tokens.shift(), "agentic-sdlc");
+  assert.equal(tokens.shift(), "mpsf");
   return tokens;
 }
 
@@ -51,7 +51,7 @@ function assertPrimaryHasNoTechnicalJargon(stdout, locale = "en") {
   const primary = primaryText(stdout, locale);
   assert.doesNotMatch(primary, /\b(?:bounded-autonomous|checkpointed|audit_only|host_verified)\b/iu);
   assert.doesNotMatch(primary, /\b(?:REQ|AUT|AUTH|CAP|ST)-[A-Z0-9._-]+\b/u);
-  assert.doesNotMatch(primary, /\.sdlc\/|--[a-z][a-z-]*|\bagentic-sdlc\s+[a-z]/iu);
+  assert.doesNotMatch(primary, /\.sdlc\/|--[a-z][a-z-]*|\b(?:agentic-sdlc|mpsf)\s+[a-z]/iu);
 }
 
 test("hierarchical help works outside a project and keeps technical literals secondary", () => {
@@ -161,7 +161,7 @@ test("requirement and contract help describe commands that run with the document
   assert.match(supersedeFlags.get("--host-receipt-file")?.required_when, /trusted host or CI proof/u);
   assert.match(
     supersedeHelp.usage,
-    /^agentic-sdlc requirement supersede --id <current-id> --new-id <approved-direct-revision-id>/u,
+    /^mpsf requirement supersede --id <current-id> --new-id <approved-direct-revision-id>/u,
   );
   assert.equal(supersedeHelp.examples.length, 1);
   assert.doesNotMatch(supersedeHelp.examples[0], /<[^>]+>/u);
@@ -437,7 +437,7 @@ test("completion is deterministic, static, redirectable, and project-free", () =
   if (syntax.error?.code !== "ENOENT") assert.equal(syntax.status, 0, syntax.stderr);
   const probe = spawnSync("bash", ["-s"], { encoding: "utf8", input: [
     first,
-    "COMP_WORDS=(agentic-sdlc autonomy delivery action '')",
+    "COMP_WORDS=(mpsf autonomy delivery action '')",
     "COMP_CWORD=4",
     "_agentic_sdlc_completion",
     "printf '%s\\n' \"${COMPREPLY[@]}\"",

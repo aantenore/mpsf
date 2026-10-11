@@ -112,12 +112,12 @@ test("excluded actions are never delegable, even when listed", () => {
 });
 
 test("the agent cannot run grant or revoke; delegated person-only commands pass the hook for the CLI to verify", () => {
-  const grant = evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "agentic-sdlc autonomy delegation grant --id DLG-X --scope project --actions breakdown.approve --until 30d --summary s --actor-type human --approval-source explicit-user" } });
+  const grant = evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "mpsf autonomy delegation grant --id DLG-X --scope project --actions breakdown.approve --until 30d --summary s --actor-type human --approval-source explicit-user" } });
   assert.equal(grant?.decision, "deny");
   assert.match(grant.reason, /Only the user can grant or revoke an approval delegation/u);
-  assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "agentic-sdlc autonomy delegation revoke --id DLG-X --reason r" } })?.decision, "deny");
-  assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "agentic-sdlc story abandon --id ST-1 --reason x --actor-type human" } })?.decision, "deny");
-  assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "agentic-sdlc story abandon --id ST-1 --reason x --actor-type agent --approval-source delegated --delegation DLG-X" } }), null);
+  assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "mpsf autonomy delegation revoke --id DLG-X --reason r" } })?.decision, "deny");
+  assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "mpsf story abandon --id ST-1 --reason x --actor-type human" } })?.decision, "deny");
+  assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "mpsf story abandon --id ST-1 --reason x --actor-type agent --approval-source delegated --delegation DLG-X" } }), null);
   assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: "echo x > .sdlc/autonomy/delegations/DLG-X/delegation.json" } })?.decision, "deny");
 });
 
@@ -193,9 +193,9 @@ test("delivery.approve, baseline.approve and story.supersede are delegable and p
   assert.deepEqual(normalizeDelegationActions("story.supersede,delivery.approve,baseline.approve,story.abandon"),
     ["baseline.approve", "delivery.approve", "story.abandon", "story.supersede"]);
   for (const command of [
-    "agentic-sdlc autonomy delivery approve --id AUT-1 --phase implementation",
-    "agentic-sdlc baseline approve --id BASELINE-1",
-    "agentic-sdlc story supersede --id ST-1 --by ST-2 --reason r",
+    "mpsf autonomy delivery approve --id AUT-1 --phase implementation",
+    "mpsf baseline approve --id BASELINE-1",
+    "mpsf story supersede --id ST-1 --by ST-2 --reason r",
   ]) {
     assert.equal(evaluatePreToolUse({ tool_name: "Bash", tool_input: { command: `${command} --actor-type agent --approval-source delegated --delegation DLG-X --summary s` } }), null, command);
   }

@@ -77,7 +77,7 @@ test("a slow command says it is still working on stderr only", () => {
     label: () => "orchestrate status",
   });
   bounded.spawnSync("git", ["fetch", "origin"], {});
-  assert.match(lines[0], /^agentic-sdlc orchestrate status: still working \(6s; last step git fetch origin 6s\)/u);
+  assert.match(lines[0], /^mpsf orchestrate status: still working \(6s; last step git fetch origin 6s\)/u);
   const quiet = [];
   boundChildProcess({ spawnSync: () => { now += 6_000; return { status: 0 }; } }, {
     env: () => ({ AGENTIC_SDLC_PROGRESS: "off" }),

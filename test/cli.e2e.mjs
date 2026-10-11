@@ -2277,7 +2277,7 @@ test("acceptance changes block task start until a new exact contract is created 
   );
   assert.equal(
     (blockedEnglish.match(
-      /agentic-sdlc contract create --story ST-CONTRACT-REVIEW --phase design/gu,
+      /mpsf contract create --story ST-CONTRACT-REVIEW --phase design/gu,
     ) || []).length,
     1,
   );
@@ -2291,7 +2291,7 @@ test("acceptance changes block task start until a new exact contract is created 
   );
   assert.equal(
     (blockedItalian.match(
-      /agentic-sdlc contract create --story ST-CONTRACT-REVIEW --phase design/gu,
+      /mpsf contract create --story ST-CONTRACT-REVIEW --phase design/gu,
     ) || []).length,
     1,
   );
@@ -9701,7 +9701,7 @@ test("route decide returns init_project when canonical intent arrives before KB 
   const decision = routeDecision(project);
   assert.equal(decision.route, "init_project");
   assert.equal(decision.requires_confirmation, false);
-  assert.ok(decision.next_commands.some((command) => command.includes("agentic-sdlc init")));
+  assert.ok(decision.next_commands.some((command) => command.includes("mpsf init")));
 });
 
 test("route decide returns onboarding when canonical intent targets an existing project", () => {
@@ -9730,7 +9730,7 @@ test("route decide does not inherit risky action confirmation before KB initiali
   });
   assert.equal(decision.route, "init_project");
   assert.equal(decision.requires_confirmation, false);
-  assert.ok(decision.next_commands.some((command) => command.includes("agentic-sdlc init")));
+  assert.ok(decision.next_commands.some((command) => command.includes("mpsf init")));
 });
 
 test("route alias with raw text only asks for canonical normalization", () => {

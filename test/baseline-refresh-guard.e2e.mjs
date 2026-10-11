@@ -254,7 +254,7 @@ test("a proposed refresh is withdrawn with a person's approval and stops blockin
   assert.equal(withdrawn.status, "withdrawn");
   assert.equal(withdrawn.previous_baseline_id, "BASELINE-INITIAL");
   assert.equal(withdrawn.shared.recorded, true);
-  assert.deepEqual(withdrawn.next_commands, ["agentic-sdlc baseline refresh --from BASELINE-INITIAL"]);
+  assert.deepEqual(withdrawn.next_commands, ["mpsf baseline refresh --from BASELINE-INITIAL"]);
   assert.deepEqual(remoteRefreshRefs(remote), [
     "refs/agentic-sdlc/baseline-refresh/BASELINE-INITIAL/successor",
     "refs/agentic-sdlc/baseline-refresh/BASELINE-INITIAL/withdrawn",

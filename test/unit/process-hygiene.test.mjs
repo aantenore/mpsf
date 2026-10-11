@@ -34,7 +34,7 @@ test("without the opt-in Stop only warns, naming count, limit and the command to
       return reapProcesses({ ...options, platform: "linux", worktrees: [], selfPid: 1 });
     } });
     assert.deepEqual(stopped, [true], "dry run only");
-    assert.match(result.message, /^1 processes older than 10 min: 4242 npm test --prefix .*, run `agentic-sdlc processes reap`\.$/u);
+    assert.match(result.message, /^1 processes older than 10 min: 4242 npm test --prefix .*, run `mpsf processes reap`\.$/u);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
     fs.rmSync(common, { recursive: true, force: true });
@@ -118,7 +118,7 @@ test("the hook warns once at Stop, hands the warning to the next prompt, and rea
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const stop = hook("stop");
     assert.equal(stop.status, 0);
-    assert.match(JSON.parse(stop.stdout).systemMessage, /^1 processes older than 0(?:\.\d)? min: \d+ .*run `agentic-sdlc processes reap`/u);
+    assert.match(JSON.parse(stop.stdout).systemMessage, /^1 processes older than 0(?:\.\d)? min: \d+ .*run `mpsf processes reap`/u);
     assert.equal(process.kill(child.pid, 0), true, "not stopped without the opt-in");
     assert.equal(hook("stop").stdout.trim(), "", "throttled");
     const prompt = hook("user-prompt-submit");

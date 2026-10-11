@@ -7740,7 +7740,7 @@ test("a merged delivery refreshes its baseline without a new approval while othe
   assert.equal(completion.lifecycle_status, "terminal");
   assert.deepEqual(completion.baseline_refresh, {
     from: "BASELINE-INITIAL",
-    command: "agentic-sdlc baseline refresh --from BASELINE-INITIAL",
+    command: "mpsf baseline refresh --from BASELINE-INITIAL",
   });
 
   const refreshed = mustRunJson(["baseline", "refresh", "--root", project, "--from", "BASELINE-INITIAL"]);

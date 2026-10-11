@@ -129,7 +129,7 @@ test("only accepted criteria, the write scope, its files and symbols, latest tes
   assert.ok(text.indexOf("second run") < text.indexOf("first run"));
   assert.match(text, /blocked_by ST-CTX-000 \[merged\] needs merged/u);
   assert.match(text, /implementation: /u);
-  assert.match(text, /run: agentic-sdlc story complete-step --id ST-CTX-001 --step implementation/u);
+  assert.match(text, /run: mpsf story complete-step --id ST-CTX-001 --step implementation/u);
 });
 
 test("phase slicing: analysis has no file index or evidence, handoff carries the step summaries", () => {

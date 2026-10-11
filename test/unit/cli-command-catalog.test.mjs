@@ -24,7 +24,7 @@ test("command catalog is immutable and supports root, group, and leaf lookup", (
   assert.equal(leaf.kind, "command");
   assert.deepEqual(leaf.path, ["autonomy", "delivery", "approve"]);
   assert.equal(leaf.effect, "protected");
-  assert.equal(findCommand("agentic-sdlc autonomy delivery approve"), leaf);
+  assert.equal(findCommand("mpsf autonomy delivery approve"), leaf);
   assert.equal(findCommand("autonomy delivery missing"), null);
 });
 

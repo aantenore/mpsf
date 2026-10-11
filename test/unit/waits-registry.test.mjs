@@ -89,7 +89,7 @@ test("freeze (enabled by the project): explicit --kind freeze and the text form;
   const during = deriveFreezeWaits({ messages, now: NOW, policy });
   const freeze = activeFreeze(during, NOW);
   assert.equal(freeze.id, "freeze:f1");
-  const unpublished = [{ storyId: "ST-1", base: "origin/main", files: ["a", "b"], command: "agentic-sdlc story publish-records --id ST-1 --to-base" }];
+  const unpublished = [{ storyId: "ST-1", base: "origin/main", files: ["a", "b"], command: "mpsf story publish-records --id ST-1 --to-base" }];
   const blocked = decideKeepGoing({ unpublished, waits: { list: during, suggestions: [], freeze }, now: NOW });
   assert.equal(blocked.block, false, "no publish request during the freeze");
   assert.match(blocked.note, /suspended until the freeze ends/u);
@@ -105,7 +105,7 @@ test("freeze (enabled by the project): explicit --kind freeze and the text form;
 });
 
 test("approval: shown once to this session's person with the exact command, never on the channel, then escalated", () => {
-  const waits = deriveApprovalWaits([{ id: "approve-breakdown-BRK-1", subject_id: "BRK-1", summary: "Work breakdown (BRK-1) is proposed", suggested_command: "agentic-sdlc breakdown approve --id BRK-1 --actor-type human" }]);
+  const waits = deriveApprovalWaits([{ id: "approve-breakdown-BRK-1", subject_id: "BRK-1", summary: "Work breakdown (BRK-1) is proposed", suggested_command: "mpsf breakdown approve --id BRK-1 --actor-type human" }]);
   const first = planWaitActions(waits, { now: NOW, policy, memory: {} });
   assert.equal(first.messages.length, 0, "nothing goes to the channel");
   assert.equal(first.suggestions.length, 1);

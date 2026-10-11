@@ -435,7 +435,7 @@ test("authorizing a pull-request update points at the checks table, which a loca
   // The authorization hands over the table itself, the same bytes the command prints.
   assert.equal(
     authorization.pull_request_body_checks.command,
-    `agentic-sdlc autonomy delivery checks --id ${PROFILE_ID} --format markdown`,
+    `mpsf autonomy delivery checks --id ${PROFILE_ID} --format markdown`,
   );
   assert.match(authorization.pull_request_body_checks.markdown, /^## Delivery checks\n/u);
   assert.equal(authorization.pull_request_body_checks.markdown, mustRun(checksArgs(project)).stdout.trimEnd());
@@ -449,7 +449,7 @@ test("authorizing a pull-request update points at the checks table, which a loca
     "--confirm-action",
     ...humanApproval("Approve marking this exact pull request ready for review"),
   ], { env: fakeGitHubEnv(project, { headSha }) });
-  assert.match(human.stdout, /Put the recorded checks in the pull-request description: agentic-sdlc autonomy delivery checks --id AUT-CHECKS --format markdown/u);
+  assert.match(human.stdout, /Put the recorded checks in the pull-request description: mpsf autonomy delivery checks --id AUT-CHECKS --format markdown/u);
   // Completing the update records what happened; it carries no pointer.
   const updatedAt = new Date(Date.parse(authorization.action_receipt.authorized_at) + 1_000).toISOString();
   const completion = mustRunJson([

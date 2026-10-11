@@ -44,7 +44,7 @@ function codexPatch(...files) {
 test("only the user can approve a standing approval", () => {
   for (const command of [
     "node bin/agentic-sdlc.mjs autonomy standing approve --id SA-X --actor-type human --approval-source explicit-user --summary ok",
-    "npx agentic-sdlc autonomy standing approve --id SA-X",
+    "npx mpsf autonomy standing approve --id SA-X",
     "cd /work && node \"/plugins/agentic sdlc/bin/agentic-sdlc.mjs\"   autonomy  standing approve --id SA-X",
     "node bin/agentic-sdlc.mjs autonomy standing \"approve\" --id SA-1 --actor-type human",
     "node bin/agentic-sdlc.mjs autonomy standing \\\n  approve --id SA-1",
@@ -391,7 +391,7 @@ test("only a person abandons a story, and a message that mentions it is not bloc
 test("only a person acknowledges a merge made outside the plugin", () => {
   for (const command of [
     "node bin/agentic-sdlc.mjs autonomy delivery reconcile --id AUT-1 --pr-url https://github.com/o/r/pull/1 --actor-type human",
-    "npx agentic-sdlc autonomy delivery \"reconcile\" --id AUT-1",
+    "npx mpsf autonomy delivery \"reconcile\" --id AUT-1",
   ]) {
     const verdict = evaluatePreToolUse(shell(command));
     assert.equal(verdict?.decision, "deny", command);
@@ -409,7 +409,7 @@ test("only a person acknowledges a merge made outside the plugin", () => {
 test("only a person archives a project, and archived records are never changed by hand", () => {
   for (const command of [
     "node bin/agentic-sdlc.mjs project archive --apply --plan-hash abc --reason x --actor-type human",
-    "npx agentic-sdlc project \"archive\" --reinit --apply",
+    "npx mpsf project \"archive\" --reinit --apply",
   ]) {
     const verdict = evaluatePreToolUse(shell(command));
     assert.equal(verdict?.decision, "deny", command);
@@ -436,9 +436,9 @@ test("only a person archives a project, and archived records are never changed b
 });
 
 test("a message that only mentions a person-only command is allowed", () => {
-  const text = "ho preparato: agentic-sdlc autonomy delivery evidence supersede --id X; poi agentic-sdlc autonomy standing approve";
+  const text = "ho preparato: mpsf autonomy delivery evidence supersede --id X; poi mpsf autonomy standing approve";
   assert.equal(evaluatePreToolUse(shell(`node /p/bin/agentic-sdlc.mjs message send --to a --text "${text}"`)), null);
-  assert.equal(evaluatePreToolUse(shell(`agentic-sdlc message send --text '${text}'`)), null);
+  assert.equal(evaluatePreToolUse(shell(`mpsf message send --text '${text}'`)), null);
 });
 
 test("person-only commands stay blocked when really invoked", () => {
@@ -447,17 +447,17 @@ test("person-only commands stay blocked when really invoked", () => {
     `node /p/bin/agentic-sdlc.mjs ${supersede}`,
     `FOO=1 npx agentic-sdlc ${supersede}`,
     `echo ok && agentic-sdlc ${supersede}`,
-    `agentic-sdlc autonomy "standing" approve --id S1`,
-    `agentic-sdlc project archive --apply`,
+    `mpsf autonomy "standing" approve --id S1`,
+    `mpsf project archive --apply`,
   ]) assert.equal(evaluatePreToolUse(shell(command))?.decision, "deny", command);
-  assert.equal(evaluatePreToolUse(shell("agentic-sdlc project archive")), null);
+  assert.equal(evaluatePreToolUse(shell("mpsf project archive")), null);
 });
 
 test("person-only commands stay blocked inside sh -c", () => {
   const inner = "node bin/agentic-sdlc.mjs autonomy delivery reconcile --id AUT-1";
   assert.equal(evaluatePreToolUse(shell(`sh -c "${inner}"`))?.decision, "deny");
   assert.equal(evaluatePreToolUse(shell(`bash -lc '${inner}'`))?.decision, "deny");
-  assert.equal(evaluatePreToolUse(shell(`agentic-sdlc message send --text "$(${inner})"`))?.decision, "deny");
+  assert.equal(evaluatePreToolUse(shell(`mpsf message send --text "$(${inner})"`))?.decision, "deny");
 });
 
 test("a merge outside the governed action is blocked unless an open authorization covers it", () => {
@@ -624,7 +624,7 @@ test("the hook adds the orchestrator context and warning without blocking", () =
     const run = (event, payload) => spawnSync(process.execPath, [HOOK, event], { input: JSON.stringify({ cwd: project, ...payload }), encoding: "utf8", env: cleanHookEnv() });
     const edit = { tool_name: "Edit", tool_input: { file_path: path.join(project, "a.js") } };
     assert.equal(run("session-start", {}).stdout.trim(), `${STORY_LABEL_INSTRUCTION}\n${PROCESS_HYGIENE_INSTRUCTION}\n${CONTEXT_PACK_INSTRUCTION}\n${WATCH_INSTRUCTION}`);
-    assert.match(PROCESS_HYGIENE_INSTRUCTION, /agentic-sdlc run --timeout .*nohup.*processes reap/u);
+    assert.match(PROCESS_HYGIENE_INSTRUCTION, /mpsf run --timeout .*nohup.*processes reap/u);
     assert.equal(run("pre-tool-use", edit).stdout, "");
     fs.writeFileSync(path.join(project, ".sdlc", "config.json"), JSON.stringify({ host_policy: { main_thread: "orchestrator" } }));
     assert.match(run("session-start", {}).stdout, /only coordinates/u);
@@ -810,7 +810,7 @@ test("a message or here-document that mentions a push to main is not a push", ()
     `cat <<-"EOF" > note.md\n\t${push}\n\tEOF`,
     `printf 'run ${push}\\n' > note.md`,
     `echo "${push}"`,
-    `agentic-sdlc message send --text "pull after ${push}; thanks"`,
+    `mpsf message send --text "pull after ${push}; thanks"`,
   ]) {
     assert.equal(evaluatePreToolUse(shell(command), options), null, command);
   }
@@ -879,7 +879,7 @@ test("an agent never changes host_policy.guard in .sdlc/config.json", () => {
 });
 
 test("only the person records a trusted remote; agents never run the command or write the file", () => {
-  const command = "agentic-sdlc guard trust-remote --root . --url https://github.com/acme/app.git --actor-type human --approval-source explicit-user";
+  const command = "mpsf guard trust-remote --root . --url https://github.com/acme/app.git --actor-type human --approval-source explicit-user";
   for (const text of [command, `bash -c "${command}"`, `rtk ${command}`]) {
     const verdict = evaluatePreToolUse(shell(text));
     assert.equal(verdict?.decision, "deny", text);
@@ -937,7 +937,7 @@ test("strict main-thread mode denies main edits and unlisted foreground shell, n
   assert.equal(strictMainThreadVerdict(edit(), "orchestrator"), null);
   assert.equal(verdict(shell("npm test"))?.decision, "deny");
   assert.equal(verdict({ tool_name: "Bash", tool_input: { command: "npm test", run_in_background: true } }), null);
-  for (const command of ["git status | head", "git status && git log --oneline | head -5", "grep 'a|b' f 2>/dev/null", "ls > /dev/null", "gh pr view 3", "claude plugin list", "agentic-sdlc message read --text"]) {
+  for (const command of ["git status | head", "git status && git log --oneline | head -5", "grep 'a|b' f 2>/dev/null", "ls > /dev/null", "gh pr view 3", "claude plugin list", "mpsf message read --text"]) {
     assert.equal(verdict(shell(command)), null, command);
   }
   for (const command of ["git status && npm test", "echo x > out.txt", "cat a >> b", "ls & npm test", "echo $(npm test)", "find . -delete", "git branch -D x"]) {

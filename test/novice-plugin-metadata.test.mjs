@@ -166,7 +166,7 @@ test("configuration and autonomy references use executable local guidance and cu
   const configurationSafety = read("docs/configuration-safety.md");
   assert.match(configurationSafety, /PLUGIN_CLI=/u);
   assert.match(configurationSafety, /node "\$PLUGIN_CLI" config status/u);
-  assert.doesNotMatch(configurationSafety, /^agentic-sdlc config/gmu);
+  assert.doesNotMatch(configurationSafety, /^mpsf config/gmu);
 
   for (const relativePath of [
     "skills/agentic-sdlc/references/contracts.md",

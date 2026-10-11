@@ -569,14 +569,14 @@ test("explains passed and failed gates without leaking canonical blocker codes",
   const failed = gateGuidance({
     status: "failed",
     errors: ["baseline.source_stale", "contract.approval_missing"],
-    next_command: "agentic-sdlc gate check --strict",
+    next_command: "mpsf gate check --strict",
   }, { locale: "it" });
   assertCanonicalCodesOnlyInDetails(failed);
   assert.match(failed.result, /2 blocco\/i/u);
   assert.match(failed.required_decision, /Non serve ancora un via libera/u);
   assert.doesNotMatch(humanText(failed), /baseline\.source_stale/u);
   assert.deepEqual(failed.details.errors, ["baseline.source_stale", "contract.approval_missing"]);
-  assert.equal(failed.details.next_command, "agentic-sdlc gate check --strict");
+  assert.equal(failed.details.next_command, "mpsf gate check --strict");
 });
 
 test("supports localized message overrides without changing the block contract", () => {
