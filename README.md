@@ -37,6 +37,7 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.157.6** — push budget per computer: channel messages, presence and role leases leave in one push at most every 2 minutes, with backoff after failures.
 - **0.157.5** — story commit checks read Git once per range instead of several times per commit, so gates and status are faster on long story branches.
 - **0.157.4** — claims renewed by the agent's work in their worktree; presence fetched before judging a claim abandoned.
 - **0.157.3** — repository renamed to `aantenore/mpsf`; old URLs redirect, marketplace `aantenore` unchanged.

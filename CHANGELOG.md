@@ -2,6 +2,11 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.157.6
+
+- **Push budget per computer.** Channel messages (git provider), presence and role leases are pushed at most once every 2 minutes per computer (`AGENTIC_SDLC_PUSH_INTERVAL_SECONDS`, 0 = no spacing), with backoff after a failed push (30 s up to 8 min). A message written in between is shown at once here and leaves with the next push, in the same `git push` as presence; `message send` says so. Role lease changes are not delayed; presence renewals get a fixed jitter per computer (10 to 15 minutes).
+- Change Observatory: no change needed (it reads the local message cache, where waiting messages already are). Compatibility: refs and records unchanged, older plugins read everything as before.
+
 ## 0.157.5
 
 - Faster story commit checks: working out a story's own commits (base commits, records-only commits, a commit and its revert) and the paths they touch now costs a fixed handful of Git processes per story instead of about five per commit. Nothing changes in the results.
