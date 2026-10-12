@@ -7,21 +7,55 @@ import path from "node:path";
 import test from "node:test";
 
 import { hostId } from "../../lib/messaging/identity.mjs";
+import { registerMachineKey } from "../../lib/messaging/signature.mjs";
 import { keyFingerprint, legacyMachineId, machineDir, machineId, machineKey, resetMachineCache, signWithMachineKey, verifyMachineSignature } from "../../lib/runtime/machine.mjs";
 
 const fresh = () => ({ AGENTIC_SDLC_MACHINE_DIR: fs.mkdtempSync(path.join(os.tmpdir(), "agentic-machine-")) });
 
-test("the id is decided once, as the legacy hash, and survives a change of host name", () => {
+test("the id is decided once, as the legacy hash plus a random part, and survives a change of host name", () => {
   const env = fresh();
   resetMachineCache();
   const first = machineId(env, { hostname: "MacBook-Pro.local" });
-  assert.equal(first, legacyMachineId("MacBook-Pro.local"));
+  assert.match(first, new RegExp(`^${legacyMachineId("MacBook-Pro.local")}-[0-9a-f]{8}$`, "u"));
   resetMachineCache();
   assert.equal(machineId(env, { hostname: "MacBook-Pro.fritz.box" }), first, "a new host name keeps the id");
   assert.equal(JSON.parse(fs.readFileSync(path.join(env.AGENTIC_SDLC_MACHINE_DIR, "machine.json"), "utf8")).id, first);
   // The explicit label still wins; without it every caller on the computer sees the same id.
   assert.equal(hostId({ ...env, AGENTIC_SDLC_HOST_LABEL: "PC3" }), "PC3");
   assert.equal(hostId(env), first);
+});
+
+test("two computers with the same default host name get different ids; a kept legacy id is never changed", () => {
+  const a = fresh();
+  const b = fresh();
+  resetMachineCache();
+  const idA = machineId(a, { hostname: "MacBook-Pro.local" });
+  resetMachineCache();
+  const idB = machineId(b, { hostname: "MacBook-Pro.local" });
+  assert.notEqual(idA, idB);
+  const legacy = fresh();
+  fs.writeFileSync(path.join(legacy.AGENTIC_SDLC_MACHINE_DIR, "machine.json"), JSON.stringify({ id: legacyMachineId("old-host"), created_at: "2025-01-01T00:00:00Z" }));
+  resetMachineCache();
+  assert.equal(machineId(legacy, { hostname: "MacBook-Pro.local" }), legacyMachineId("old-host"));
+  resetMachineCache();
+});
+
+test("registering a key never replaces another computer's key under the same id", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-machine-root-"));
+  const other = fresh();
+  const mine = fresh();
+  for (const env of [other, mine]) fs.writeFileSync(path.join(env.AGENTIC_SDLC_MACHINE_DIR, "machine.json"), JSON.stringify({ id: "pc-shared" }));
+  resetMachineCache();
+  const first = registerMachineKey(root, other);
+  assert.equal(first.written, true);
+  const before = fs.readFileSync(path.join(root, first.path), "utf8");
+  resetMachineCache();
+  const second = registerMachineKey(root, mine);
+  assert.equal(second.written, false);
+  assert.equal(second.conflict, true);
+  assert.equal(second.registered_fingerprint, first.fingerprint);
+  assert.equal(fs.readFileSync(path.join(root, first.path), "utf8"), before);
+  resetMachineCache();
 });
 
 test("an unwritable config folder still gives the same id every time", () => {
