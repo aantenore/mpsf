@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.24
+
+- Guard: a script file that a shell command runs (`bash x.sh`, `sh < x.sh`, `source`/`.`, `./x.sh`, `cat x.sh | bash`, `node x.mjs`, `python3 x.py`, nested in `bash -c` or `eval`) is read and checked as if its lines were typed in the command, when it is not tracked by git or has uncommitted changes. Shell scripts get every guard rule; other scripts are refused when they change the session markers, run a person-only mpsf subcommand, write the protected records or refs, or push or merge. A script created and run in the same command is refused (write it in one call, run it in the next); tracked, unchanged scripts are not read. Actor inference: inside an agent session (`CLAUDECODE`, `CODEX_THREAD_ID`) a record without `--actor-type` is attributed to the agent even when `--actor` names a person; an explicit `--actor-type` is unchanged. Change Observatory: no change. Compatibility: no record, ref or schema format changed; older plugins keep their own guard.
+
 ## 0.159.23
 
 - `references/commands.md` now documents the roles, coordinator, known-error, knowledge and context budget commands. Messaging texts say `mpsf` and describe every provider correctly. The `free-claims` and `settle-waits` duties are marked as available from 0.156.1, and the config schema describes `delegation_policy`. Change Observatory: usage metrics, SLO and the support bundle label the now, claims, dependencies, remote-stories and source-ref requests instead of `unknown`; live updates no longer start git processes per remote story every 8 seconds while the base branch has not moved; the docs list the Known errors and Knowledge views. Compatibility: no record or ref format changes; the schema only gains an optional section.

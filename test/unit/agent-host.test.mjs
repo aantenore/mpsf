@@ -9,6 +9,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { AGENT_HOST_OVERRIDE_ENV, detectAgentHost, namesAgentHost } from "../../lib/agent-host.mjs";
+import { inferActorType } from "../../lib/engine/common.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cli = path.join(repoRoot, "bin/agentic-sdlc.mjs");
@@ -60,4 +61,21 @@ test("records without an explicit actor name the host that ran the command", () 
 
   const overridden = append({ CLAUDECODE: "1", [AGENT_HOST_OVERRIDE_ENV]: "codex" });
   assert.equal(overridden.actor.id, "codex");
+});
+
+test("inside an agent session the inferred actor is the agent, whatever name it gives", () => {
+  const saved = Object.fromEntries(HOST_VARIABLES.map((key) => [key, process.env[key]]));
+  try {
+    for (const key of HOST_VARIABLES) delete process.env[key];
+    process.env.USER = process.env.USER || "someone";
+    assert.equal(inferActorType({}, "antonio"), "human");
+    process.env.CLAUDECODE = "1";
+    assert.equal(inferActorType({}, "antonio"), "agent");
+    assert.equal(inferActorType({ agent: undefined }), "agent");
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });

@@ -1100,3 +1100,54 @@ test("git aliases are resolved in the repository the command targets", async () 
     fs.rmSync(repo, { recursive: true, force: true });
   }
 });
+
+test("a script file the command runs is checked as if its lines were typed", () => {
+  const files = {
+    "x.sh": "echo hi\nmpsf autonomy standing approve --id SA-1\n",
+    "ok.sh": "npm test\n",
+    "push.sh": "git push origin HEAD:main\n",
+    "run": "#!/bin/sh\nunset CLAUDECODE\n",
+    "p.py": "import subprocess\nsubprocess.run(['git', 'push', 'origin', 'main'])\n",
+    "a.mjs": "import { execSync } from 'node:child_process';\nexecSync('mpsf story abandon --id ST-1 --reason x');\n",
+    "w.mjs": "fs.writeFileSync('.sdlc/autonomy/actions/A/receipt.json', '{}');\n",
+    "env.py": "import os\nos.environ.pop('CLAUDECODE')\n",
+    "inner.sh": "bash x.sh\n",
+  };
+  const options = {
+    isMergeAuthorized: () => false,
+    isStoryPushAuthorized: () => false,
+    readScript: (file) => (file.replace(/^\.\//u, "") in files ? { content: files[file.replace(/^\.\//u, "")] } : { missing: true }),
+  };
+  const verdict = (command) => evaluatePreToolUse(shell(command), options)?.decision ?? "allow";
+  for (const command of ["bash x.sh", "sh < x.sh", "source ./x.sh", ". x.sh", "./push.sh", "./run", "python3 -u p.py", "node a.mjs",
+    "node w.mjs", "python3 env.py", "cat x.sh | bash", "bash -c 'bash inner.sh'", "env FOO=1 bash x.sh",
+    "cat > new.sh <<'EOF'\nmpsf autonomy standing approve --id SA-1\nEOF\nbash new.sh"]) {
+    assert.equal(verdict(command), "deny", command);
+  }
+  for (const command of ["bash ok.sh", "node --test missing.test.mjs", "python3 -m pytest", "./ok.sh"]) {
+    assert.equal(verdict(command), "allow", command);
+  }
+  assert.match(evaluatePreToolUse(shell("bash x.sh"), options).reason, /script x\.sh/u);
+  // Without a reader (older callers) nothing changes.
+  assert.equal(evaluatePreToolUse(shell("bash x.sh")), null);
+});
+
+test("the hook reads only scripts that are not tracked and unchanged", () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "hook-script-"));
+  try {
+    fs.mkdirSync(path.join(repo, ".sdlc"));
+    const git = (...args) => spawnSync("git", ["-C", repo, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+    git("init", "-q");
+    fs.writeFileSync(path.join(repo, "tracked.sh"), "mpsf autonomy standing approve --id SA-1\n");
+    git("add", "tracked.sh");
+    git("commit", "-qm", "init");
+    fs.writeFileSync(path.join(repo, "fresh.sh"), "mpsf autonomy standing approve --id SA-1\n");
+    const run = (command) => spawnSync(process.execPath, [HOOK, "pre-tool-use"], { input: JSON.stringify({ cwd: repo, ...shell(command) }), encoding: "utf8", env: cleanHookEnv() });
+    assert.equal(run("bash fresh.sh").status, 2);
+    assert.equal(run("bash tracked.sh").status, 0);
+    fs.appendFileSync(path.join(repo, "tracked.sh"), "echo changed\n");
+    assert.equal(run("bash tracked.sh").status, 2);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});

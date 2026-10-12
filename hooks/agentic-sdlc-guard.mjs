@@ -156,6 +156,31 @@ async function pendingProcessWarning(root) {
   }
 }
 
+const MAX_SCRIPT_BYTES = 1024 * 1024;
+
+/**
+ * A script file a shell command runs, for the guard to check: null when it is tracked and
+ * unchanged (reviewed content), { missing } or { tooLarge }, else its text.
+ */
+function readAgentScript(cwd, file) {
+  try {
+    const full = path.resolve(String(cwd || process.cwd()), String(file).replace(/^~(?=[\\/])/u, process.env.HOME || "~"));
+    let stat;
+    try {
+      stat = fs.statSync(full);
+    } catch {
+      return { missing: true };
+    }
+    if (!stat.isFile()) return null;
+    const status = spawnSync("git", ["status", "--porcelain", "--ignored", "--", path.basename(full)], { cwd: path.dirname(full), encoding: "utf8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"] });
+    if (status.status === 0 && status.stdout.trim() === "") return null;
+    if (stat.size > MAX_SCRIPT_BYTES) return { tooLarge: true };
+    return { content: fs.readFileSync(full, "utf8") };
+  } catch {
+    return null;
+  }
+}
+
 async function preToolUse(payload) {
   // Every rule protects mpsf records, so other projects are never touched.
   if (!insideGovernedProject(payload.cwd)) return;
@@ -167,6 +192,7 @@ async function preToolUse(payload) {
     isStoryPushAuthorized: (attempt) => storyPushAuthorized(root, payload.cwd, attempt),
     resolveGitAlias: (name, dirs) => gitAlias(payload.cwd, dirs, name),
     resolveGhAlias: (name) => ghAlias(name),
+    readScript: (file) => readAgentScript(payload.cwd, file),
   });
   if (verdict?.decision === "deny") {
     process.stderr.write(`${verdict.reason}\n`);
