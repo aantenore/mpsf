@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.39
+
+- Test only, from the first Windows fast-tier shards on push: the local messaging folder test expects the folder resolved against the project root (on Windows the temporary folder can sit on another drive than the working directory), and the base-branch guard test trusts the origin URL exactly as git recorded it. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.38
 
 - Test only: the concurrent workflow-start and task-start test now also fixes which start takes the story's single-flight lock. Both starts share that lock, so whichever takes it first runs to the end; under load the workflow start could take it first, leaving the task start queued and the workflow start waiting for a boundary the task start never reached. The workflow start now begins only once the task start holds the single-flight lock or has written its receipt, and the concurrent helper allows 60 seconds like the lock wait. Change Observatory: no change. Compatibility: no record, ref or schema format changed.

@@ -750,7 +750,9 @@ test("the base-branch guard applies only to Agentic SDLC projects, unless the tr
     gitIn(seed, "push", "-q", remote, "main");
     gitIn(base, "clone", "-q", remote, work);
     fs.mkdirSync(path.join(work, "sub"), { recursive: true });
-    if (trust) recordTrustedRemote(work, remote, { type: "human", name: "t" });
+    // Trust the URL exactly as git recorded it for origin (Git for Windows may rewrite a local path).
+    const origin = spawnSync("git", ["config", "--get", "remote.origin.url"], { cwd: work, encoding: "utf8" }).stdout.trim();
+    if (trust) recordTrustedRemote(work, origin, { type: "human", name: "t" });
     return work;
   };
   try {
