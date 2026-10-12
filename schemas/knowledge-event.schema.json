@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "knowledge-event.schema.json",
   "title": "Agentic SDLC Knowledge Event v1",
-  "description": "Append-only event of a knowledge entry: seen again (new sources, stories or paths; named by its content, so two computers write the same file) or retired by someone.",
+  "description": "Append-only event of a knowledge entry: seen (new sources, stories or paths, and the description built from them; named by its content, so two computers write the same file) or retired by someone.",
   "type": "object",
   "required": ["kind", "schema_version", "knowledge_id", "type"],
   "properties": {
@@ -21,6 +21,8 @@
     },
     "stories": { "type": "array", "items": { "type": "string", "minLength": 1 } },
     "paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "title": { "type": "string", "minLength": 1, "description": "Seen events: the description this copy of the project builds; the richest one is shown." },
+    "summary": { "type": "string" },
     "note": { "type": ["string", "null"] },
     "actor": { "type": ["object", "null"] },
     "at": { "type": "string" }

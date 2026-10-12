@@ -17,6 +17,7 @@ import { knowledgeForStory, readKnowledge } from "../../lib/knowledge/records.mj
 import { readKnownErrors } from "../../lib/known-errors/registry.mjs";
 import { computeSignature } from "../../lib/known-errors/signature.mjs";
 import { createFixtureDir } from "../helpers/test-isolation.mjs";
+import { validateAgainstSchema } from "../../lib/json-schema-validator.mjs";
 
 const FAILURE = (story) => `Story ${story} changed packages/engine/.vitest/json/output.json outside the approved requirement write paths`;
 
@@ -68,8 +69,9 @@ function apply(root, plan) {
 test("distillation merges a known error and the same gate failure into one trap, keeps fixes and answers", () => {
   const { root, signature } = fixture();
   const plan = distil(root);
-  const created = plan.writes.filter((item) => item.action === "create").map((item) => item.value);
-  assert.equal(created.length, 3);
+  assert.equal(plan.writes.filter((item) => item.action === "create").length, 3);
+  apply(root, plan);
+  const created = readKnowledge(createFsRecordReader(root));
   const trap = created.find((item) => item.type === "trap");
   assert.equal(trap.title, "vitest cache in the diff");
   assert.deepEqual(trap.stories, ["ST-A-001", "ST-A-002"]);
@@ -78,6 +80,26 @@ test("distillation merges a known error and the same gate failure into one trap,
   assert.equal(created.some((item) => item.title.includes("one-off")), false, "a failure in one story only is not a trap");
   assert.equal(created.find((item) => item.type === "fix").stories.join(), "ST-A-001,ST-FIX-001");
   assert.match(created.find((item) => item.type === "answer").summary, /tmp\/export/u);
+});
+
+test("two computers with different copies of the project write the same record bytes; what each saw goes in its own event", () => {
+  const { root: full, signature } = fixture();
+  const { root: partial } = fixture();
+  // The second computer has not pulled the known error, one gate, nor the latest answer yet.
+  fs.rmSync(path.join(partial, `.sdlc/known-errors/${signature.id}.json`));
+  write(partial, ".sdlc/gates/ST-A-003-final.json", { status: "failed", story_id: "ST-A-003", errors: [FAILURE("ST-A-003")] });
+  const second = [...MESSAGES, { id: "m4", kind: "answer", from: "pc-c", reply_to: "m1", text: "Also under tmp/cache." }];
+  const writesOf = (plan) => new Map(plan.writes.map((item) => [item.path, `${JSON.stringify(item.value, null, 2)}\n`]));
+  const a = writesOf(distil(full));
+  const b = writesOf(distil(partial, second));
+  const records = [...a.keys()].filter((file) => !file.includes("/events/"));
+  assert.equal(records.length, 3);
+  for (const file of records) assert.equal(b.get(file), a.get(file), `${file} has the same bytes on both computers`);
+  for (const [file, bytes] of a) if (b.has(file)) assert.equal(b.get(file), bytes, `${file}: one name, one content`);
+  for (const [, value] of [...distil(full).writes, ...distil(partial, second).writes].map((item) => [item.path, item.value])) {
+    const schema = value.kind === "knowledge" ? "knowledge.schema.json" : "knowledge-event.schema.json";
+    assert.equal(validateAgainstSchema(value, schema, { schemaDir: path.resolve("schemas") }).valid, true);
+  }
 });
 
 test("records are deterministic: a second run writes nothing, a new sighting is one event", () => {
