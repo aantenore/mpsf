@@ -1,7 +1,7 @@
 # CodeBurn advisory metering adapter
 
 This is a legacy compatibility adapter. New projects use the bundled
-`codex-session` adapter, and token-efficiency autoconfiguration never installs,
+`codex-session` adapter (Codex hosts), and token-efficiency autoconfiguration never installs,
 enables, or invokes CodeBurn. Keep this adapter only when an existing project
 explicitly depends on CodeBurn aggregation or estimated cost.
 
@@ -15,7 +15,7 @@ This distinction matters. A CodeBurn delta is useful for visibility, warnings, e
 
 Every collection uses the same four allowlisted CodeBurn filters:
 
-- `provider` asks which local session-log producer CodeBurn should read. Example: `codex`. It does not mean a billing account or an OpenAI project ID.
+- `provider` asks which local session-log producer CodeBurn should read. Example: `codex` (use the provider that matches the agent host whose logs you want). It does not mean a billing account or an OpenAI project ID.
 - `project` asks which CodeBurn project filter should be aggregated. Example: `TravelOps`. CodeBurn can match more than one session, so use the narrowest stable project value available.
 - `from` and `to` ask for a fixed inclusive calendar window in `YYYY-MM-DD` form. Example: both `2026-07-14` for one day. A baseline and its current snapshot must use exactly the same window.
 - `id` identifies the persisted evidence record. Example: `ASSESSMENT-001-codeburn-start`. It does not affect CodeBurn filtering.

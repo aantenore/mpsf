@@ -1,6 +1,8 @@
 # Portable Codex Install
 
-MPSF 0.159.29 includes a self-contained Codex packaging. The repository root is the plugin root because it contains `.codex-plugin/plugin.json`; all manifest and agent-card paths are repository-relative.
+MPSF 0.159.30 includes a self-contained Codex packaging. The repository root is the plugin root because it contains `.codex-plugin/plugin.json`; all manifest and agent-card paths are repository-relative.
+
+This page covers the Codex packaging only. For Claude Code (`.claude-plugin/`, `/plugin install mpsf@aantenore`, slash commands `/mpsf:<name>`), see [claude-code-install.md](claude-code-install.md); both packagings share the same skills and CLI.
 
 The Codex packaging keeps the install identifier `agentic-sdlc-codex-plugin` (the `.codex-plugin/plugin.json` name, the installer's `PLUGIN_NAME`, the `codex plugin add/remove` argument, and the `~/plugins/agentic-sdlc-codex-plugin` destination) even though the npm package and repository are named `mpsf`. This keeps existing Codex installations updating in place instead of creating a second, parallel installation.
 
@@ -129,7 +131,7 @@ A successful list result contains an installed, enabled entry with:
 ```json
 {
   "pluginId": "agentic-sdlc-codex-plugin@personal",
-  "version": "0.159.29",
+  "version": "0.159.30",
   "installed": true,
   "enabled": true
 }
@@ -142,7 +144,7 @@ Start a new Codex task after installing. Existing tasks do not need to be treate
 The semantic version identifies a release line; it does not prove that two
 plugin trees contain the same bytes. After staging or updating, inspect the
 source checkout, generated staging copy, and Codex cache directly. Plugin
-installation does not create a global `agentic-sdlc` shell command, so do not
+installation does not create a global `mpsf` shell command, so do not
 use one as installation evidence:
 
 ```bash
@@ -168,7 +170,7 @@ Each result contains at least:
 
 ```json
 {
-  "package_version": "0.159.29",
+  "package_version": "0.159.30",
   "build_fingerprint": "<sha256-of-distributed-paths-and-bytes>",
   "git_commit": "<source-commit>",
   "git_dirty": false
@@ -297,7 +299,7 @@ Interpret the results as follows:
 
 | Check | Expected result | Recovery |
 | --- | --- | --- |
-| `codex plugin list --available --json` | Installed entry is enabled and reports `0.159.29` | Rerun staging, add again, then open a new task |
+| `codex plugin list --available --json` | Installed entry is enabled and reports `0.159.30` | Rerun staging, add again, then open a new task |
 | `npm run doctor` or CLI doctor | Reports runtime, version, assessment entry point, all four skills, Caveman/native-meter assets, Observatory launcher/UI, preset, optional RTK provider, and project KB checks as passed or not applicable | Repair a required failed item, restage, and open a new task |
 | `npm run check` | JavaScript syntax checks pass | Repair the reported source syntax before reinstalling |
 | Package dry run | Contains manifest, all four skills, agent cards, CLI, Observatory core/UI, schemas, and templates; excludes `.sdlc/` and `test/` | Repair `package.json` `files`, then restage |

@@ -49,6 +49,8 @@ The project KB lives under `<target-project>/.sdlc/`. It is the durable source o
 
 See `docs/kb-structure.md` for the full layout, including directories created on demand such as `workflows/`.
 
+When `state status` says the project uses the orphan branch `sdlc-state`, action receipts, executions and gate reports live there instead of on the base branch; the hooks sync them (`state pull`). Shared known errors and knowledge live in `.sdlc/known-errors` and `.sdlc/knowledge`; never edit them by hand.
+
 ## Source Of Truth
 
 Use JSON and Markdown files as source of truth. Treat generated cache and indexes as derived artifacts. Reports are durable evidence when they support a review, gate, or release decision.
@@ -65,7 +67,7 @@ Manifests under `.sdlc/manifests/` are shared compact maps of canonical KB state
 - Story workspaces and claims.
 - Orchestration snapshots for parent chats.
 - Phase/shared-artifact locks.
-- Handoffs between agents, phases, and Codex chats.
+- Handoffs between agents, phases, and chats.
 - Architecture and product decision records.
 - Explicit assumptions and rejected alternatives.
 - Risks and mitigations.
@@ -134,7 +136,7 @@ Use `report activity` to answer recent-history questions from real trace events:
 node bin/mpsf.mjs report activity --root <project> --since 3d --view business
 ```
 
-Use `report query` for broader questions such as "all changes by me", "new functional stories in the last 10 days", or "outputs changed for a requirement". Natural language must be normalized by Codex or another LLM into `schemas/report-query.schema.json`; the CLI executes only the canonical query JSON:
+Use `report query` for broader questions such as "all changes by me", "new functional stories in the last 10 days", or "outputs changed for a requirement". Natural language must be normalized by the agent or another LLM into `schemas/report-query.schema.json`; the CLI executes only the canonical query JSON:
 
 ```bash
 node bin/mpsf.mjs report query --root <project> --query-json '<canonical-report-query-json>' --json
@@ -152,7 +154,7 @@ Claims, traces, handoffs, approvals, locks, and sync events should record:
 - `requested_by` when an action was requested by a different human, agent, CI actor, or system;
 - `authorized_by` when execution was explicitly authorized by a different human or CI actor;
 - request metadata such as summary, thread, run, session, or external request id when available;
-- Codex thread/run/session when available;
+- host thread/run/session when available;
 - Git branch and head SHA;
 - event timestamp;
 - evidence paths or related artifact IDs.

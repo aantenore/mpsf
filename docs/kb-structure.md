@@ -55,6 +55,10 @@ The sample records below use neutral placeholders. The structure is generic and 
     migrations/                   # config/ and identity/ migration receipts
     evidence-redaction-policies/  # trace evidence redaction policies, one file per content hash
     test-triage/                  # test triage decisions for failed test cases
+    knowledge/                    # shared knowledge distilled by `knowledge distill`
+    known-errors/                 # known errors with their diagnosis and fix
+    machines/                     # public keys of the computers that sign messages
+    compatibility/                # minimum plugin version required by shared records
 ```
 
 ## Source Of Truth
@@ -64,6 +68,8 @@ The source of truth is the human-readable and machine-readable files under `.sdl
 - JSON for structured contracts, stories, claims, and machine validation.
 - Markdown for narrative requirements, decisions, risks, plans, reports, and release notes.
 - JSONL for append-only trace logs.
+
+With the `sdlc-state` record store, the operational records (delivery action receipts, autonomy executions, gate reports and, from level 2, traces, workflow instances and final gate receipts) are kept on the orphan branch `sdlc-state` instead of the base branch; the files stay in the same `.sdlc/` paths. See [Adapters and roles](adapters-and-roles.md#operational-records-on-the-state-branch).
 
 Cache and indexes are derived artifacts. They can be rebuilt from source files and must not be used as canonical requirements, approvals, decisions, or output artifacts. Reports are durable evidence when they support a gate or release decision.
 
@@ -452,7 +458,7 @@ Examples:
 .sdlc/capability-discovery/recommendations/CAP-REC-ST-001.json
 ```
 
-A profile is proposed from repo files, `.sdlc/` context, user-provided files, or canonical JSON normalized by Codex:
+A profile is proposed from repo files, `.sdlc/` context, user-provided files, or canonical JSON normalized by the agent (Codex or Claude Code):
 
 ```json
 {
@@ -763,7 +769,7 @@ blocked until it is repaired.
 
 ## `orchestration/`
 
-Parent-chat orchestration snapshots and plans. These records are useful when one Codex chat coordinates multiple worker chats.
+Parent-chat orchestration snapshots and plans. These records are useful when one agent chat (Codex or Claude Code) coordinates multiple worker chats.
 
 ## `locks/`
 
@@ -1337,13 +1343,13 @@ The cache may contain full-text lookup entries, story-requirement graphs, artifa
 
 ## Query Reports
 
-`report query` filters canonical KB records after Codex or another LLM normalizes a natural-language request into `schemas/report-query.schema.json`. It can query activity traces, stories, completed steps, outputs, contracts, handoffs, work items, approvals, and tests. Trace activity supports separate executor, requester, and authorizer filters so agent-executed work can still be reported as requested or authorized by a human.
+`report query` filters canonical KB records after the agent (Codex, Claude Code, or another LLM) normalizes a natural-language request into `schemas/report-query.schema.json`. It can query activity traces, stories, completed steps, outputs, contracts, handoffs, work items, approvals, and tests. Trace activity supports separate executor, requester, and authorizer filters so agent-executed work can still be reported as requested or authorized by a human.
 
 ```bash
 node bin/mpsf.mjs report query --root <target-project> --query-json '<canonical-report-query-json>' --json
 ```
 
-For example, use `filters.requester` for "work done on my request" and `filters.executor` for "work executed by Codex".
+For example, use `filters.requester` for "work done on my request" and `filters.executor` for "work executed by a given agent" (for example `codex` or `claude-code`).
 
 Raw `--text` is accepted only for audit/debug and returns a normalization request when no canonical query is provided. The CLI does not keyword-match raw language.
 

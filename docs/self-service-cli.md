@@ -13,9 +13,11 @@ Record IDs, stored policy labels, paths, hashes, and diagnostic codes appear
 after **Technical details (optional)**. JSON retains those fields for
 automation.
 
-Codex plugin installation does not create a global `agentic-sdlc` executable.
-In the examples below, that name is shorthand for the installer-managed entry
-point:
+A Codex or Claude Code plugin installation does not create a global `mpsf`
+(or `agentic-sdlc`) executable. In the examples below, that name is shorthand
+for the installer-managed entry point (in Claude Code the plugin root is
+`${CLAUDE_PLUGIN_ROOT}`, see [Claude Code installation](claude-code-install.md);
+the slash commands `/mpsf:<name>` wrap the common ones):
 
 ```bash
 PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
@@ -23,7 +25,7 @@ node "$PLUGIN_CLI" help
 ```
 
 An npm installation may expose the same CLI through its npm bin shim. To test
-the exact Codex cache instead, derive the version and cache root as shown in
+the exact installed cache instead, derive the version and cache root as shown in
 [Portable Installation](portable-install.md#verify-the-exact-build-not-only-the-version).
 
 ## Find the right command

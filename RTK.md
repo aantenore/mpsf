@@ -1,4 +1,4 @@
-# RTK - Rust Token Killer (Codex CLI)
+# RTK - Rust Token Killer
 
 **Usage**: Token-optimized command output through the MPSF gateway.
 

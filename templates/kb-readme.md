@@ -25,8 +25,8 @@ It is intentionally stored in the project repository so people and agents can co
 - For reversible local data changes, require paired `data.migrate`/`data.rollback`, one exact file and scope set, immutable preview evidence outside mutable paths, an exact backup, and a verified rollback followed by the final passing migration. The CLI verifies hashes but never executes migration shell text.
 - Before every new local release, require a passing `rollback.verify` receipt bound to the exact local root, write paths, rollback procedure, and immutable rehearsal evidence. The CLI verifies evidence and never executes a rollback command.
 - Preserve durable host/CI/provider evidence for remote push and merge; live remote pre/post observations are hash-bound but are not provider-signed offline attestations.
-- Run `agentic-sdlc orchestrate status` before starting work in another chat.
-- Run `agentic-sdlc sync record --event push` after pushing a branch.
+- Run `mpsf orchestrate status` before starting work in another chat.
+- Run `mpsf sync record --event push` after pushing a branch.
 - Release story claims and phase locks when work is done or handed off.
 - Link requirements, stories, decisions, tests, and release evidence.
 - Keep epics, tasks, work breakdown agreements, and dependency graphs in `.sdlc/`.
@@ -39,9 +39,9 @@ It is intentionally stored in the project repository so people and agents can co
 - Record completed phase lanes with `story complete-step` before handing off work.
 - Use `story prepare-handoff --release-claim` to let another chat or machine continue from the KB.
 - Use `report activity` for recent-history questions; reports must cite trace source files.
-- Use `report query` for natural-language history filters after Codex normalizes them to canonical query JSON.
+- Use `report query` for natural-language history filters after the agent normalizes them to canonical query JSON.
 - Use `manifest rebuild`, `trace compact`, and plan-first `archive closed` as the KB grows.
-- Run `agentic-sdlc gate check` before merging implementation work.
+- Run `mpsf gate check` before merging implementation work.
 - Rebuild cache and indexes when retrieval speed matters; cache and indexes are derived artifacts, not sources of truth.
 
 ## Directory Map

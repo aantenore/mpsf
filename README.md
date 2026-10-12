@@ -15,7 +15,7 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 **What MPSF changes:** it turns that work into a reviewable journey. The goal and boundaries are agreed before execution, important decisions and evidence stay with the project, delivered files are checked, and a local visual app explains the history. A product owner can understand the outcome without reading code, while an engineer can still inspect the underlying evidence.
 
-**Example:** a product owner asks Codex to assess an existing service and produce an architecture report. The plugin records the request, Codex's understanding, the approved boundaries, the report, and the checks that were actually run. Change Observatory then presents that history as a readable local timeline.
+**Example:** a product owner asks the agent (Codex or Claude Code) to assess an existing service and produce an architecture report. The plugin records the request, the agent's understanding, the approved boundaries, the report, and the checks that were actually run. Change Observatory then presents that history as a readable local timeline.
 
 | Feature | Practical benefit |
 | --- | --- |
@@ -27,16 +27,17 @@ One source tree, two host packagings: **OpenAI Codex** (`.codex-plugin/`) and **
 
 ## Technical summary
 
-MPSF gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: Codex explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
+MPSF gives a coding agent a guided way to understand an existing software project, deliver verified work, and explain its recorded lineage visually. The normal experience is intentionally simple: the agent explains what it inferred, proposes the work in plain language, creates the requested real file, verifies it, and returns an auditable result.
 
 Project state stays in the target repository under `.sdlc/`. The plugin installation contains reusable skills, templates, schemas, the cross-platform Node.js CLI, and the build-free Change Observatory UI.
 
-You talk to Codex in normal language. Codex turns that request into structured input; the deterministic CLI checks the agreed requirement, work brief, permissions, and evidence. A new user does not need to run the low-level lifecycle commands manually.
+You talk to the agent (Codex or Claude Code) in normal language. The agent turns that request into structured input; the deterministic CLI checks the agreed requirement, work brief, permissions, and evidence. A new user does not need to run the low-level lifecycle commands manually.
 
 ## What's new
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.30** — docs no longer read as Codex-only and match the current claim, coordinator, forge, messaging and state-branch logic.
 - **0.159.29** — README, install, messaging, how-it-works, skill and command docs cover the changes of 0.159.21-0.159.28.
 - **0.159.28** — the agent can no longer use the host settings files to set the plugin's variables or turn hooks and plugins off.
 - **0.159.27** — new computers get a unique id; `message setup` never replaces another computer's key; the roles tick gets a longer network limit; knowledge text from other computers is quoted as data.
@@ -199,9 +200,9 @@ user-global and therefore outside the reversible plugin-copy transaction. See
 [Portable Installation](docs/portable-install.md) for the user-global scope,
 runtime trust boundary, and update behavior.
 
-### Start a new Codex task
+### Start a new task
 
-Open the target project in a **new Codex task** and choose the request that matches the outcome you want:
+Open the target project in a **new Codex task or Claude Code session** (in Claude Code the same starters are the `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local` and `/mpsf:observe` commands) and choose the request that matches the outcome you want:
 
 | Goal | Starter request |
 | --- | --- |
@@ -211,9 +212,9 @@ Open the target project in a **new Codex task** and choose the request that matc
 | Build and verify only on this machine | `Build and verify this result only on my local machine. Do not push, open a pull request, deploy, or use production.` |
 | Read the recorded project history visually | `Open the Change Observatory and explain this project's recorded delivery lineage.` |
 
-Add the actual requirement, PR URL, desired local destination, exclusions, or acceptance criteria after the starter. Codex preserves information you already supplied and asks only for material gaps.
+Add the actual requirement, PR URL, desired local destination, exclusions, or acceptance criteria after the starter. The agent preserves information you already supplied and asks only for material gaps.
 
-For work that changes a product or named output, Codex also agrees the
+For work that changes a product or named output, the agent also agrees the
 requirement's material paths before task start. These are stored as
 Git-relative project paths such as `src`, `test`, `docs`, and `evidence`; the
 project root and outside paths are rejected. A local release uses a separate
@@ -233,14 +234,14 @@ For implementation work, the order is deliberately linear:
 8. after validation, seal the intermediate strict gate and enter `release`;
 9. complete the named PR or local release, record release evidence, release the completed story claim, then seal the final lifecycle gate.
 
-Before showing the autonomy choices, Codex explains whether the most independent option can really be used. If this installation cannot digitally verify who approved the delivery, option 3 is reduced to **autonomy with checkpoints**; this is disclosed before you choose.
+Before showing the autonomy choices, the agent explains whether the most independent option can really be used. If this installation cannot digitally verify who approved the delivery, option 3 is reduced to **autonomy with checkpoints**; this is disclosed before you choose.
 
-For a pull request, Codex asks one more question at the same step: do you want a code review before this PR is merged? The default suggestion is no, and the plugin then completes the PR in full automation. If you say yes, a person who did not author the commits must approve the code before the merge, and everything before the merge still proceeds automatically. The answer applies to that story only and is never reused. See [How It Works](docs/how-it-works.md#code-review-before-merge-is-chosen-for-each-story).
+For a pull request, the agent asks one more question at the same step: do you want a code review before this PR is merged? The default suggestion is no, and the plugin then completes the PR in full automation. If you say yes, a person who did not author the commits must approve the code before the merge, and everything before the merge still proceeds automatically. The answer applies to that story only and is never reused. See [How It Works](docs/how-it-works.md#code-review-before-merge-is-chosen-for-each-story).
 
 ### One complete first project
 
 Use one journey from start to finish instead of treating the lifecycle commands
-as unrelated features. For example, ask Codex:
+as unrelated features. For example, ask the agent:
 
 ```text
 Inspect this repository, then implement a configurable trip-policy module as a
@@ -248,7 +249,7 @@ local-only release. It must reject trips above a configurable cost limit, includ
 tests, and avoid network, production, and machine-global changes.
 ```
 
-Codex should lead the same `ST-TRIP-POLICY-001` story through these visible
+The agent should lead the same `ST-TRIP-POLICY-001` story through these visible
 stages:
 
 1. **Discovery** — inspect the repository read-only and explain facts,
@@ -285,7 +286,7 @@ The final command is intentionally stronger than the distinct intermediate stric
 It passes only when every configured story phase, current requirement and
 contract, required output, latest test evidence, exact terminal delivery, and
 release evidence agree with the current workflow's verified terminal event and
-checkpoint. Codex then reports the delivered location, checks, exclusions,
+checkpoint. The agent then reports the delivered location, checks, exclusions,
 residual risks, and final receipt. The reader does not need to run the preceding
 low-level commands manually; [Getting Started](docs/getting-started.md#walk-through-one-complete-first-project)
 shows what to expect at each decision.
@@ -303,7 +304,7 @@ project, repository, or global Git ignore rules match them.
 
 | Boundary | What it means |
 | --- | --- |
-| Codex conversation | Codex understands the request, explains the plan, and asks for decisions. |
+| Agent conversation | The agent (Codex or Claude Code) understands the request, explains the plan, and asks for decisions. |
 | Deterministic CLI | The CLI validates structured state, permissions, limits, and evidence; it does not interpret the conversation. |
 | Local execution and data | Project reads, approved local writes, tests, `.sdlc/` records, and a local release stay on the named machine and paths. |
 | Repository publication | Push and PR create/update use the network and only the displayed repository and branches. |
@@ -312,9 +313,9 @@ project, repository, or global Git ignore rules match them.
 
 A **new PR** must show the repository, base branch, new head branch, allowed files, tests, push, and PR creation. An **existing PR** must show the exact PR and its current repository, base, head, and SHA; the workflow updates that PR and does not create another one. A **local-only result** excludes push, PR actions, remote deployment, and production and includes a smoke test plus rollback.
 
-If the workflow pauses, ask Codex: `Why is MPSF blocked? Explain the next safe action without changing anything.` The read-only `mpsf status` command gives the same one-next-step orientation for operators. See [Getting Started](docs/getting-started.md#when-the-workflow-pauses) for recovery.
+If the workflow pauses, ask the agent: `Why is MPSF blocked? Explain the next safe action without changing anything.` The read-only `mpsf status` command gives the same one-next-step orientation for operators. See [Getting Started](docs/getting-started.md#when-the-workflow-pauses) for recovery.
 
-The dedicated `Project Assessment` and `Change Observatory` skills are visible in Codex and can also be selected implicitly from equivalent requests. The Observatory skill resolves the plugin-local launcher directly, so a Codex plugin installation does not depend on a global shell command.
+The dedicated `Project Assessment` and `Change Observatory` skills are visible in Codex and Claude Code and can also be selected implicitly from equivalent requests. The Observatory skill resolves the plugin-local launcher directly, so a plugin installation does not depend on a global shell command.
 
 If you are new to the plugin, continue with [Getting Started](docs/getting-started.md). The sections below are reference material for operators and maintainers.
 
@@ -323,6 +324,7 @@ If you are new to the plugin, continue with [Getting Started](docs/getting-start
 The CLI explains the outcome, practical impact, any decision needed, what remains protected, and one next step before showing optional technical details. Focused help and completion work even outside an initialized project:
 
 ```bash
+# Codex install path; on Claude Code use "${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs"
 PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
 node "$PLUGIN_CLI" help
 node "$PLUGIN_CLI" help autonomy delivery approve --locale it
@@ -443,10 +445,10 @@ flowchart TD
 
 ### What The Two Checkpoints Mean
 
-| Checkpoint | What Codex asks | What your answer authorizes | What it does **not** authorize | Example answer |
+| Checkpoint | What the agent asks | What your answer authorizes | What it does **not** authorize | Example answer |
 | --- | --- | --- | --- | --- |
 | **1 — Project context** | Is the displayed understanding factually correct? | The exact baseline content hash | Starting work, creating the deliverable, tools, writes, budget, production, or external access | `I approve this project context.` or `Correction: we use Kubernetes, not ECS.` |
-| **2 — Complete proposal** | May Codex execute the displayed scope, requirement ceiling, output, tools, write-set, limits, stop policy, and—when present—this one delivery profile? | Only the exact proposal hash, exact action × subject pairs, and selected level for the named delivery | Another PR/local release, protected merge, deploy, undisplayed actions, broader paths, secrets, production, destructive work, or silent budget extensions | `I approve this complete proposal and checkpointed level for PR-184.` or `Change the hard limit to 45 minutes and show the proposal again.` |
+| **2 — Complete proposal** | May the agent execute the displayed scope, requirement ceiling, output, tools, write-set, limits, stop policy, and—when present—this one delivery profile? | Only the exact proposal hash, exact action × subject pairs, and selected level for the named delivery | Another PR/local release, protected merge, deploy, undisplayed actions, broader paths, secrets, production, destructive work, or silent budget extensions | `I approve this complete proposal and checkpointed level for PR-184.` or `Change the hard limit to 45 minutes and show the proposal again.` |
 
 Every question must say **what is being asked, why it is needed now, what the answer authorizes, what it excludes, and valid answer examples**. A bare “Proceed?” is not sufficient.
 
@@ -766,7 +768,9 @@ node bin/mpsf.mjs output status \
 
 The final chat response reports the assessment verdict, major risks, recommendations, artifact path, verification performed, limitations, and open decisions.
 
-## Install
+## Install (Codex)
+
+For Claude Code use the marketplace commands in [Quick Start](#claude-code); see [Claude Code Installation](docs/claude-code-install.md).
 
 Use a source checkout that is separate from the generated personal-plugin directory:
 
@@ -807,7 +811,9 @@ checkout, source checkout, unmanaged directory, or linked Codex cache
 ancestor. Running the script without a mode is the same as `plan`; it never
 installs implicitly.
 
-## Update
+## Update (Codex)
+
+On Claude Code run `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins`.
 
 Update the source checkout, rerun the staging installer, and add the plugin again. The current Codex CLI has no dedicated plugin-update subcommand; re-adding refreshes the installed cache, including when the version is unchanged.
 
@@ -830,7 +836,9 @@ currently selected RTK executable before refreshing global RTK guidance.
 
 Do not edit the generated tree under `~/plugins` directly. Start a new Codex task after the refresh.
 
-## Uninstall
+## Uninstall (Codex)
+
+On Claude Code use `/plugin uninstall mpsf@aantenore`.
 
 Remove the installed plugin and cache with the supported Codex command:
 
@@ -850,6 +858,8 @@ rtk init -g --codex --show
 ```
 
 ## Diagnose An Install
+
+On Claude Code run `/mpsf:doctor`. The `codex ...` lines below apply to Codex only.
 
 Run the built-in doctor from the source checkout. The npm script and direct CLI form execute the same checks; without `--root` it checks the project in the current directory, and `--root` points it at another project's KB and output registry:
 
@@ -893,6 +903,8 @@ npm run release -- [--version X.Y.Z] [--title "..."] [--body "..."] [--no-update
 ```
 
 The script aligns the branch with `origin/main`, bumps the version to the next minor (the higher of `origin/main` and the `vX.Y.Z` tags) unless `--version` is given, writes it into the manifests, README and `docs/`, commits `Versione X.Y.Z`, pushes the branch (never with force), opens the PR and merges it at once with a merge commit. Without `--no-update` it also updates the marketplace and the installed plugins with `claude plugin`. It needs `git`, an authenticated `gh` and a clean working tree.
+
+For a patch release by hand, set the new version in `package.json`, run `npm run sync-version` (it copies it into the Codex, Claude Code and bridge manifests and stages them) and add the entry to `CHANGELOG.md` and "What's new".
 
 Rules for fixes:
 
@@ -946,7 +958,7 @@ node bin/mpsf.mjs migration identity --root /path/to/project --identity-map-json
 node bin/mpsf.mjs migration identity --root /path/to/project --recover --recovery-nonce <nonce-from-lock> --plan-hash <hash-from-lock>
 ```
 
-Natural-language interpretation stays in Codex. The CLI accepts canonical structured intent and performs deterministic state, format, authorization, and evidence checks.
+Natural-language interpretation stays in the agent (Codex or Claude Code). The CLI accepts canonical structured intent and performs deterministic state, format, authorization, and evidence checks.
 
 `autonomy delivery checks` prints the checks that were actually recorded for one pull-request delivery as a Markdown table for the pull-request description: test and smoke runs, the secret scan, the code review gate, the strict and lifecycle-complete gate receipts, the standing approval the delivery used, and its budget decision. Each row is `[PASS]`, `[FAIL]`, or `[NOT RUN]`; nothing is re-run, a check nobody recorded is never shown as a pass, and recorded commands go through the privacy redaction before printing. `--format json` prints the same facts as deterministic JSON. See [How It Works](docs/how-it-works.md#the-pull-request-description-lists-what-was-recorded).
 
@@ -979,6 +991,8 @@ budget credit. See [Token Efficiency](docs/token-efficiency.md).
 commands/                                    Claude Code slash commands (one per starter intent)
 assets/                                      Plugin artwork
 bin/mpsf.mjs                         CLI entry point: main, command registry, observatory launcher
+bin/agentic-sdlc.mjs                          Alias of the `mpsf` bin kept for older installs
+legacy/agentic-sdlc/                         Bridge entry that installs mpsf and removes itself
 hooks/                                       Host hooks (hooks.json, guard) for both supported hosts
 config/                                      Plugin defaults: feature compatibility, context, waits, release policy
 docs/agent-interactions.md                   Two-checkpoint assessment interaction

@@ -51,7 +51,7 @@ setx AGENTIC_SDLC_HOST_LABEL PC1            # Windows (new terminals)
 Nothing in the plugin needs a channel. Set `AGENTIC_SDLC_MESSAGING_PROVIDER=none` (or `AGENTIC_SDLC_MESSAGING=off`) on a computer, or `"messaging": { "provider": "none" }` under `host_policy.adapters` for everyone, and:
 
 - `message send`, `read` and `listen` make no network call, say messaging is off, and succeed;
-- claims (git refs on the remote), explicit waits, dependency waits, approval and delegation waits, delegations, reviews and records publication work exactly the same; the waits derived from the channel (unanswered questions, plugin update requests, freezes) are not computed, because there is no channel to read them from;
+- claims (git refs on the remote), explicit waits, dependency waits, approval and delegation waits, delegations, reviews and records publication work exactly the same; the waits derived from the channel (unanswered questions, freezes) are not computed, because there is no channel to read them from;
 - no automatic notices are sent and none are expected.
 
 The team-wide `host_policy.adapters` choice applies only where nothing more specific picks a provider; the order is below.
@@ -221,7 +221,7 @@ Each setting is taken from the first place that has it:
 |---|---|
 | `AGENTIC_SDLC_MESSAGING_REPO`, `AGENTIC_SDLC_MESSAGING_ISSUE` | environment variables, for this computer (`owner/name`, issue number) |
 | `.git/agentic-sdlc/messaging.json` | written by `message setup`: `{"provider": "github", "repo": "owner/name", "issue": 12}`, for this clone, never committed |
-| `.sdlc/messaging.json` | optional, committed, for everyone (nothing secret): `repo`, `issue`, `provider` (`github`, `local`, `none`), `dir` (the local provider's folder), or `"enabled": false` (only used when the clone has no local file) |
+| `.sdlc/messaging.json` | optional, committed, for everyone (nothing secret): `repo`, `issue`, `provider` (`git`, `github`, `local`, `none`), `dir` (the local provider's folder), or `"enabled": false` (only used when the clone has no local file) |
 | `AGENTIC_SDLC_MESSAGING=off` | turns messaging off on this computer |
 | `AGENTIC_SDLC_MESSAGING_AUTO=off` | keeps the `message` commands but stops the automatic messages on this computer |
 | `AGENTIC_SDLC_MESSAGING_AUTO_TIMEOUT_SECONDS` | network limit for one automatic step (default 3) |

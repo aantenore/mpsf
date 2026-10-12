@@ -321,11 +321,11 @@ Delivery actions form a receipt chain: immutable start → exact action authoriz
 
 ## Intent Routing Layer
 
-The routing layer separates language understanding from deterministic SDLC control. Codex or another LLM normalizes the user conversation into the canonical intent schema; the CLI consumes only that JSON plus project-local `.sdlc/` state.
+The routing layer separates language understanding from deterministic SDLC control. The agent (Codex, Claude Code, or another LLM) normalizes the user conversation into the canonical intent schema; the CLI consumes only that JSON plus project-local `.sdlc/` state.
 
 ```mermaid
 flowchart LR
-  User["User request in any language"] --> Codex["Codex normalizes intent"]
+  User["User request in any language"] --> Codex["Agent normalizes intent"]
   Codex --> Intent["Canonical route intent JSON"]
   Intent --> Router["route decide"]
   KB[".sdlc source files"] --> Router
@@ -352,7 +352,7 @@ Every SDLC phase is governed by a contract. A contract defines:
 - human approval gate;
 - requirement execution profile and delivery execution profile references;
 - any per-phase autonomy override, which may only narrow the effective level;
-- Codex execution policy for model and reasoning inheritance or override;
+- execution policy (runtime `codex` by default, configurable) for model and reasoning inheritance or override;
 - operational metrics.
 
 This keeps agent work bounded and reviewable. The contract does not grant autonomy by itself; it participates in the restrictive intersection evaluated for the current delivery.
@@ -387,7 +387,7 @@ Formal approvals store:
 - `approval_source` such as `explicit-user`, `ci`, `automation`, or `bootstrap`;
 - summary or immutable evidence;
 - approved content hash;
-- Git and Codex run metadata.
+- Git and agent-host run metadata (Codex or Claude Code).
 
 For new assessment and autonomy workflows, a human actor flag plus summary is insufficient by itself. A host/CI receipt binds the exact question, immutable subject hash, response, actor, host message, and timestamp. The derived content authorization enumerates exact actions, subject IDs/hashes, delivery identity, artifact types, validity, and use policy. Each mutation writes a snapshot receipt evaluated at the use timestamp; closing or revoking the grant blocks future use without rewriting history. `bootstrap` remains provisional and does not satisfy strict gates by default.
 
@@ -410,7 +410,7 @@ In a repository with `.sdlc/project.json` (in the working tree, the index or the
 
 ## Capability Discovery Layer
 
-Capability discovery is a project-specific architect step before technical analysis or high-impact contract creation. The plugin stays agnostic: Codex or another LLM can normalize context into profile and recommendation JSON, while the CLI only validates and persists canonical records with evidence and approvals.
+Capability discovery is a project-specific architect step before technical analysis or high-impact contract creation. The plugin stays agnostic: the agent (Codex, Claude Code, or another LLM) can normalize context into profile and recommendation JSON, while the CLI only validates and persists canonical records with evidence and approvals.
 
 `.sdlc/capability-discovery/` stores approved profiles and recommendations:
 
@@ -454,7 +454,7 @@ A project can narrow the inventory to an allowlist with an optional catalog, `.s
 
 The same matching drives a proactive suggestion. When `task start` (for contract, analysis, implementation, validation, and release work) or `status` finds a story without any capability recommendation, and installed capabilities match its declared technology, the result carries a `capability_suggestion` and a short plain-language sentence: which installed tools look relevant, that nothing is used or approved yet, and the commands that would record a recommendation (the approved profile's tags when there is one, otherwise the same deterministic project detection a profile starts from, in which case the profile comes first). The suggestion never changes the outcome, blockers, or commands of the decision, is silent when a recommendation or profile is already recorded or pending, and never approves, binds, or installs anything.
 
-The deterministic detector can read project manifests such as `package.json`, `tsconfig.json`, `pyproject.toml`, `Dockerfile`, `go.mod`, `Cargo.toml`, `Package.swift`, Gradle, Maven, and common frontend config files. Richer app understanding should be provided as canonical profile JSON by Codex, then reviewed and approved. This avoids language-specific routing and avoids hardcoding product domains into the plugin.
+The deterministic detector can read project manifests such as `package.json`, `tsconfig.json`, `pyproject.toml`, `Dockerfile`, `go.mod`, `Cargo.toml`, `Package.swift`, Gradle, Maven, and common frontend config files. Richer app understanding should be provided as canonical profile JSON by the agent, then reviewed and approved. This avoids language-specific routing and avoids hardcoding product domains into the plugin.
 
 ## Work Breakdown And Dependencies
 
@@ -533,7 +533,7 @@ Optional `trace-narrative:v1` records contain only shareable inputs, outputs, ra
 
 `.sdlc/cache/` contains regenerable lookup data such as full-text entries, story-requirement graphs, artifact fingerprints, template resolution, compact KB summaries, dependency graphs, and output resolution results.
 
-Cache entries carry `source_paths`, `source_hashes`, `generated_at`, and `schema_version`. A hash mismatch marks the cache stale. Stale or missing cache never blocks work because the CLI can fall back to canonical KB files; `gate check` rebuilds it in place and warns only when it cannot be written. In italiano: la cache è un dato locale derivato, quindi viene ricostruita da sola quando manca o è vecchia. `.sdlc/cache/git-objects.json` keeps Git answers about commits named by full object IDs (existence, ancestry, paths a commit touched, tree contents), which never change, so later runs ask Git only about new commits; failed answers are never kept. `status`, `orchestrate status`, `orchestrate plan`, `story deps`, `dependency status`, and `story overlap` trust a sealed final receipt whose own hash holds instead of re-verifying every certified file and commit; such a story carries `lifecycle_verification: not_rechecked` and `status` counts it under `certifications_not_rechecked`. Set `AGENTIC_SDLC_STATUS_CHECKS=full` for the full re-verification. `gate check`, claims, task starts, workflow transitions, story writes, and delivery actions never trust a receipt: they verify in full every final receipt they depend on, so a stale, voided, or superseded upstream certification never unblocks or certifies work. In italiano: le risposte git sui commit restano in cache tra un comando e l’altro, e status, `orchestrate status`, `orchestrate plan`, `story deps`, `dependency status` e `story overlap` non riverificano le storie già certificate. A canonical artifact under `.sdlc/cache/` or `.sdlc/indexes/` is a strict gate error because derived files cannot become source of truth. Cached output resolutions are compared with canonical KB resolution before use; if they differ, the CLI asks for `cache rebuild` instead of trusting the cache.
+Cache entries carry `source_paths`, `source_hashes`, `generated_at`, and `schema_version`. A hash mismatch marks the cache stale. Stale or missing cache never blocks work because the CLI can fall back to canonical KB files; `gate check` rebuilds it in place and warns only when it cannot be written. `.sdlc/cache/git-objects.json` keeps Git answers about commits named by full object IDs (existence, ancestry, paths a commit touched, tree contents), which never change, so later runs ask Git only about new commits; failed answers are never kept. `status`, `orchestrate status`, `orchestrate plan`, `story deps`, `dependency status`, and `story overlap` trust a sealed final receipt whose own hash holds instead of re-verifying every certified file and commit; such a story carries `lifecycle_verification: not_rechecked` and `status` counts it under `certifications_not_rechecked`. Set `AGENTIC_SDLC_STATUS_CHECKS=full` for the full re-verification. `gate check`, claims, task starts, workflow transitions, story writes, and delivery actions never trust a receipt: they verify in full every final receipt they depend on, so a stale, voided, or superseded upstream certification never unblocks or certifies work. A canonical artifact under `.sdlc/cache/` or `.sdlc/indexes/` is a strict gate error because derived files cannot become source of truth. Cached output resolutions are compared with canonical KB resolution before use; if they differ, the CLI asks for `cache rebuild` instead of trusting the cache.
 
 `.sdlc/cache/context/<story>/<phase>-<budget>.json` holds derived context packs (`context pack`, `context get`). They are written only while `cache` is listed in `cache_policy.derived_directories`. They are rebuilt when a record they read changes, or with `--no-cache`. Inside an agent session commands print a compact form and `--json` uses the agent profile. Host hooks deduplicate and budget their text per event, and keep a per-session ledger under the Git common directory. Defaults are in the plugin's `config/context.json`; projects override them in `host_policy.context`. See [Token efficiency](token-efficiency.md#context-packs-and-compact-output).
 
@@ -558,7 +558,7 @@ flowchart LR
 
 Parallelism is story-scoped. Each agent or developer claims a story only after its current approved contract is bound by a valid immutable task start, then works on a dedicated branch. The claim is stored in the story folder, while events are appended to a trace log.
 
-For multiple Codex chats, one chat can act as parent orchestrator by reading `orchestrate status --json` and assigning available story lanes. Worker chats verify the story workflow and task-start binding, claim exactly one story, write attributed traces, record push/sync events, and release or hand off their claim when done.
+For multiple agent chats (Codex or Claude Code), one chat can act as parent orchestrator by reading `orchestrate status --json` and assigning available story lanes. Worker chats verify the story workflow and task-start binding, claim exactly one story, write attributed traces, record push/sync events, and release or hand off their claim when done.
 
 Phase locks are reserved for shared artifacts that cannot be safely edited by multiple story lanes at once. Handoff records capture transfer between analysis, implementation, validation, and release agents.
 
@@ -709,6 +709,6 @@ The CLI accepts a custom template directory through `--template-dir`. Teams can 
 
 The schemas can be used by CI, pre-merge checks, or future MCP tools.
 
-`host_policy.adapters` selects the messaging provider (`github`, `local`, `none`) and the record store (`git-sdlc`, the default, or `local-fs`). Each store declares the guarantees it gives, and a gate fails when the store cannot give the guarantees its certification level requires. `host_policy.roles.coordinator` names the coordinator computers. That setting is validated, but enforcement is planned and not active yet. Delivery and verification providers are resolved through `lib/delivery/provider-registry.mjs`. See [Adapters and roles](adapters-and-roles.md).
+`host_policy.adapters` selects the messaging provider (`git`, `github`, `local`, `none`; `git` is what `message setup` picks for a new channel) and the record store (`git-sdlc`, the default, `sdlc-state`, which moves operational records to an orphan branch, or `local-fs`). Each store declares the guarantees it gives, and a gate fails when the store cannot give the guarantees its certification level requires. `host_policy.roles.coordinator` pins the coordinator computers; without it roles are assigned automatically by lease, presence refs and rendezvous hashing (`lib/coordination-roles.mjs`, duties in `config/role-duties.json`). Delivery and verification providers are resolved through `lib/delivery/provider-registry.mjs`. See [Adapters and roles](adapters-and-roles.md).
 
 For the full project knowledge base layout, see [Knowledge Base Structure](kb-structure.md).

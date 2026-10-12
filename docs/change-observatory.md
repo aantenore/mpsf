@@ -88,7 +88,7 @@ Ask your agent:
 Open the Change Observatory for this project.
 ```
 
-The installed `Change Observatory` skill resolves its own plugin root and runs the plugin-local CLI. It does not assume that `agentic-sdlc` is globally available in `PATH`.
+The installed `Change Observatory` skill resolves its own plugin root and runs the plugin-local CLI. It does not assume that `mpsf` is globally available in `PATH`.
 
 An npm, Git, or tarball installation that exposes the package bin can launch it directly:
 
@@ -475,7 +475,7 @@ mpsf trace append \
   --explanation-kind codex-generated
 ```
 
-The stored explanation scope is always `recorded-evidence-only`. Valid kinds are `codex-generated`, `deterministic`, and `human-authored`; the UI presents all three under the neutral “Plain-language explanation” label and preserves the authoring badge. A recorded `rationale_summary` remains a distinct “Recorded rationale” field rather than being collapsed into that generated explanation. Private chain-of-thought, internal reasoning traces, and equivalent fields are not part of the narrative contract; if legacy or malformed evidence declares them, the observatory fails closed and redacts the affected surface.
+The stored explanation scope is always `recorded-evidence-only`. Valid kinds are `codex-generated` (the historical name for text written by any agent, Codex or Claude Code), `deterministic`, and `human-authored`; the UI presents all three under the neutral “Plain-language explanation” label and preserves the authoring badge. A recorded `rationale_summary` remains a distinct “Recorded rationale” field rather than being collapsed into that generated explanation. Private chain-of-thought, internal reasoning traces, and equivalent fields are not part of the narrative contract; if legacy or malformed evidence declares them, the observatory fails closed and redacts the affected surface.
 
 ## Security And Privacy Boundary
 

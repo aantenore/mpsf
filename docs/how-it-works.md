@@ -1,8 +1,8 @@
-# How MPSF 0.159.29 Works
+# How MPSF 0.159.30 Works
 
-MPSF turns a natural-language request into a bounded, reproducible execution tranche. Codex handles conversation and reasoning; the CLI handles deterministic validation and state changes; the target repository keeps the evidence under `.sdlc/`.
+MPSF turns a natural-language request into a bounded, reproducible execution tranche. The agent (Codex or Claude Code) handles conversation and reasoning; the CLI handles deterministic validation and state changes; the target repository keeps the evidence under `.sdlc/`.
 
-The core rule is simple: **Codex may reason broadly, but it may write only what the approved requirement, current delivery unit, and exact authorization all allow.**
+The core rule is simple: **the agent may reason broadly, but it may write only what the approved requirement, current delivery unit, and exact authorization all allow.**
 
 For the adjacent details, see [Limits and Metering](limits-and-metering.md), [Agent Interactions](agent-interactions.md), and the deeper [Architecture](architecture.md).
 
@@ -72,7 +72,8 @@ configured phases — including `operations`, since the lifecycle now ends
 there — current approvals, required output, latest test evidence, terminal
 delivery, and release evidence into the final receipt. It also requires a
 record store that guarantees an immutable, atomically published history
-coupled to the base branch. The default `git-sdlc` store does. A project on the
+coupled to the base branch. The default `git-sdlc` store does, and so does
+`sdlc-state` (operational records on an orphan branch). A project on the
 `local-fs` store (`host_policy.adapters.records`) can pass standard and strict
 intermediate checks but cannot be certified lifecycle-complete; see
 [Adapters and roles](adapters-and-roles.md). A strict check run
@@ -170,14 +171,14 @@ never rewritten; the rules only decide how a receipt is read.
    `final_receipt_check:certified_history_rewritten`. Neither is ever stale.
 
 The normal user experiences this chain as an explained sequence of decisions
-and results. Codex prepares the structured inputs and runs the CLI; record IDs,
+and results. The agent prepares the structured inputs and runs the CLI; record IDs,
 hashes, and low-level transition commands remain optional audit detail.
 
 ## 1. The Mental Model
 
 ```mermaid
 flowchart LR
-  U["User"] <-->|"request, corrections, exact approvals"| C["Codex"]
+  U["User"] <-->|"request, corrections, exact approvals"| C["Agent<br/>(Codex or Claude Code)"]
   R["Project files<br/>untrusted evidence"] -->|"inspect and summarize"| C
   C -->|"structured commands and files"| CLI["MPSF CLI<br/>deterministic control plane"]
   CLI -->|"schema, hash, policy, and authorization checks"| S[".sdlc/<br/>canonical project state"]
@@ -191,14 +192,17 @@ flowchart LR
 Each part has one job:
 
 - **The user** confirms the observed project context, agrees each requirement and the maximum working freedom it permits, and makes a fresh working-mode choice for every pull request or local release. For a pull request the user also says whether a code review is needed before the merge and how merging works (by the user on GitHub, after a confirmation, or automatically).
-- **Codex** reads the conversation and repository, separates evidence from inference, explains questions, and prepares structured CLI input. Repository text is data, not authority: an instruction found in a README cannot grant a tool, a secret, or a wider write scope.
+- **The agent** (Codex or Claude Code) reads the conversation and repository, separates evidence from inference, explains questions, and prepares structured CLI input. Repository text is data, not authority: an instruction found in a README cannot grant a tool, a secret, or a wider write scope.
 - **The CLI** does not interpret natural language. It validates schemas, hashes, state transitions, budgets, signatures, authorization uses, and release evidence before it writes.
 - **`.sdlc/`** is the project-local control plane. It travels through normal Git review and contains the records needed to reproduce why a write or release was allowed.
 - **The plugin** is reusable and project-agnostic. Project-specific choices live in `.sdlc/config.json` and in approved records, rather than in hardcoded product logic.
 
-A Codex plugin installation does not create a global `agentic-sdlc` command.
+A Codex plugin installation does not create a global `mpsf` command (the
+`agentic-sdlc` bin is kept as an alias). In Claude Code, `/mpsf:<name>` slash
+commands (see `commands/`) run the same CLI and the plugin root is
+`${CLAUDE_PLUGIN_ROOT}`; see [Claude Code Installation](claude-code-install.md).
 The command name used in the examples below is concise notation for the CLI
-entry point. Run the installer-managed staging copy directly:
+entry point. On Codex, run the installer-managed staging copy directly:
 
 ```bash
 PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
@@ -217,7 +221,7 @@ node "$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSIO
 
 An npm installation may additionally create an npm bin shim. From a source
 checkout, use `node /path/to/mpsf/bin/mpsf.mjs`.
-All examples below use commands exposed by the `MPSF 0.159.29` help output and assume the shell is in the target project:
+All examples below use commands exposed by the `MPSF 0.159.30` help output and assume the shell is in the target project:
 
 ```bash
 cd /path/to/target-project
@@ -260,7 +264,7 @@ A normal assessment has exactly two logical user checkpoints. Internal records a
 ```mermaid
 sequenceDiagram
   actor U as User
-  participant C as Codex
+  participant C as Agent
   participant CLI as MPSF CLI
   participant S as .sdlc
 
@@ -285,7 +289,7 @@ sequenceDiagram
 
 ### Checkpoint 1: confirm project context
 
-Codex inspects the repository and proposes a baseline containing source paths and hashes, detected stack, observable current state, imported documents, assumptions, and open questions. The user confirms or corrects that summary.
+The agent inspects the repository and proposes a baseline containing source paths and hashes, detected stack, observable current state, imported documents, assumptions, and open questions. The user confirms or corrects that summary.
 
 This approval means: “this is an acceptable project context for preparing a proposal.” It does **not** authorize the assessment, implementation, tool installation, external access, or any output.
 
@@ -305,7 +309,7 @@ mpsf baseline approve \
   --summary "The context is accurate; treat the roadmap as outdated"
 ```
 
-If a hashed baseline source changes after approval, proposal application fails. Codex must refresh the baseline and ask for checkpoint 1 again; an old approval cannot authorize a new context.
+If a hashed baseline source changes after approval, proposal application fails. The agent must refresh the baseline and ask for checkpoint 1 again; an old approval cannot authorize a new context.
 
 The baseline also records the directories it was discovered from and the discovery policy in force (`source_discovery`). Every freshness check rediscovers those directories, so a file created after approval, for example by a delivered story, makes the baseline stale in the same way as a changed file. The next task cannot start until the baseline is refreshed:
 
@@ -407,7 +411,7 @@ Approval means: “perform only this proposal hash.” If the bundle contains a 
 
 By default, the named approver is recorded but not independently proven. A project may instead require a trusted host or CI system to sign the exact question, proposal, response, person, limits, and decision time. In optional technical details these modes are `audit_only` and `host_verified`; the signed proof is supplied with `--host-receipt-file`, and its Ed25519 public key must be registered in `authority_policy.trusted_host_keys`.
 
-Every question presented by Codex should state, in plain language:
+Every question presented by the agent should state, in plain language:
 
 1. what is being asked;
 2. why the answer is needed;
@@ -445,7 +449,7 @@ The approval screen should lead with a readable summary: what will be delivered,
 
 A user may approve once that similar low-risk deliveries proceed without asking each time, for example dependency bumps or retired-flag cleanup. A standing approval names the kind of work, its requirements, project-relative paths, files and lines per delivery, one destination (a local release, or a pull request created or updated but never merged, bound to one repository and pushed only to branches under the standing approval's own prefix, never to the base, shared, release, or production branches), a number of deliveries, a mandatory expiry, and optionally a cost budget per delivery and in total. A budget is accepted only when the project has a source that reports delivery cost (the CodeBurn meter with its cost mapping, or a trusted signed source for cost); otherwise `autonomy standing propose` refuses `--budget-per-delivery` and `--budget-total` instead of recording a standing approval that could never cover a step. With a budget, each covered step needs a verified meter reading of the delivery's cost taken after its previous step, from a meter started right after the delivery's approval and before the work began, and the delivery's cost and the total of every delivery that used the standing approval must stay within the budget, compared as exact decimals; a cost that is not measured, or a total that includes a delivery whose cost no meter recorded, means the normal confirmation applies. It covers only the middle working mode, and it never covers merge, production, deploy, data migrations, force-push, or deletions outside its paths. A standing approval for a pull-request destination also records the user's answer to the code review question for every pull request it covers (`--code-review required|not-required`), so a covered delivery does not ask it again.
 
-A person may also delegate named person-only approvals to the agent with `autonomy delegation grant` (see "Delegare le approvazioni all'agente" in the README): limited by action class, scope and expiry, revocable, granted only from the person's own terminal. The agent applies it with `--approval-source delegated --delegation <DLG-id>`; each use is verified and recorded as an agent approval under that delegation, never as a direct human approval. Protected-branch push/merge outside the governed chain, `AGENTIC_SDLC_ALLOW_UNGOVERNED_*`, deploy/production, secrets and installs are never delegable.
+A person may also delegate named person-only approvals to the agent with `autonomy delegation grant` (see "Delegate approvals to the agent" in the README): limited by action class, scope and expiry, revocable, granted only from the person's own terminal. The agent applies it with `--approval-source delegated --delegation <DLG-id>`; each use is verified and recorded as an agent approval under that delegation, never as a direct human approval. Protected-branch push/merge outside the governed chain, `AGENTIC_SDLC_ALLOW_UNGOVERNED_*`, deploy/production, secrets and installs are never delegable.
 
 A delivery proposed under a standing approval treats every delivery action as a confirmation point. The work brief approval, the working-mode choice, and each action confirmation are then satisfied by a derived approval that references the standing approval and the delivery slot it consumed, but only while the standing approval is approved, unexpired, unrevoked, and bound to unchanged project, configuration, policy, and requirement hashes, and while the files changed since task start and any cost budget stay inside its bounds. Otherwise the normal confirmation applies, with the reason shown. Revocation takes effect at the next step of every delivery in progress. All other checks run unchanged.
 
@@ -1082,7 +1086,7 @@ It is refused inside an agent session, the hooks deny it to agents, and they pro
 
 On success the plugin writes the receipt `external-merge.json` (merge commit, `mergedBy`, `mergedAt`, verified head, the person's approval). A started delivery is closed with the new terminal status `merged_externally`; a delivery already closed as `ready_for_review` keeps that close untouched and gains the receipt beside it. No existing record is rewritten, and repeating the command changes nothing.
 
-Downstream, the story counts as delivered and lifecycle completion is allowed, but the final certification check carries the reduced label `certification: "externally_reconciled"`, because the plugin did not perform the merge. A dependency edge with the required state `merged` (`from:to:type:blocks:merged`) is satisfied only when the upstream story's pull request is merged, by the plugin or by an acknowledged external merge; `ready_for_review` is not enough. A verified merge stays satisfied even when the upstream story's final certification later reads as stale, for example because the dependent story edits files the upstream story certified. `autonomy delivery checks` shows an "external merge" row, and the Change Observatory labels it "Merged outside the plugin" ("Unita fuori dal plugin").
+Downstream, the story counts as delivered and lifecycle completion is allowed, but the final certification check carries the reduced label `certification: "externally_reconciled"`, because the plugin did not perform the merge. A dependency edge with the required state `merged` (`from:to:type:blocks:merged`) is satisfied only when the upstream story's pull request is merged, by the plugin or by an acknowledged external merge; `ready_for_review` is not enough. A verified merge stays satisfied even when the upstream story's final certification later reads as stale, for example because the dependent story edits files the upstream story certified. `autonomy delivery checks` shows an "external merge" row, and the Change Observatory labels it "Merged outside the plugin".
 
 ### The pull-request description lists what was recorded
 
@@ -1131,7 +1135,7 @@ The [issue-to-shadow-delivery example](examples/README.md#github-action-issue-to
 
 ### Output verification is layered
 
-Codex creates the approved artifact, and the CLI links it to the approved story, requirement, template, and proposal authorization. The link stores the artifact fingerprint and a separate verification receipt.
+The agent creates the approved artifact, and the CLI links it to the approved story, requirement, template, and proposal authorization. The link stores the artifact fingerprint and a separate verification receipt.
 
 “Verified” is not a single Boolean:
 
@@ -1457,12 +1461,12 @@ With `--apply --plan-hash <preview-plan-hash>`, the CLI first rejects preview/ap
 
 ## 10. The Short Version
 
-1. Codex inspects the repository as untrusted evidence.
+1. The agent inspects the repository as untrusted evidence.
 2. The user confirms the project baseline.
 3. The user agrees a `requirement:v2` revision and its maximum autonomy profile.
 4. For every pull request or local release, the user explicitly selects a level for that delivery only.
 5. The CLI computes the most restrictive host/project/requirement/delivery/contract/capability/environment/budget result.
-6. Codex presents one complete, hash-bound proposal or delivery tranche.
+6. The agent presents one complete, hash-bound proposal or delivery tranche.
 7. The user approves exactly that bundle; `audit_only` cannot grant `bounded-autonomous`.
 8. The CLI creates an authorization containing exact per-delivery action–subject pairs.
 9. Every mutation records whether that permission was valid at the time of use.

@@ -684,13 +684,13 @@ node bin/mpsf.mjs contract create \
 Use `--allow-incomplete-contract` only to persist an explicit clarification, migration, or recovery draft. It is not approval to start phase work. Story contracts automatically update `story.contract_id`; changing a story that already references a different contract requires explicit `--replace-story-contract`.
 `output link` and `story complete-step` require an approved, fresh story contract before durable phase output is linked or completed. Use `--allow-unapproved-contract-output` only for explicit migration or recovery of pre-existing artifacts.
 
-By default, the contract execution policy inherits the main Codex thread model and reasoning level. Override them only when needed:
+By default, the contract execution policy inherits the main thread model and reasoning level. Override them only when needed:
 
 ```bash
 node bin/mpsf.mjs contract create \
   --root <project> \
   --phase implementation \
-  --model codex-model-id \
+  --model model-id \
   --reasoning high \
   --execution-note "Use higher reasoning for a high-risk architecture change"
 ```
@@ -1178,7 +1178,7 @@ node bin/mpsf.mjs orchestrate status --root <project> --json
 node bin/mpsf.mjs orchestrate plan --root <project> --limit 10
 ```
 
-Use `status` before opening another Codex chat. Use `plan` to find available story lanes for a parent orchestrator chat.
+Use `status` before opening another chat. Use `plan` to find available story lanes for a parent orchestrator chat.
 
 When claims are shared through the git remote, both commands (and the project
 `status`) read every computer's claims with one `ls-remote` while some story
@@ -1198,7 +1198,7 @@ node bin/mpsf.mjs route --root <project> --json --intent-file .sdlc/requests/ST-
 node bin/mpsf.mjs task start --root <project> --json --intent-json '<canonical-route-intent-json>'
 ```
 
-The route command is deterministic. Codex or another LLM must first normalize the user's request into `schemas/route-intent.schema.json`; the CLI does not classify raw natural language. `--text` can be provided for audit/debug context, but it is ignored for routing. Intent files cannot live under `.sdlc/cache/` or `.sdlc/indexes/`.
+The route command is deterministic. The agent or another LLM must first normalize the user's request into `schemas/route-intent.schema.json`; the CLI does not classify raw natural language. `--text` can be provided for audit/debug context, but it is ignored for routing. Intent files cannot live under `.sdlc/cache/` or `.sdlc/indexes/`.
 
 Minimum canonical intent:
 
@@ -1303,7 +1303,7 @@ The editable definition input fields are `label`, `description`,
 only a project-internal file, never point it directly at the plugin
 installation.
 
-Use `task start` as the operational front door before Codex performs phase work. It runs route decision, finds the applicable story or phase contract, blocks missing/incomplete/unapproved/stale contracts, and returns `ready_to_execute` only when execution is allowed. `--confirm-start` confirms the concrete start of work, but it does not count as formal contract approval. `--revise-contract` deliberately stops for contract revision even when a usable contract exists.
+Use `task start` as the operational front door before the agent performs phase work. It runs route decision, finds the applicable story or phase contract, blocks missing/incomplete/unapproved/stale contracts, and returns `ready_to_execute` only when execution is allowed. `--confirm-start` confirms the concrete start of work, but it does not count as formal contract approval. `--revise-contract` deliberately stops for contract revision even when a usable contract exists.
 
 ## Story Context Pack
 
@@ -1626,7 +1626,7 @@ After `autonomy delivery action --action pull_request.merge --outcome passed` an
 - the agent label, plus the git `user.name` when `orchestration_policy.claim_identity.git_user` is true, and the computer's label when the environment variable named by `claim_identity.host_label_env` (default `AGENTIC_SDLC_HOST_LABEL`) is set on the claiming computer. Nothing personal is recorded by default: a shared claim is an immutable record every reader of the remote sees, and the host name is never read;
 - its last sign of life, read from git (`orchestration_policy.claim_activity.mode: git`): the last commit on the claim's branch as the remote has it, and how many commits that branch is ahead of the base branch. There is no heartbeat. `claim_activity.idle_after_seconds` marks a claim idle once that commit is older; it is a notice and never frees the story.
 
-A claim is stale when it expires (`claim_policy.default_ttl_seconds`, 24 hours by default) or, when set, once it is older than `orchestration_policy.stale_claim_after_seconds`; both are compared with the reading computer's clock. Claim records on the remote live under `refs/agentic-sdlc/claims/` (`git ls-remote origin 'refs/agentic-sdlc/claims/*'`); `refs/agentic-sdlc-shared/` is only this clone's local copy of the records it has seen. A record gone from the remote stays in that copy as evidence and is reported as a problem, but no longer counts as a held claim; a claim file that came with git whose claim the remote ended or no longer has is reported as outdated and the story counts as free.
+A claim is stale when it expires (`claim_policy.default_ttl_seconds`, 7200 seconds, two hours, by default) or, when set, once it is older than `orchestration_policy.stale_claim_after_seconds`; both are compared with the reading computer's clock. Claim records on the remote live under `refs/agentic-sdlc/claims/` (`git ls-remote origin 'refs/agentic-sdlc/claims/*'`); `refs/agentic-sdlc-shared/` is only this clone's local copy of the records it has seen. A record gone from the remote stays in that copy as evidence and is reported as a problem, but no longer counts as a held claim; a claim file that came with git whose claim the remote ended or no longer has is reported as outdated and the story counts as free.
 
 ## Reserve A Story
 
@@ -1708,7 +1708,7 @@ node bin/mpsf.mjs trace verify --root <project> --json
 When `trace append` reports `TRACE_INTEGRITY_VIOLATION`, run `trace verify` and tell the user which file changed. Only for `violated`, and only if the change was not intended, back up `.sdlc/traces` (restoring discards events recorded since the last commit) and restore it from version control before retrying. `recovery_needed` is an interrupted recording that the next recorded event repairs automatically; do not restore anything. `unverifiable` is a file above the 64 MiB verification limit, not tampering. Never edit history files by hand. `TRACE_HISTORY_TOO_LARGE` means a history file exceeds the 8 MiB read limit; see `docs/how-it-works.md#history-size-limit`. `CONFIG_MISSING` and `PROJECT_RECORD_INVALID` mean `.sdlc/config.json` or `.sdlc/project.json` must be restored (from version control, or by copying the bundled defaults file the message names when the lock proves the configuration was the defaults); do not recreate a customized configuration from defaults.
 Valid trace outcomes are `passed`, `failed`, `failed-minor`, `blocked`, `skipped`, and `ready`. Strict validation requires a `test` trace with `passed`; strict release requires `ready` or `passed`.
 
-Narrative flags are optional and repeatable where applicable. `--explanation-kind` accepts `codex-generated`, `deterministic`, or `human-authored` and requires `--explanation`. The stored scope is always `recorded-evidence-only`; never record private chain-of-thought or hidden reasoning.
+Narrative flags are optional and repeatable where applicable. `--explanation-kind` accepts `codex-generated` (the value for agent-written text on any host, Codex or Claude Code), `deterministic`, or `human-authored` and requires `--explanation`. The stored scope is always `recorded-evidence-only`; never record private chain-of-thought or hidden reasoning.
 
 Record push and merge events explicitly:
 
@@ -1725,7 +1725,7 @@ mpsf observe --root <project>
 mpsf observe --root <project> --host 127.0.0.1 --port 0 --no-open --json
 ```
 
-From a Codex plugin installation, use the `change-observatory` skill so it resolves `<plugin-root>/bin/mpsf.mjs` directly. The returned URL contains an ephemeral token in the fragment. Keep the process alive while viewing the app and stop it with `SIGINT` or `SIGTERM`.
+From a plugin installation (Codex or Claude Code), use the `change-observatory` skill so it resolves `<plugin-root>/bin/mpsf.mjs` directly. The returned URL contains an ephemeral token in the fragment. Keep the process alive while viewing the app and stop it with `SIGINT` or `SIGTERM`.
 
 With `--json`, standard output contains that URL and its per-run access token: do not paste it into bug reports, issues, or shared logs.
 
@@ -1957,7 +1957,7 @@ never be installed or enabled automatically.
 `budget meter start` lists the budget metrics the adapter cannot measure (for
 example cost under the Codex-session meter); `budget status` shows those as
 `not measured` instead of zero. Without `CODEX_THREAD_ID` (a host that does not
-run Codex tasks), pass `--thread-id`, use an enabled `codeburn` adapter, or
+run Codex tasks, such as Claude Code), pass `--thread-id`, use an enabled `codeburn` adapter, or
 record usage manually.
 
 ## Budget Usage, Exceptions, And Stopping
@@ -2041,7 +2041,7 @@ Activity reports reconstruct what happened from canonical trace files only. Busi
 
 Use `approval requests` before continuing when a baseline, capability profile, capability recommendation, output template, contract clarification, contract approval, or canonical output link needs human agreement. It also lists proposals that wait for a person (proposed requirements, breakdowns, dependency orders, delivery autonomy profiles, workflow definitions and overlays, and standing approvals) with the exact approve command; `status` counts them as pending decisions. Proposal commands for those artifact types return an `assistant_message` and `approval_request` too; show those when available instead of saying only that artifacts were prepared. The command is intentionally user-facing and returns `assistant_message` plus `assistant_message_presentation`. Agents should translate and contextualize `assistant_message` in the active chat language when `translate_to_chat_language` is true. Present plain-language meaning first: baseline means trusted project context, capability profile means tools-and-permissions boundaries, capability recommendation means concrete tool choices, output template means assessment/output format, and contract means the work brief. Preserve IDs, paths, commands, status codes, and schema keys only as technical detail when needed. Present what must be reviewed, why it matters, what approval means, whether more information is needed, and what will happen next. Do not reduce approval to a bare question, a file link, or a list of artifact IDs; summarize relevant baseline report, capability records, template, contract, and source-list contents directly in chat. For output-template approvals, show the sections, template content when useful, delivery/presentation options, recommended delivery, and delivery question before asking. Approval scope is exact: a user response approves only the displayed request, not later artifacts. Then stop until the user approves, answers, or asks for changes.
 
-Use `report query` for broader natural-language history questions. Codex or another LLM should normalize the user request into `schemas/report-query.schema.json`; the CLI then filters canonical KB records deterministically. Supported subjects are `activity`, `stories`, `story_steps`, `outputs`, `contracts`, `handoffs`, `work_items`, `approvals`, `tests`, and `all`.
+Use `report query` for broader natural-language history questions. The agent or another LLM should normalize the user request into `schemas/report-query.schema.json`; the CLI then filters canonical KB records deterministically. Supported subjects are `activity`, `stories`, `story_steps`, `outputs`, `contracts`, `handoffs`, `work_items`, `approvals`, `tests`, and `all`.
 
 Example normalized query for "all changes made by me":
 
@@ -2057,7 +2057,7 @@ Example normalized query for "all changes made by me":
 }
 ```
 
-Example normalized query for "all changes made by Codex at my request":
+Example normalized query for "all changes made by the agent (here Codex; use the agent name recorded in the traces, for example `claude-code`) at my request":
 
 ```json
 {
@@ -2208,11 +2208,11 @@ node bin/mpsf.mjs context budget --root <project> [--set <tokens> | --clear]
 ```
 
 - `roles status [--offline]` shows who holds the coordinator and knowledge roles, which computers are alive on the remote (presence refs) and what this computer is. Read-only.
-- `coordinator <duty>` runs duties once for everyone. Each does nothing on a computer that does not hold the coordinator role, and the role holder also runs them by itself (see `config/role-duties.json`). All accept `--dry-run`, and `--json`:
+- `coordinator <duty>` runs duties once for everyone. Each does nothing on a computer that does not hold the coordinator role, and the role holder also runs by itself the duties marked `auto` in `config/role-duties.json` (`digest` and `merge` stay manual until a person turns them on). All accept `--dry-run`, and `--json`:
   - `digest [--force]`: one short project summary for the other computers, only when it changed and at most every 15 minutes.
   - `check-records [--ref <git-ref>]`: checks the story records on the base branch as every computer sees them (git objects only, offline).
-  - `main-green [--failing <check>] [--ref <git-ref>]`: when CI of the base branch is red, opens one ready P1 fix story (never a revert).
-  - `merge [--max <n>] [--method merge|squash|rebase]`: merges the ready pull requests one at a time, P1 stories first, then the oldest. Drafts, conflicts, red checks and requested changes are skipped.
+  - `main-green [--failing <check>] [--ref <git-ref>]`: when CI of the base branch is red, opens one ready P1 fix story (never a revert). Works on GitHub, GitLab and Gitea/Forgejo: the forge comes from the remote URL or `AGENTIC_SDLC_FORGE=github|gitlab|gitea|forgejo`.
+  - `merge [--max <n>] [--method merge|squash|rebase]`: merges the ready pull requests one at a time, P1 stories first, then the oldest. Drafts, conflicts, red checks and requested changes are skipped. Same forges as `main-green`.
   - `free-claims [--offline]`: frees claims whose lease ended, with no declared wait and no live presence of the holder; the freed story gets a handoff pack.
   - `handoff --story <id> [--budget <tokens>]`: builds the handoff context pack of a story, saved under the git directory.
   - `settle-waits [--offline]`: closes explicit waits past their end and channel questions older than `host_policy.waits.question_max_age`.

@@ -13,7 +13,7 @@ For a request to contextualize an existing project and produce a technical, func
 
 ## Plugin Root
 
-`<plugin-root>` in this skill and its references is the installed plugin directory. Resolve the absolute path of this `SKILL.md`; the plugin root is exactly two directories above it. Run the plugin-local CLI as `node <plugin-root>/bin/mpsf.mjs`; never rely on a global `agentic-sdlc` command or mutate `PATH`.
+`<plugin-root>` in this skill and its references is the installed plugin directory. Resolve the absolute path of this `SKILL.md`; the plugin root is exactly two directories above it. Run the plugin-local CLI as `node <plugin-root>/bin/mpsf.mjs`; never rely on a global `agentic-sdlc` command or mutate `PATH`. Under Claude Code the same journeys are available as `/mpsf:<name>` slash commands (see `commands/`); installation is in `docs/claude-code-install.md`.
 
 ## Core Rule
 

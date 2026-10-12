@@ -1,6 +1,6 @@
 # Adapters and roles
 
-Two choices used to be fixed: how computers send each other notes (a GitHub issue) and where the project's records live (the `.sdlc/` folder in git). Since 0.147.0 the messaging channel is replaceable. The records store is replaceable only for explicit waits and delegation reads so far; the other records are still written to `.sdlc/`, and routing record writes through the store is planned for a later phase. One computer can also be named coordinator. Everything here is optional: with no configuration the plugin behaves as before. The design is in [pluggable-adapters](plans/pluggable-adapters.md).
+Two choices used to be fixed: how computers send each other notes (a GitHub issue) and where the project's records live (the `.sdlc/` folder in git). Since 0.147.0 the messaging channel is replaceable. The records store is replaceable only for explicit waits and delegation reads so far; the other records are still written to `.sdlc/`, apart from the operational records that the `sdlc-state` store moves to a branch (see below). One computer can also be named coordinator. Everything here is optional: with no configuration the plugin behaves as before. The design is in [pluggable-adapters](plans/pluggable-adapters.md).
 
 ## Configuration
 

@@ -14,7 +14,7 @@ This page is the documentation map. Start with the goal that matches what you wa
 - [Self-service CLI](self-service-cli.md) — get focused help, one next action, safe presentation presets, shell completion, and deterministic JSON without learning internal record names.
 - [Claude Code installation](claude-code-install.md) — install, verify, and use the plugin from Claude Code, and see which Codex-only steps do not apply.
 - [Configurable workflows](configurable-workflows.md) — use governed project, change-request, assessment, or generic processes without changing active history or delivery authority.
-- [Messages between computers](messaging.md) — optional short notes between computers (a GitHub issue by default, a folder, or none), how to work without them, and what never to send.
+- [Messages between computers](messaging.md) — optional short notes between computers (signed messages on the project's git remote by default, a GitHub issue, a folder, or none), how to work without them, and what never to send.
 - [Adapters and roles](adapters-and-roles.md) — replace the messaging channel or the record store, understand assurance levels, and name a coordinator.
 - [Changelog](../CHANGELOG.md) — what changed in each release.
 - [Examples](examples/README.md) — copy-paste material that is tested but not active here, starting with a GitHub Action that proposes a work brief from a labelled issue.
@@ -23,7 +23,7 @@ This page is the documentation map. Start with the goal that matches what you wa
 
 | I want to... | Read this | What it answers |
 |---|---|---|
-| Start without learning internal record names | [Getting started](getting-started.md) | What to ask Codex, the novice journey, and the decisions you will see |
+| Start without learning internal record names | [Getting started](getting-started.md) | What to ask the agent, the novice journey, and the decisions you will see |
 | Deliver a new requirement as a new pull request | [Getting started — New pull request](getting-started.md#new-requirement-and-new-pull-request) | Requirement, work brief, branch boundary, autonomy, implementation, verification, and PR creation |
 | Continue a pull request that already exists | [Getting started — Existing pull request](getting-started.md#continue-an-existing-pull-request) | How the exact PR is identified and updated without creating another one |
 | Produce a result only on this machine | [Getting started — Local-only result](getting-started.md#local-only-result-or-release) | Which local writes and checks are allowed and which network/production actions remain excluded |
@@ -34,7 +34,7 @@ This page is the documentation map. Start with the goal that matches what you wa
 | Show a pull request's recorded checks in its description | [How it works — The pull-request description lists what was recorded](how-it-works.md#the-pull-request-description-lists-what-was-recorded) | What `autonomy delivery checks` reads, what `[PASS]`, `[FAIL]`, and `[NOT RUN]` mean, and why nothing is re-run |
 | Propose a work brief from a labelled issue in CI | [Examples — issue to shadow delivery](examples/README.md#github-action-issue-to-shadow-delivery) | A read-only, least-privilege workflow that records the issue as a proposed requirement and comments the brief and checks table |
 | Record an incident or feedback item for a released change | [Command reference — Record Incidents And Feedback](../skills/agentic-sdlc/references/commands.md#record-incidents-and-feedback) | What `incident record` and `feedback record` bind to a story and release manifest in the `operations` phase |
-| Run or explain an assessment | [Assessment interactions](agent-interactions.md) | What Codex asks, what the user must answer, and concrete examples |
+| Run or explain an assessment | [Assessment interactions](agent-interactions.md) | What the agent asks, what the user must answer, and concrete examples |
 | Choose autonomy for a requirement, pull request, or local release | [Limits and metering](limits-and-metering.md) | Requirement ceiling, per-delivery selection, local rollback, exception boundaries, and resource limits |
 | Revoke a delegated authorization | [Limits and metering — Check and revoke a delegated authorization](limits-and-metering.md#check-and-revoke-a-delegated-authorization) | When to revoke, what already-issued usage receipts keep, what revocation does not undo, and how to verify with `authorization status` |
 | Measure the exact local Codex task | [Native Codex session meter](codex-session-metering.md) | Authentication-free local counters, task binding, deltas, and limit semantics |

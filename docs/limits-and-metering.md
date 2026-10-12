@@ -679,6 +679,8 @@ the host's `CODEX_THREAD_ID` or explicit `--thread-id`. It does not read prompt
 or response bodies, execute a shell, scrape a page, call a web API, or require
 authentication.
 
+This meter is Codex-specific. Under Claude Code (or any host that sets no `CODEX_THREAD_ID`) there is no Codex session to read: `budget meter start` says so and you either enable the `codeburn` adapter with that host's log provider or record usage manually with `budget usage record`; both stay estimated and drive soft limits and warnings only.
+
 ### Metric mapping
 
 | Budget metric | Native source | Formula or value |
@@ -800,7 +802,7 @@ node bin/mpsf.mjs budget meter record \
 
 ```mermaid
 flowchart LR
-    L["Local Codex session logs"] --> C["CodeBurn 0.9.x report"]
+    L["Local agent session logs"] --> C["CodeBurn 0.9.x report"]
     C --> B["Immutable baseline snapshot"]
     C --> N["Current snapshot"]
     B --> D1["First delta"]

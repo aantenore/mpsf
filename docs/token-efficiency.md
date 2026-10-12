@@ -15,7 +15,7 @@ evidence.
 | Git status/diff/log/show/shortlog | RTK read-only profile; machine formats stay native and mutations are rejected | `optimization run --exact` |
 | `rg` search output | RTK search profile; JSON/NUL output stays native and external preprocessors are rejected | `optimization run --exact` |
 | User-facing explanations | Bundled Caveman `v1.9.1` adaptive compression | Normal wording automatically returns for safety, approvals, exact commands, and ambiguity |
-| Budget correlation | Native exact-task Codex `token_count` snapshots and deltas | Explicit `--thread-id` outside the Codex host |
+| Budget correlation | Native exact-task Codex `token_count` snapshots and deltas (Codex hosts; on Claude Code use the `codeburn` adapter or manual `budget usage record`) | Explicit `--thread-id` outside the Codex host |
 
 The routing rule is deliberately conservative: optimize output that is noisy
 and reconstructible, but preserve complete bytes for canonical evidence,
@@ -33,7 +33,9 @@ python3 scripts/autoconfigure-token-efficiency.py apply --json
 ```
 
 The command verifies the bundled files and an existing RTK 0.43+ executable,
-then configures RTK's Codex guidance through a byte-bound private copy. It
+then configures RTK's Codex guidance through a byte-bound private copy (this step
+is Codex-specific; under Claude Code the Caveman skill and the `optimization`
+commands below work the same, with no Codex configuration). It
 performs no network request, needs no authentication, and never installs or
 configures CodeBurn. If RTK is unavailable, it reports native fallback; the
 bundled Caveman and meter remain usable.
@@ -125,7 +127,7 @@ Projects that set `host_policy.context` need 0.148.0 on every computer; older pl
 ## RTK command gateway
 
 [RTK](https://github.com/rtk-ai/rtk) filters noisy command output before it
-enters model context. MPSF 0.159.29 integrates RTK 0.43+ behind a
+enters model context. MPSF 0.159.30 integrates RTK 0.43+ behind a
 configurable, shell-free gateway; RTK remains an optional, separately installed
 binary.
 

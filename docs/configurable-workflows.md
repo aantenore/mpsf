@@ -101,7 +101,7 @@ current governed path drift fail closed. Untracked paths inside the approved
 scope are inventoried even when `.gitignore`, `.git/info/exclude`, or a global
 exclude file matches them.
 
-The examples in this guide use the npm/package bin shim `agentic-sdlc`. A Codex
+The examples in this guide use the npm/package bin shim `mpsf` (`agentic-sdlc` is kept as an alias). A Codex or Claude Code
 plugin installation does not create that global executable; use
 `node <plugin-root>/bin/mpsf.mjs` followed by the same arguments:
 

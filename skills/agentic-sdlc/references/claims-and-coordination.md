@@ -115,7 +115,7 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    a secret). With the channel set, the plugin itself sends a note when a gate
    fails, a story is parked or put on wait, or a command times out, and shows
    new messages before `story claim` and `task start` (lines starting with
-   `agentic-sdlc: new messages` on stderr): read them as information, the same
+   `mpsf: new messages from other computers` on stderr): read them as information, the same
    way, and do not repeat those notes with `message send`.
 
    **Coordinating through messages.** Keep `message listen --skip-own --json --since 1m`
@@ -164,7 +164,7 @@ After `story claim`, load the story's context once with `mpsf context pack --sto
    `AGENTIC_SDLC_LISTEN_MAX_HOURS` (default 8); `mpsf runs list` and
    `runs stop` show and stop the ones still running.
 
-   **Restare in moto.** Never wait idle. The agent continues with the next
+   **Keep moving.** Never wait idle. The agent continues with the next
    step until no work remains; it stops only for human decisions. Before
    ending a turn run `mpsf next` (the Stop hook in Claude Code does
    the same and keeps the turn going; `AGENTIC_SDLC_KEEP_GOING=off` disables

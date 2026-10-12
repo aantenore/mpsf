@@ -1,6 +1,6 @@
 # Contract Model
 
-A contract is the operational descriptor for an SDLC phase or story. It tells Codex and human reviewers how the step must be executed, produced, validated, and traced.
+A contract is the operational descriptor for an SDLC phase or story. It tells the agent and human reviewers how the step must be executed, produced, validated, and traced.
 
 Contracts are project-bound. The templates are generic, but generated contracts must include the target project identity and contextualization metadata captured from the project KB, user input, files, and open questions.
 
@@ -20,7 +20,7 @@ Required by schema:
 - `allowed_tools`: Tool classes allowed for the phase.
 - `kb_writes`: Knowledge base sections that must be updated.
 - `human_gate`: Whether human approval is required.
-- `execution_policy`: Codex runtime policy for model and reasoning inheritance or override.
+- `execution_policy`: Runtime policy for model and reasoning inheritance or override.
 - `contextualization`: Project-specific summary, source files, questions, assumptions, and constraints.
 
 Optional or conditional:
@@ -59,7 +59,7 @@ Use `execution_policy` to make agent execution settings explicit:
 }
 ```
 
-`inherit` means spawned agents should reuse the main Codex thread settings. Use `override` only when the user or project KB has selected a specific Codex model or reasoning level for the contract.
+The `runtime` value is the fixed schema constant `codex` under both hosts. `inherit` means spawned agents should reuse the main thread settings of the host (Codex or Claude Code). Use `override` only when the user or project KB has selected a specific model or reasoning level for the contract.
 
 ## Capability Policy
 

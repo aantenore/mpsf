@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copy the package.json version into every plugin manifest (host packagings, marketplace entries, legacy bridges).
-// Runs as the npm "version" lifecycle step and from scripts/release.mjs, so a bump never leaves a manifest behind.
+// Runs as `npm run sync-version` and from scripts/release.mjs, so a bump never leaves a manifest behind.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

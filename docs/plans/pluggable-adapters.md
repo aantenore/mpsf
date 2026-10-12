@@ -1,6 +1,6 @@
 # Pluggable messaging and record store
 
-Status: phase 1 implemented (0.147.0). Phases 2-4 planned.
+Status: phases 1 (0.147.0) and 2 implemented; phases 3-4 planned. The operational records already have a state-branch store (`sdlc-state`, see ../adapters-and-roles.md).
 
 ## Goal
 

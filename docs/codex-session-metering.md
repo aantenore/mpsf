@@ -10,6 +10,10 @@ The adapter is bundled with the plugin and is available after every initial
 installation or update. CodeBurn is not required or configured by the standard
 path.
 
+This adapter is specific to Codex hosts. The plugin also runs under Claude Code, which
+writes no Codex session: there, use the `codeburn` adapter with that host's log
+provider or record usage manually (see "When the meter cannot start" below).
+
 ## What is measured
 
 Codex supplies cumulative `total_token_usage` counters. The adapter validates:

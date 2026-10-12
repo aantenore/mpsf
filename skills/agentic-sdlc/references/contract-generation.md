@@ -15,20 +15,20 @@ The contract-building behavior must be domain-agnostic. Do not hardcode a produc
 
 ## Model And Reasoning Policy
 
-Contracts may specify which Codex model and reasoning level spawned agents should use. This is not a domain rule; it is an execution policy for the contract.
+Contracts may specify which model and reasoning level spawned agents should use. This is not a domain rule; it is an execution policy for the contract.
 
 Default behavior:
 
 - Set `execution_policy.model.mode` to `inherit`.
 - Set `execution_policy.reasoning.mode` to `inherit`.
-- Interpret `inherit` as "reuse the main Codex thread settings".
+- Interpret `inherit` as "reuse the main thread settings of the host (Codex or Claude Code)".
 
 Override behavior:
 
 - Ask the user before setting a model override unless a project artifact already requires it.
 - Propose a higher or lower reasoning level when phase risk clearly calls for it, then ask the user before storing the override.
 - Store a short `execution_policy.notes` entry when the override changes cost, latency, risk, or review expectations.
-- Keep model IDs as free-form Codex model identifiers; do not hardcode a model catalog into prompts or contracts.
+- Keep model IDs as free-form model identifiers; do not hardcode a model catalog into prompts or contracts.
 
 Use higher reasoning for phases with broad architectural ambiguity, high-risk implementation, security-sensitive validation, or release decisions. Use inherited reasoning for routine contract generation and normal implementation work unless the user chooses otherwise.
 
@@ -47,7 +47,7 @@ Ask only questions that change the contract. Good questions include:
 - For a PR, which repository/base/head/actions are in scope, and is protected-branch merge excluded?
 - For a local release, what exact target, canonical writes/actions, shell-free JSON-argv smoke tests, rollback procedure, and immutable `rollback.verify` rehearsal evidence are required? If local data changes are declared, what exact regular file, logical scopes, immutable dry-run/preview evidence, backup path, and data rollback cycle apply?
 - Which contract actions must narrow the selected delivery level or remain checkpoints?
-- Should this contract inherit the main Codex thread model/reasoning, or use a specific model or reasoning level?
+- Should this contract inherit the main thread model/reasoning, or use a specific model or reasoning level?
 - Should any required output use an existing approved template, a delta from a base artifact, or a user-approved new structure?
 
 Avoid generic brainstorming questions when the KB already contains enough evidence.
@@ -94,6 +94,6 @@ Every generated contract should answer:
 - Which assumptions and constraints shape the work?
 - Which artifacts must be produced and validated?
 - Which output templates or registry links govern those artifacts?
-- Which Codex model/reasoning policy should spawned agents follow?
+- Which model/reasoning policy should spawned agents follow?
 - Which orchestration scope applies: single story, multiple story lanes, or shared phase artifact?
 - Which actor attribution, handoff, lock, and strict gate rules apply?
