@@ -23,6 +23,15 @@ import {
 
 const SHA = "a".repeat(40);
 const REPOSITORY = "aantenore/agentic-sdlc";
+// The aggregator mechanism the gate still supports for sharded cells, although
+// the push run it reads today shards nothing.
+const SHARDED_POLICY = Object.freeze({
+  ...CI_GATE_POLICY,
+  executedStep: (platform) => (
+    SHARDED_PLATFORMS.includes(platform) ? "Confirm every shard ran the test suite" : "Run the test suite"
+  ),
+  shardedPlatforms: SHARDED_PLATFORMS,
+});
 const FAST = Object.freeze({
   ...CI_GATE_POLICY,
   pollIntervalMs: 10,
@@ -44,11 +53,11 @@ function run(overrides = {}) {
 }
 
 
-function ranSteps(name, conclusion = "success") {
+function ranSteps(name, conclusion = "success", policy = CI_GATE_POLICY) {
   const platform = /^test \((.+?), /u.exec(name)[1];
   return [
     { name: "Set up job", conclusion: "success" },
-    { name: CI_GATE_POLICY.executedStep(platform), conclusion },
+    { name: policy.executedStep(platform), conclusion },
   ];
 }
 
@@ -76,20 +85,20 @@ function memberJobs(platform, node, attempt = 1) {
 }
 
 
-// What a full push run holds: every required cell, plus the shard and checks
-// jobs of the sharded platforms (those are what the aggregators aggregate).
-function jobs(overrides = {}, attempt = 1) {
-  const cells = requiredCiJobNames().map((name, index) => ({
+// What a push run holds: every required cell, plus, under a policy with
+// sharded platforms, their shard and checks jobs (what the aggregators aggregate).
+function jobs(overrides = {}, attempt = 1, policy = CI_GATE_POLICY) {
+  const cells = requiredCiJobNames(policy).map((name, index) => ({
     id: 100 + index,
     name,
     run_attempt: attempt,
     status: "completed",
     conclusion: "success",
-    steps: ranSteps(name),
+    steps: ranSteps(name, "success", policy),
     ...(overrides[name] ?? {}),
   }));
-  const members = CI_GATE_POLICY.cells
-    .filter(({ platform }) => SHARDED_PLATFORMS.includes(platform))
+  const members = policy.cells
+    .filter(({ platform }) => policy.shardedPlatforms.includes(platform))
     .flatMap(({ platform, node }) => memberJobs(platform, node, attempt));
   return [...cells, ...members];
 }
@@ -97,12 +106,17 @@ function jobs(overrides = {}, attempt = 1) {
 
 // Replaces one member job (a shard or the checks job) by name.
 function withMember(name, change) {
-  return jobs().map((job) => (job.name === name ? { ...job, ...change } : job));
+  return shardedJobs().map((job) => (job.name === name ? { ...job, ...change } : job));
 }
 
 
-function evaluate(runs, jobsByRun = new Map([[1, jobs()]])) {
-  return evaluateCiGate({ runs, jobsByRunId: jobsByRun, sha: SHA });
+function shardedJobs(overrides = {}) {
+  return jobs(overrides, 1, SHARDED_POLICY);
+}
+
+
+function evaluate(runs, jobsByRun = new Map([[1, jobs()]]), policy = CI_GATE_POLICY) {
+  return evaluateCiGate({ runs, jobsByRunId: jobsByRun, sha: SHA, policy });
 }
 
 
@@ -127,11 +141,25 @@ test("a green run whose suite was skipped (documentation-only change) cannot rel
       : job.steps.map((step) => ({ ...step, conclusion: "skipped" })),
   }));
   assert.equal(evaluate([run()], new Map([[1, allSkipped]])).state, "failed");
-  // The wrong marker (the Windows one on a Linux job) does not count either.
-  const crossed = jobs({
-    "test (ubuntu-latest, 24)": { steps: [{ name: "Confirm every shard ran the test suite", conclusion: "success" }] },
-  });
-  assert.equal(evaluate([run()], new Map([[1, crossed]])).state, "failed");
+  // The wrong marker (the full-suite aggregator one) does not count either.
+  for (const name of requiredCiJobNames()) {
+    const crossed = jobs({
+      [name]: { steps: [{ name: "Confirm every shard ran the test suite", conclusion: "success" }] },
+    });
+    assert.equal(evaluate([run()], new Map([[1, crossed]])).state, "failed", name);
+  }
+});
+
+
+test("the push run is judged on the fast job alone: one job per cell, no shard or checks jobs", () => {
+  assert.deepEqual(CI_GATE_POLICY.shardedPlatforms, []);
+  for (const { platform } of CI_GATE_POLICY.cells) {
+    assert.equal(CI_GATE_POLICY.executedStep(platform), "Run the test suite", platform);
+  }
+  const all = jobs();
+  assert.equal(all.length, 6);
+  assert.deepEqual(unmetCells(all), []);
+  assert.equal(evaluate([run()], new Map([[1, all]])).state, "passed");
 });
 
 
@@ -150,14 +178,14 @@ test("cells that only the scheduled full matrix produces are not required", () =
 });
 
 
-test("the gate accepts the sharded layout: aggregators plus their shards and checks jobs", () => {
-  const all = jobs();
+test("a policy with sharded platforms accepts aggregators plus their shards and checks jobs", () => {
+  const all = shardedJobs();
   assert.equal(all.length, 6 + 2 * (CI_SHARD_TOTAL + 1));
-  assert.deepEqual(unmetCells(all), []);
-  assert.equal(evaluate([run()], new Map([[1, all]])).state, "passed");
+  assert.deepEqual(unmetCells(all, SHARDED_POLICY), []);
+  assert.equal(evaluate([run()], new Map([[1, all]]), SHARDED_POLICY).state, "passed");
   // Cells of the same platform on another Node line do not interfere.
   const extra = [...all, ...memberJobs("windows-latest", "18.20.3").map((job) => ({ ...job, conclusion: "failure" }))];
-  assert.deepEqual(unmetCells(extra), []);
+  assert.deepEqual(unmetCells(extra, SHARDED_POLICY), []);
 });
 
 
@@ -170,16 +198,16 @@ test("a green aggregator cannot hide a failed or skipped shard or checks job", (
   for (const platform of SHARDED_PLATFORMS) {
     const aggregator = `test (${platform}, 24)`;
     const shard = shardJobName(platform, "24", CI_SHARD_TOTAL, CI_SHARD_TOTAL);
-    assert.deepEqual(unmetCells(withMember(shard, { conclusion: "failure" })), [`${shard} (part of ${aggregator})`], `${shard} failure`);
+    assert.deepEqual(unmetCells(withMember(shard, { conclusion: "failure" }), SHARDED_POLICY), [`${shard} (part of ${aggregator})`], `${shard} failure`);
     // A shard that skipped its test step (a documentation-only change) does not count either.
     const skipped = withMember(shard, { steps: [{ name: SHARD_TEST_STEP, conclusion: "skipped" }] });
-    assert.deepEqual(unmetCells(skipped), [`${shard} (part of ${aggregator})`], `${shard} skipped step`);
+    assert.deepEqual(unmetCells(skipped, SHARDED_POLICY), [`${shard} (part of ${aggregator})`], `${shard} skipped step`);
 
     const checks = checksJobName(platform, "24");
-    assert.deepEqual(unmetCells(withMember(checks, { conclusion: "failure" })), [`${checks} (part of ${aggregator})`], `${checks} failure`);
+    assert.deepEqual(unmetCells(withMember(checks, { conclusion: "failure" }), SHARDED_POLICY), [`${checks} (part of ${aggregator})`], `${checks} failure`);
     const skippedStep = CHECKS_STEPS[0];
     const steps = CHECKS_STEPS.map((step) => ({ name: step, conclusion: step === skippedStep ? "skipped" : "success" }));
-    const verdict = evaluate([run()], new Map([[1, withMember(checks, { steps })]]));
+    const verdict = evaluate([run()], new Map([[1, withMember(checks, { steps })]]), SHARDED_POLICY);
     assert.equal(verdict.state, "failed", `${checks} ${skippedStep}`);
     assert.ok(verdict.reason.includes(checks), `${checks} ${skippedStep}`);
   }
@@ -190,12 +218,12 @@ test("a failed or missing aggregator fails even when every shard and checks job 
   for (const platform of SHARDED_PLATFORMS) {
     const aggregator = `test (${platform}, 24)`;
     for (const conclusion of ["failure", "cancelled", "skipped", null]) {
-      assert.equal(evaluate([run()], new Map([[1, jobs({ [aggregator]: { conclusion } })]])).state, "failed", `${aggregator} ${conclusion}`);
+      assert.equal(evaluate([run()], new Map([[1, shardedJobs({ [aggregator]: { conclusion } })]]), SHARDED_POLICY).state, "failed", `${aggregator} ${conclusion}`);
     }
     // Shards and checks alone never stand in for the aggregator that vouches for them.
-    const without = jobs().filter((job) => job.name !== aggregator);
-    assert.equal(unmetCells(without)[0], aggregator);
-    assert.equal(evaluate([run()], new Map([[1, without]])).state, "failed");
+    const without = shardedJobs().filter((job) => job.name !== aggregator);
+    assert.equal(unmetCells(without, SHARDED_POLICY)[0], aggregator);
+    assert.equal(evaluate([run()], new Map([[1, without]]), SHARDED_POLICY).state, "failed");
   }
 });
 
@@ -207,12 +235,12 @@ test("only the latest attempt of a shard or checks job decides", () => {
     ...withMember(shard, { conclusion: "failure" }),
     successfulJob(shard, 8000, [SHARD_TEST_STEP], 2),
   ];
-  assert.deepEqual(unmetCells(recovered), []);
+  assert.deepEqual(unmetCells(recovered, SHARDED_POLICY), []);
   const regressed = [
-    ...jobs(),
+    ...shardedJobs(),
     { ...successfulJob(checks, 8001, CHECKS_STEPS, 2), conclusion: "failure" },
   ];
-  assert.deepEqual(unmetCells(regressed), [`${checks} (part of test (macos-latest, 24))`]);
+  assert.deepEqual(unmetCells(regressed, SHARDED_POLICY), [`${checks} (part of test (macos-latest, 24))`]);
 });
 
 

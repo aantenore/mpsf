@@ -18,6 +18,7 @@ import {
   TEST_TIERS_FILE,
   TEST_TIERS_SCHEMA,
   TEST_TIER_ENV,
+  TEST_TIER_IN_CI_ENV,
   applyRunnerArguments,
   discoverTestFiles,
   isContinuousIntegration,
@@ -741,6 +742,22 @@ test("CI detection treats any value but empty, 0, or false as CI", async () => {
   for (const value of [undefined, "", "0", "false", "False", "FALSE"]) {
     assert.equal(isContinuousIntegration(value), false, String(value));
     const run = await runTier({ CI: value }, (options) => (options.testNamePatterns === undefined
+      ? wholePasses(options)
+      : scriptedStream(FAST_SMOKE_PASSES)));
+    assert.equal(run.code, 0, `${value}: ${run.stderr}`);
+  }
+});
+
+test("CI runs a tier only when the workflow opts in explicitly", async () => {
+  for (const value of ["", "0", "false"]) {
+    const result = await runMainRejected(
+      { [TEST_TIER_ENV]: "fast", CI: "true", [TEST_TIER_IN_CI_ENV]: value },
+      () => parseTestTiers(tierManifest({ fast: FAST_TIER })),
+    );
+    assert.match(result.stderr, /unless AGENTIC_SDLC_TEST_TIER_IN_CI=true requests the tier explicitly/u, value);
+  }
+  for (const value of ["true", "1"]) {
+    const run = await runTier({ CI: "true", [TEST_TIER_IN_CI_ENV]: value }, (options) => (options.testNamePatterns === undefined
       ? wholePasses(options)
       : scriptedStream(FAST_SMOKE_PASSES)));
     assert.equal(run.code, 0, `${value}: ${run.stderr}`);

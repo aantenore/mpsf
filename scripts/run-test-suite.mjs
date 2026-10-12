@@ -11,6 +11,9 @@ export const MAX_TEST_CONCURRENCY = 8;
 export const TEST_SHARD_ENV = "AGENTIC_SDLC_TEST_SHARD";
 export const SHARD_WEIGHTS_SCHEMA = "agentic-sdlc.test-shard-weights.v1";
 export const TEST_TIER_ENV = "AGENTIC_SDLC_TEST_TIER";
+// A tier is refused under CI unless the workflow opts in explicitly, so an inherited tier
+// variable can never silently shrink a CI run that was meant to be the full suite.
+export const TEST_TIER_IN_CI_ENV = "AGENTIC_SDLC_TEST_TIER_IN_CI";
 export const TEST_TIERS_SCHEMA = "agentic-sdlc.test-tiers.v1";
 export const TEST_STRIP_ENV = "AGENTIC_SDLC_TEST_STRIP_ENV";
 // Removed from the environment the test files inherit. The suite never makes a TLS call, but with
@@ -357,8 +360,10 @@ export async function main({
         `${TEST_TIER_ENV} and ${TEST_SHARD_ENV} cannot be combined: a tier is a partial local run and a shard is a slice of the full suite.`,
       );
     }
-    if (tier !== null && isContinuousIntegration(env.CI)) {
-      throw new TypeError(`${TEST_TIER_ENV}=${tier} is a partial local run; CI always runs the full suite.`);
+    if (tier !== null && isContinuousIntegration(env.CI) && !isContinuousIntegration(env[TEST_TIER_IN_CI_ENV])) {
+      throw new TypeError(
+        `${TEST_TIER_ENV}=${tier} is a partial local run; CI always runs the full suite unless ${TEST_TIER_IN_CI_ENV}=true requests the tier explicitly.`,
+      );
     }
     const strippedEnv = parseStrippedEnv(env[TEST_STRIP_ENV]);
     const discovered = findTestFiles();

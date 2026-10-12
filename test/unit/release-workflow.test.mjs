@@ -27,7 +27,7 @@ import {
   checksJobName,
   shardJobName,
 } from "../../lib/release/ci-jobs.mjs";
-import { TEST_SHARD_ENV } from "../../scripts/run-test-suite.mjs";
+import { TEST_SHARD_ENV, TEST_TIER_ENV, TEST_TIER_IN_CI_ENV } from "../../scripts/run-test-suite.mjs";
 
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -81,7 +81,7 @@ function actionReferences(source) {
 
 const SHARDS = ["1/3", "2/3", "3/3"];
 const SHARD_TOTAL = SHARDS.length;
-// The steps that do not depend on the shard; they run in the checks job only.
+// The steps that do not depend on the shard; in the full suite they run in the checks job only.
 const SHARD_INDEPENDENT_COMMANDS = [
   "npm run check",
   "node --test test/unit/test-suite-runner.test.mjs",
@@ -90,7 +90,8 @@ const SHARD_INDEPENDENT_COMMANDS = [
 ];
 const FULL_NODES = ["18.20.3", "20.12.0", "21.6.0", "24"];
 const checkNames = (osName, nodes) => nodes.map((node) => `test (${osName}, ${node})`);
-// The status checks every event must produce, by event.
+// The status checks every event must produce, by event. Pushes and pull
+// requests run the fast job; schedule and manual dispatch run the full suite.
 const EXPECTED_CHECKS = {
   pullRequest: [
     ...checkNames("ubuntu-latest", ["24", "18.20.3"]),
@@ -114,15 +115,25 @@ const REQUIRED_PULL_REQUEST_CHECKS = [
   "test (macos-latest, 24)",
   "test (windows-latest, 24)",
 ];
+const CI_JOBS = ["fast", "test-full", "test-shard", "test-checks", "test-sharded"];
+const FULL_JOBS = ["test-full", "test-shard", "test-checks", "test-sharded"];
+const FAST_IF = "github.event_name == 'push' || github.event_name == 'pull_request'";
+const FULL_IF = "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'";
+const FAST_TIMEOUT_MINUTES = 8;
+const CONCURRENCY_BLOCK = "concurrency:\n  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}\n  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}\n";
 const CONCURRENCY_EXPRESSION = /AGENTIC_SDLC_TEST_CONCURRENCY: \$\{\{ matrix\.os == '([^']+)' && matrix\.node == '([^']+)' && '([^']+)' \|\| '([^']+)' \}\}/gu;
-const MATRIX_EXPRESSION = /^      matrix: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '(\{[^']*\})' \|\| github\.event_name == 'push' && '(\{[^']*\})' \|\| '(\{[^']*\})'\) \}\}$/mu;
+const EVENT_MATRIX_EXPRESSION = /^      matrix: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '(\{[^']*\})' \|\| '(\{[^']*\})'\) \}\}$/mu;
+const STATIC_MATRIX_EXPRESSION = /^      matrix: \$\{\{ fromJSON\('(\{[^']*\})'\) \}\}$/mu;
 // Steps after the scope detection run only when the change set is not
 // documentation-only; "!= 'true'" makes a missing or failed output run them.
 const NOT_DOCS_ONLY = "steps.scope.outputs.docs_only != 'true'";
 const SCOPE_STEP = /^id: scope\n\s+name: Detect Markdown-only changes\n\s+run: node scripts\/ci-change-scope\.mjs\n\s+env:\n\s+CI_EVENT_NAME: \$\{\{ github\.event_name \}\}\n\s+CI_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}\n\s+CI_BEFORE_SHA: \$\{\{ github\.event\.before \}\}\n(?:\s+# [^\n]+\n\s+CI_ALWAYS_RUN: [^\n]+\n)?/u;
-// The unsharded job's scope step also opts the reference cell (ubuntu, Node 24) out of skipping.
+// The fast job's scope step opts the reference cell (ubuntu, Node 24) out of skipping.
 const ALWAYS_RUN_ENV = "CI_ALWAYS_RUN: ${{ matrix.os == 'ubuntu-latest' && matrix.node == 24 }}";
 const AGGREGATOR_ARGS = `--platform "$MATRIX_OS" --node "$MATRIX_NODE" --shards ${SHARD_TOTAL}`;
+const CELL_NAME = /^    name: test \(\$\{\{ matrix\.os \}\}, \$\{\{ matrix\.node \}\}\)$/mu;
+const FAST_TEST_STEP = /- name: Run the test suite\n\s+if: steps\.scope\.outputs\.docs_only != 'true'\n\s+run: npm run test:fast\n\s+env:\n\s+PYTHON: \$\{\{ steps\.python\.outputs\.python-path \}\}\n\s+AGENTIC_SDLC_TEST_CONCURRENCY: "4"\n\s+AGENTIC_SDLC_TEST_TIER_IN_CI: "true"\n/u;
+const FULL_TEST_STEP = /- name: Run the test suite\n\s+if: steps\.scope\.outputs\.docs_only != 'true'\n\s+run: npm test\n\s+env:\n\s+PYTHON: \$\{\{ steps\.python\.outputs\.python-path \}\}\n\s+AGENTIC_SDLC_TEST_CONCURRENCY: "4"\n/u;
 
 
 // Mirrors GitHub's matrix expansion for the subset used here: the cross product
@@ -133,6 +144,7 @@ function expandMatrix(definition) {
     if (axis === "include") continue;
     cells = cells.flatMap((cell) => values.map((value) => ({ ...cell, [axis]: String(value) })));
   }
+  if (Object.keys(definition).every((axis) => axis === "include")) cells = [];
   for (const extra of definition.include ?? []) {
     const cell = Object.fromEntries(Object.entries(extra).map(([key, value]) => [key, String(value)]));
     if (!cells.some((known) => Object.entries(cell).every(([key, value]) => known[key] === value))) {
@@ -143,14 +155,19 @@ function expandMatrix(definition) {
 }
 
 
-function ciMatrices(block) {
-  const match = MATRIX_EXPRESSION.exec(block);
-  assert.notEqual(match, null, "CI matrix must be selected with fromJSON on github.event_name");
-  return {
-    pullRequest: expandMatrix(JSON.parse(match[1])),
-    push: expandMatrix(JSON.parse(match[2])),
-    full: expandMatrix(JSON.parse(match[3])),
-  };
+// The fast job selects its cells by event; the full-suite jobs declare one
+// static matrix and run only on schedule and manual dispatch.
+function fastMatrices(block) {
+  const match = EVENT_MATRIX_EXPRESSION.exec(block);
+  assert.notEqual(match, null, "the fast matrix must be selected with fromJSON on github.event_name");
+  return { pullRequest: expandMatrix(JSON.parse(match[1])), push: expandMatrix(JSON.parse(match[2])) };
+}
+
+
+function staticMatrix(block) {
+  const match = STATIC_MATRIX_EXPRESSION.exec(block);
+  assert.notEqual(match, null, "a full-suite matrix must be one static fromJSON literal");
+  return expandMatrix(JSON.parse(match[1]));
 }
 
 
@@ -159,14 +176,16 @@ function cellNames(cells) {
 }
 
 
-// Every status check one event produces: the Linux cells plus the per-OS,
-// per-Node aggregators of the sharded platforms (the shard and checks jobs are
-// not required checks of their own).
+// Every status check one event produces: the fast cells for pushes and pull
+// requests; for the full suite, the Linux cells plus the per-OS, per-Node
+// aggregators of the sharded platforms (shard and checks jobs are not checks of
+// their own).
 function eventChecks(source, event) {
   const jobs = jobBlocks(source);
+  if (event !== "full") return cellNames(fastMatrices(jobs.get("fast") ?? "")[event]);
   return [
-    ...cellNames(ciMatrices(jobs.get("test") ?? "")[event]),
-    ...cellNames(ciMatrices(jobs.get("test-sharded") ?? "")[event]),
+    ...cellNames(staticMatrix(jobs.get("test-full") ?? "")),
+    ...cellNames(staticMatrix(jobs.get("test-sharded") ?? "")),
   ].sort();
 }
 
@@ -230,51 +249,95 @@ function stepLayout(block) {
 }
 
 
+function jobIf(block) {
+  return /^    if: (.+)$/mu.exec(block)?.[1] ?? null;
+}
+
+
 function ciContractErrors(source) {
   const errors = [];
   const jobs = jobBlocks(source);
-  const unix = jobs.get("test") ?? "";
+  const fast = jobs.get("fast") ?? "";
+  const full = jobs.get("test-full") ?? "";
   const shard = jobs.get("test-shard") ?? "";
   const checks = jobs.get("test-checks") ?? "";
   const aggregator = jobs.get("test-sharded") ?? "";
 
-  if ([...jobs.keys()].join(",") !== "test,test-shard,test-checks,test-sharded") errors.push("CI job boundary");
-  if ((source.match(/timeout-minutes: 35/gu) ?? []).length !== 2
-    || !/timeout-minutes: 35/u.test(unix)
-    || !/timeout-minutes: 35/u.test(shard)
-    || !/timeout-minutes: 15\n/u.test(checks)
-    || !/timeout-minutes: 5\n/u.test(aggregator)) {
+  if ([...jobs.keys()].join(",") !== CI_JOBS.join(",")) errors.push("CI job boundary");
+  if (!new RegExp(`^    timeout-minutes: ${FAST_TIMEOUT_MINUTES}$`, "mu").test(fast)
+    || !/^    timeout-minutes: 35$/mu.test(full)
+    || !/^    timeout-minutes: 35$/mu.test(shard)
+    || !/^    timeout-minutes: 15$/mu.test(checks)
+    || !/^    timeout-minutes: 5$/mu.test(aggregator)) {
     errors.push("CI job timeout");
   }
   if (/continue-on-error:/u.test(source)) errors.push("CI fail-open policy");
   if (!/^on:\n  push:\n    branches: \[main\]\n  pull_request:\n  schedule:\n    - cron: "[0-9*/, -]+ [0-9*/, -]+ \* \* \*"\n  workflow_dispatch:\n/mu.test(source)) {
     errors.push("CI triggers");
   }
+  if (!source.includes(`\n${CONCURRENCY_BLOCK}`)) errors.push("CI run cancellation");
+
+  // Pushes and pull requests run only the fast job; the full suite runs only on
+  // schedule and manual dispatch, so the two never share a run or a check name.
+  if (jobIf(fast) !== FAST_IF
+    || [full, shard, checks].some((block) => jobIf(block) !== FULL_IF)
+    || jobIf(aggregator) !== `always() && (${FULL_IF})`
+    || (source.match(/^    if:/gmu) ?? []).length !== CI_JOBS.length) {
+    errors.push("CI event split");
+  }
+
   try {
-    const unixMatrices = ciMatrices(unix);
-    const shardMatrices = ciMatrices(shard);
-    const checksMatrices = ciMatrices(checks);
-    const aggregatorMatrices = ciMatrices(aggregator);
-    for (const event of Object.keys(EXPECTED_CHECKS)) {
+    const fastCells = fastMatrices(fast);
+    for (const event of ["pullRequest", "push"]) {
       if (eventChecks(source, event).join("|") !== EXPECTED_CHECKS[event].join("|")) {
         errors.push(`CI ${EVENT_LABELS[event]} matrix`);
       }
-      // Only the sharded platforms are sharded, and only Linux is not.
-      if (unixMatrices[event].some((cell) => SHARDED_PLATFORMS.includes(cell.os))
-        || aggregatorMatrices[event].some((cell) => !SHARDED_PLATFORMS.includes(cell.os))) {
-        errors.push("CI sharded platforms");
-      }
-      const cells = (matrix) => cellNames(matrix).join("|");
-      if (cells(checksMatrices[event]) !== cells(aggregatorMatrices[event])) errors.push("CI checks job");
-      const expectedShards = aggregatorMatrices[event]
-        .flatMap(({ os: osName, node }) => SHARDS.map((index) => `${osName}|${node}|${index}`)).sort();
-      const actualShards = shardMatrices[event].map((cell) => `${cell.os}|${cell.node}|${cell.shard}`).sort();
-      if (expectedShards.join("#") !== actualShards.join("#")) errors.push("CI shards");
+      if (fastCells[event].some((cell) => Object.keys(cell).sort().join(",") !== "node,os")) errors.push("CI fast cells");
     }
+    if (eventChecks(source, "full").join("|") !== EXPECTED_CHECKS.full.join("|")) errors.push("CI full matrix");
+    const fullCells = staticMatrix(full);
+    const aggregatorCells = staticMatrix(aggregator);
+    if (fullCells.some((cell) => SHARDED_PLATFORMS.includes(cell.os))
+      || aggregatorCells.some((cell) => !SHARDED_PLATFORMS.includes(cell.os))) {
+      errors.push("CI sharded platforms");
+    }
+    if (cellNames(staticMatrix(checks)).join("|") !== cellNames(aggregatorCells).join("|")) errors.push("CI checks job");
+    const expectedShards = aggregatorCells
+      .flatMap(({ os: osName, node }) => SHARDS.map((index) => `${osName}|${node}|${index}`)).sort();
+    const actualShards = staticMatrix(shard).map((cell) => `${cell.os}|${cell.node}|${cell.shard}`).sort();
+    if (expectedShards.join("#") !== actualShards.join("#")) errors.push("CI shards");
   } catch {
     errors.push("CI matrix selection");
   }
   if (/^\s+(?:os|node):/mu.test(source)) errors.push("CI static matrix axes");
+
+  // The fast job: the fast tier, explicitly allowed under CI, once per cell, on
+  // the runner of its own operating system, with the shard-independent checks.
+  if (!CELL_NAME.test(fast)
+    || !/^    runs-on: \$\{\{ matrix\.os \}\}$/mu.test(fast)
+    || !FAST_TEST_STEP.test(fast)
+    || (fast.match(/npm run test:fast$/gmu) ?? []).length !== 1
+    || /npm test$|AGENTIC_SDLC_TEST_SHARD|benchmark:enterprise/mu.test(fast)
+    || SHARD_INDEPENDENT_COMMANDS.some((command) => (
+      (fast.match(new RegExp(`^\\s+run: ${escapeRegExp(command)}$`, "gmu")) ?? []).length !== 1
+    ))) {
+    errors.push("CI fast tier");
+  }
+  if ((source.match(/test:fast/gu) ?? []).length !== 1
+    || (source.match(/AGENTIC_SDLC_TEST_TIER_IN_CI/gu) ?? []).length !== 1
+    || /AGENTIC_SDLC_TEST_TIER:/u.test(source)) {
+    errors.push("CI fast tier");
+  }
+
+  // The full Linux job: the whole suite and the reference performance gate.
+  if (!CELL_NAME.test(full)
+    || !FULL_TEST_STEP.test(full)
+    || (full.match(/npm test$/gmu) ?? []).length !== 1
+    || SHARD_INDEPENDENT_COMMANDS.some((command) => (
+      (full.match(new RegExp(`^\\s+run: ${escapeRegExp(command)}$`, "gmu")) ?? []).length !== 1
+    ))) {
+    errors.push("CI full suite");
+  }
 
   const concurrency = ciConcurrencyPolicy(shard);
   if (concurrency === null
@@ -282,19 +345,14 @@ function ciContractErrors(source) {
     || concurrency.serializedNode !== "18.20.3"
     || concurrency.serializedValue !== "1"
     || concurrency.defaultValue !== "2"
-    || (source.match(/AGENTIC_SDLC_TEST_CONCURRENCY:/gu) ?? []).length !== 2
-    || (unix.match(/AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/gmu) ?? []).length !== 1) {
+    || (source.match(/AGENTIC_SDLC_TEST_CONCURRENCY:/gu) ?? []).length !== 3
+    || (fast.match(/AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/gmu) ?? []).length !== 1
+    || (full.match(/AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/gmu) ?? []).length !== 1) {
     errors.push("CI test concurrency policy");
   }
   if ((source.match(/npm run benchmark:enterprise/gu) ?? []).length !== 1
-    || !new RegExp(`- name: Enforce enterprise performance on the required reference runtime\\n\\s+if: ${escapeRegExp(NOT_DOCS_ONLY)} && matrix\\.os == 'ubuntu-latest' && matrix\\.node == 24\\n\\s+run: npm run benchmark:enterprise`, "u").test(unix)) {
-    errors.push("CI required reference performance gate");
-  }
-  // Required and gated jobs must run on every trigger so their check names are
-  // always reported; only steps may be skipped, never the job.
-  if (/^    if:/mu.test(unix) || /^    if:/mu.test(shard) || /^    if:/mu.test(checks)
-    || (aggregator.match(/^    if:/gmu) ?? []).length !== 1) {
-    errors.push("CI required job skipped");
+    || !new RegExp(`- name: Enforce enterprise performance on the required reference runtime\\n\\s+if: ${escapeRegExp(NOT_DOCS_ONLY)} && matrix\\.os == 'ubuntu-latest' && matrix\\.node == 24\\n\\s+run: npm run benchmark:enterprise`, "u").test(full)) {
+    errors.push("CI reference performance gate");
   }
 
   // Shards: one npm test per shard with its own shard selector, on the runner
@@ -322,17 +380,13 @@ function ciContractErrors(source) {
     errors.push("CI checks job");
   }
 
-  // The aggregator carries the required check names, waits for every shard and
-  // checks job even when one fails, and itself fails unless this cell's jobs
-  // all passed.
-  if (!/^    name: test \(\$\{\{ matrix\.os \}\}, \$\{\{ matrix\.node \}\}\)$/mu.test(aggregator)
-    || /^    name:/mu.test(unix)) {
-    errors.push("CI required check names");
-  }
+  // The aggregator carries the full-suite check names of the sharded platforms,
+  // waits for every shard and checks job even when one fails, and itself fails
+  // unless this cell's jobs all passed.
   const verifyRuns = [...aggregator.matchAll(/^        run: node scripts\/verify-ci-shards\.mjs (.*)$/gmu)]
     .map((match) => match[1]);
-  if (!/^    needs: \[test-shard, test-checks\]$/mu.test(aggregator)
-    || !/^    if: always\(\)$/mu.test(aggregator)
+  if (!CELL_NAME.test(aggregator)
+    || !/^    needs: \[test-shard, test-checks\]$/mu.test(aggregator)
     || !/^    runs-on: ubuntu-latest$/mu.test(aggregator)
     || !/^    permissions:\n      actions: read\n      contents: read\n/mu.test(aggregator)
     || verifyRuns.join("|") !== [AGGREGATOR_ARGS, `${AGGREGATOR_ARGS} --require-executed`].join("|")
@@ -345,7 +399,8 @@ function ciContractErrors(source) {
 
   // Documentation-only changes skip the suite step by step, never the job.
   const layouts = [
-    [unix, 7],
+    [fast, 6],
+    [full, 7],
     [shard, 2],
     [checks, CHECKS_STEPS.length],
     [aggregator, 2],
@@ -353,8 +408,8 @@ function ciContractErrors(source) {
   for (const [block, afterCount] of layouts) {
     const { leading, scope, after } = stepLayout(block);
     const alwaysRun = scope.includes(ALWAYS_RUN_ENV);
-    if (alwaysRun !== (block === unix)
-      || (scope.match(/CI_ALWAYS_RUN/gu) ?? []).length !== (block === unix ? 1 : 0)) {
+    if (alwaysRun !== (block === fast || block === full)
+      || (scope.match(/CI_ALWAYS_RUN/gu) ?? []).length !== (block === fast || block === full ? 1 : 0)) {
       errors.push("CI reference cell skips");
     }
     if (leading.length !== 2
@@ -377,7 +432,7 @@ function ciContractErrors(source) {
       errors.push("CI docs-only skip");
     }
   }
-  if ((source.match(/run: node scripts\/ci-change-scope\.mjs$/gmu) ?? []).length !== 4) errors.push("CI docs-only skip");
+  if ((source.match(/run: node scripts\/ci-change-scope\.mjs$/gmu) ?? []).length !== CI_JOBS.length) errors.push("CI docs-only skip");
 
   const actions = actionReferences(source);
   const counts = new Map();
@@ -385,10 +440,10 @@ function ciContractErrors(source) {
   const checkout = `actions/checkout@${ACTION_PINS.get("actions/checkout")}`;
   const setupNode = `actions/setup-node@${ACTION_PINS.get("actions/setup-node")}`;
   const setupPython = `actions/setup-python@${ACTION_PINS.get("actions/setup-python")}`;
-  if (actions.length !== 10
-    || counts.get(checkout) !== 4
-    || counts.get(setupNode) !== 4
-    || counts.get(setupPython) !== 2
+  if (actions.length !== 13
+    || counts.get(checkout) !== 5
+    || counts.get(setupNode) !== 5
+    || counts.get(setupPython) !== 3
     || actions.some((action) => {
       const separator = action.lastIndexOf("@");
       return separator < 1
@@ -396,12 +451,13 @@ function ciContractErrors(source) {
     })) {
     errors.push("CI immutable action pins");
   }
-  if ((source.match(/persist-credentials: false/gu) ?? []).length !== 4
-    || (source.match(/package-manager-cache: false/gu) ?? []).length !== 4) {
+  if ((source.match(/persist-credentials: false/gu) ?? []).length !== 5
+    || (source.match(/package-manager-cache: false/gu) ?? []).length !== 5) {
     errors.push("CI checkout and cache policy");
   }
-  if ((unix.match(/node --test test\/unit\/test-suite-runner\.test\.mjs/gu) ?? []).length !== 1
-    || (checks.match(/node --test test\/unit\/test-suite-runner\.test\.mjs/gu) ?? []).length !== 1) {
+  if ([fast, full, checks].some((block) => (
+    (block.match(/node --test test\/unit\/test-suite-runner\.test\.mjs/gu) ?? []).length !== 1
+  ))) {
     errors.push("CI test-runner bootstrap canary");
   }
   return errors;
@@ -596,122 +652,102 @@ test("workflow source normalization accepts Windows checkouts", () => {
 });
 
 
-test("CI pins actions and separates the compatibility matrix from the performance gate", () => {
+test("CI pins actions and separates the fast tier from the full suite and the performance gate", () => {
   assert.deepEqual(ciContractErrors(ciWorkflow), []);
   assert.match(
     ciWorkflow,
     /- id: python\n\s+if: steps\.scope\.outputs\.docs_only != 'true'\n\s+uses: actions\/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1\n\s+with:\n\s+python-version: "3\.13\.14"\n\s+update-environment: false/u,
   );
-  assert.match(
-    ciWorkflow,
-    /- name: Run the test suite\n\s+if: steps\.scope\.outputs\.docs_only != 'true'\n\s+run: npm test\n\s+env:\n\s+PYTHON: \$\{\{ steps\.python\.outputs\.python-path \}\}/u,
-  );
-  assert.match(
-    ciWorkflow,
-    /- name: Verify bounded test-runner bootstrap\n\s+if: steps\.scope\.outputs\.docs_only != 'true'\n\s+run: node --test test\/unit\/test-suite-runner\.test\.mjs/u,
-  );
+  const jobs = jobBlocks(ciWorkflow);
+  assert.match(jobs.get("fast"), FAST_TEST_STEP);
+  assert.match(jobs.get("test-full"), FULL_TEST_STEP);
+  for (const id of ["fast", "test-full", "test-checks"]) {
+    assert.match(
+      jobs.get(id),
+      /- name: Verify bounded test-runner bootstrap\n\s+if: steps\.scope\.outputs\.docs_only != 'true'\n\s+run: node --test test\/unit\/test-suite-runner\.test\.mjs/u,
+      id,
+    );
+  }
+  // The runner refuses a tier under CI unless the workflow names this opt-in.
+  assert.equal(TEST_TIER_IN_CI_ENV, "AGENTIC_SDLC_TEST_TIER_IN_CI");
+  assert.equal(TEST_TIER_ENV, "AGENTIC_SDLC_TEST_TIER");
+  const manifest = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  assert.equal(manifest.scripts["test:fast"], "node scripts/run-test-suite.mjs --tier=fast");
+  assert.equal(manifest.scripts.test, "node scripts/run-test-suite.mjs");
 });
 
 
-test("CI selects the matrix by event: reduced for pull requests, six cells for push, full otherwise", () => {
-  const events = ["pullRequest", "push", "full"];
-  for (const event of events) {
+test("pushes and pull requests run the fast job; schedule and manual dispatch run the full suite", () => {
+  for (const event of ["pullRequest", "push", "full"]) {
     assert.deepEqual(eventChecks(ciWorkflow, event), EXPECTED_CHECKS[event], event);
   }
   assert.equal(EXPECTED_CHECKS.pullRequest.length, 4);
   assert.equal(EXPECTED_CHECKS.push.length, 6);
   assert.equal(EXPECTED_CHECKS.full.length, 12);
-  // Only pull requests and pushes take a reduced matrix; schedule and manual
-  // dispatch fall through to the full one.
-  assert.match(ciWorkflow, /fromJSON\(github\.event_name == 'pull_request' && '[^']+' \|\| github\.event_name == 'push' && '[^']+' \|\| '/u);
+  const jobs = jobBlocks(ciWorkflow);
+  assert.equal(jobIf(jobs.get("fast")), FAST_IF);
+  for (const id of ["test-full", "test-shard", "test-checks"]) assert.equal(jobIf(jobs.get(id)), FULL_IF, id);
+  assert.equal(jobIf(jobs.get("test-sharded")), `always() && (${FULL_IF})`);
   assert.match(
     ciWorkflow,
     /^on:\n  push:\n    branches: \[main\]\n  pull_request:\n  schedule:\n    - cron: "[^"\n]+"\n  workflow_dispatch:\n/mu,
   );
-  // The unsharded job is Linux only; macOS and Windows never run there.
-  const unix = jobBlocks(ciWorkflow).get("test");
-  for (const event of events) {
-    assert.deepEqual([...new Set(ciMatrices(unix)[event].map((cell) => cell.os))], ["ubuntu-latest"], event);
-  }
+  // A newer push or pull request update cancels the older fast run; full runs are never cancelled.
+  assert.ok(ciWorkflow.includes(`\n${CONCURRENCY_BLOCK}`));
+  // Every fast cell stays bounded; the full Linux job is Linux only.
+  assert.match(jobs.get("fast"), new RegExp(`^    timeout-minutes: ${FAST_TIMEOUT_MINUTES}$`, "mu"));
+  assert.ok(FAST_TIMEOUT_MINUTES <= 8);
+  assert.deepEqual([...new Set(staticMatrix(jobs.get("test-full")).map((cell) => cell.os))], ["ubuntu-latest"]);
 });
 
 
-test("macOS and Windows run as three shards per Node line, each carrying its own shard selector", () => {
-  const shard = jobBlocks(ciWorkflow).get("test-shard");
-  const aggregator = jobBlocks(ciWorkflow).get("test-sharded");
-  assert.equal(SHARD_TOTAL, CI_SHARD_TOTAL);
-  assert.deepEqual([...SHARDED_PLATFORMS].sort(), ["macos-latest", "windows-latest"]);
-  for (const event of ["pullRequest", "push", "full"]) {
-    const cells = ciMatrices(aggregator)[event];
-    assert.deepEqual([...new Set(cells.map((cell) => cell.os))].sort(), [...SHARDED_PLATFORMS].sort(), event);
-    const names = ciMatrices(shard)[event]
-      .map((cell) => shardJobName(cell.os, cell.node, ...cell.shard.split("/").map(Number)))
-      .sort();
-    assert.deepEqual(
-      names,
-      cells.flatMap(({ os: osName, node }) => [1, 2, 3].map((index) => shardJobName(osName, node, index, CI_SHARD_TOTAL))).sort(),
-      event,
-    );
-  }
-  // The runner reads the selector from the matrix value, so the total lives in one place.
-  assert.match(shard, /AGENTIC_SDLC_TEST_SHARD: \$\{\{ matrix\.shard \}\}/u);
-  assert.equal(TEST_SHARD_ENV, "AGENTIC_SDLC_TEST_SHARD");
-  assert.match(shard, new RegExp(`name: ${escapeRegExp("test shard (${{ matrix.os }}, ${{ matrix.node }}, ${{ matrix.shard }})")}`, "u"));
-  assert.match(shard, /^    runs-on: \$\{\{ matrix\.os \}\}$/mu);
-  assert.match(shard, new RegExp(`- name: ${escapeRegExp(SHARD_TEST_STEP)}\\n`, "u"));
-  assert.match(aggregator, new RegExp(`--shards ${CI_SHARD_TOTAL}`, "u"));
-  // No shard carries shard-independent work, so shard 1 is not longer than the others.
-  for (const command of SHARD_INDEPENDENT_COMMANDS) {
-    assert.equal(shard.includes(command), false, command);
-  }
-  assert.doesNotMatch(shard, /startsWith\(matrix\.shard/u);
-});
-
-
-test("the checks job runs the shard-independent steps once per OS and Node line, on that OS", () => {
-  const checks = jobBlocks(ciWorkflow).get("test-checks");
-  const aggregator = jobBlocks(ciWorkflow).get("test-sharded");
-  for (const event of ["pullRequest", "push", "full"]) {
-    assert.deepEqual(
-      ciMatrices(checks)[event].map(({ os: osName, node }) => checksJobName(osName, node)).sort(),
-      ciMatrices(aggregator)[event].map(({ os: osName, node }) => checksJobName(osName, node)).sort(),
-      event,
-    );
-  }
-  assert.match(checks, new RegExp(`name: ${escapeRegExp("checks (${{ matrix.os }}, ${{ matrix.node }})")}`, "u"));
-  assert.match(checks, /^    runs-on: \$\{\{ matrix\.os \}\}$/mu);
-  for (const name of CHECKS_STEPS) {
-    assert.match(checks, new RegExp(`- name: ${escapeRegExp(name)}\\n`, "u"), name);
-  }
-  for (const command of SHARD_INDEPENDENT_COMMANDS) {
-    assert.equal((checks.match(new RegExp(`run: ${escapeRegExp(command)}$`, "gmu")) ?? []).length, 1, command);
-  }
-  assert.doesNotMatch(checks, /npm test|setup-python/u);
-  // The same steps still run on Linux, inside the unsharded job.
-  const unix = jobBlocks(ciWorkflow).get("test");
-  for (const command of SHARD_INDEPENDENT_COMMANDS) {
-    assert.equal((unix.match(new RegExp(`run: ${escapeRegExp(command)}$`, "gmu")) ?? []).length, 1, command);
-  }
-});
-
-
-test("the sharded aggregator owns the required check names and fails unless every job of its cell passed", () => {
-  const aggregator = jobBlocks(ciWorkflow).get("test-sharded");
-  assert.match(aggregator, /^    name: test \(\$\{\{ matrix\.os \}\}, \$\{\{ matrix\.node \}\}\)$/mu);
-  assert.match(aggregator, /^    needs: \[test-shard, test-checks\]$/mu);
-  assert.match(aggregator, /^    if: always\(\)$/mu);
-  assert.match(aggregator, /^      actions: read$/mu);
-  assert.doesNotMatch(aggregator, /continue-on-error|\|\| true/u);
-  assert.match(aggregator, /node scripts\/verify-ci-shards\.mjs --platform "\$MATRIX_OS" --node "\$MATRIX_NODE" --shards 3$/mu);
-  // The required names are unchanged and the unsharded job keeps its default "test (<os>, <node>)" name.
-  assert.doesNotMatch(jobBlocks(ciWorkflow).get("test"), /^    name:/mu);
+test("the fast job carries the required check names, one job per cell on its own OS", () => {
+  const fast = jobBlocks(ciWorkflow).get("fast");
+  assert.match(fast, CELL_NAME);
+  assert.match(fast, /^    runs-on: \$\{\{ matrix\.os \}\}$/mu);
   for (const name of REQUIRED_PULL_REQUEST_CHECKS) {
     assert.ok(eventChecks(ciWorkflow, "pullRequest").includes(name), name);
+    assert.ok(eventChecks(ciWorkflow, "push").includes(name), name);
   }
+  for (const command of SHARD_INDEPENDENT_COMMANDS) {
+    assert.equal((fast.match(new RegExp(`run: ${escapeRegExp(command)}$`, "gmu")) ?? []).length, 1, command);
+  }
+  assert.doesNotMatch(fast, /npm test$|AGENTIC_SDLC_TEST_SHARD|benchmark:enterprise/mu);
 });
 
 
-test("the release gate requires exactly the cells that the push CI run produces", () => {
+test("macOS and Windows run the full suite as three shards per Node line, each carrying its own shard selector", () => {
+  const jobs = jobBlocks(ciWorkflow);
+  const shard = jobs.get("test-shard");
+  const aggregator = jobs.get("test-sharded");
+  assert.equal(SHARD_TOTAL, CI_SHARD_TOTAL);
+  assert.deepEqual([...SHARDED_PLATFORMS].sort(), ["macos-latest", "windows-latest"]);
+  const cells = staticMatrix(aggregator);
+  assert.deepEqual([...new Set(cells.map((cell) => cell.os))].sort(), [...SHARDED_PLATFORMS].sort());
+  assert.deepEqual(
+    staticMatrix(shard).map((cell) => shardJobName(cell.os, cell.node, ...cell.shard.split("/").map(Number))).sort(),
+    cells.flatMap(({ os: osName, node }) => [1, 2, 3].map((index) => shardJobName(osName, node, index, CI_SHARD_TOTAL))).sort(),
+  );
+  assert.match(shard, /AGENTIC_SDLC_TEST_SHARD: \$\{\{ matrix\.shard \}\}/u);
+  assert.equal(TEST_SHARD_ENV, "AGENTIC_SDLC_TEST_SHARD");
+  assert.match(shard, new RegExp(`- name: ${escapeRegExp(SHARD_TEST_STEP)}\\n`, "u"));
+  assert.match(aggregator, new RegExp(`--shards ${CI_SHARD_TOTAL}`, "u"));
+  for (const command of SHARD_INDEPENDENT_COMMANDS) assert.equal(shard.includes(command), false, command);
+  const checks = jobs.get("test-checks");
+  assert.deepEqual(
+    staticMatrix(checks).map(({ os: osName, node }) => checksJobName(osName, node)).sort(),
+    cells.map(({ os: osName, node }) => checksJobName(osName, node)).sort(),
+  );
+  for (const name of CHECKS_STEPS) assert.match(checks, new RegExp(`- name: ${escapeRegExp(name)}\\n`, "u"), name);
+  assert.doesNotMatch(checks, /npm test|setup-python/u);
+  assert.match(aggregator, CELL_NAME);
+  assert.match(aggregator, /^    needs: \[test-shard, test-checks\]$/mu);
+  assert.match(aggregator, /^      actions: read$/mu);
+  assert.doesNotMatch(aggregator, /continue-on-error|\|\| true/u);
+});
+
+
+test("the release gate requires exactly the cells that the fast push run produces", () => {
   assert.deepEqual([...requiredCiJobNames()].sort(), eventChecks(ciWorkflow, "push"));
   assert.equal(requiredCiJobNames().length, 6);
   assert.deepEqual(
@@ -731,59 +767,40 @@ test("the release gate requires exactly the cells that the push CI run produces"
   for (const name of REQUIRED_PULL_REQUEST_CHECKS) {
     assert.ok(requiredCiJobNames().includes(name), `${name} must also be required by the release gate`);
   }
-  assert.match(ciWorkflow, /^on:\n  push:\n    branches: \[main\]\n/mu);
-  // The gate's "the suite ran" markers are real step names of the matching jobs.
-  const jobs = jobBlocks(ciWorkflow);
-  assert.match(jobs.get("test"), new RegExp(`- name: ${escapeRegExp(CI_GATE_POLICY.executedStep("ubuntu-latest"))}\\n`, "u"));
-  for (const platform of SHARDED_PLATFORMS) {
-    assert.equal(CI_GATE_POLICY.executedStep(platform), "Confirm every shard ran the test suite", platform);
-    assert.ok(CI_GATE_POLICY.shardedPlatforms.includes(platform), platform);
-    assert.match(jobs.get("test-sharded"), new RegExp(`- name: ${escapeRegExp(CI_GATE_POLICY.executedStep(platform))}\\n`, "u"));
+  // The gate's "the suite ran" marker is the fast job's gated test step on every platform,
+  // and no platform is judged as a shard aggregator because the push run shards nothing.
+  const fast = jobBlocks(ciWorkflow).get("fast");
+  assert.deepEqual(CI_GATE_POLICY.shardedPlatforms, []);
+  for (const { platform } of CI_GATE_POLICY.cells) {
+    const marker = stepLayout(fast).after.find((step) => stepName(step) === CI_GATE_POLICY.executedStep(platform));
+    assert.ok(marker !== undefined && stepIsGated(marker), platform);
   }
-  assert.equal(CI_GATE_POLICY.shards, SHARD_TOTAL);
-  assert.equal(CI_GATE_POLICY.executedStep("ubuntu-latest"), "Run the test suite");
 });
 
 
 test("a documentation-only change skips steps, never jobs, and never counts as verification", () => {
   const jobs = jobBlocks(ciWorkflow);
-  for (const id of ["test", "test-shard", "test-checks", "test-sharded"]) {
+  for (const id of CI_JOBS) {
     const { scope, after } = stepLayout(jobs.get(id));
     assert.match(scope, SCOPE_STEP, id);
     assert.ok(after.length > 0);
   }
-  // No job is skipped as a whole (the aggregator's only job-level condition is always()).
-  for (const id of ["test", "test-shard", "test-checks"]) {
-    assert.doesNotMatch(jobs.get(id), /^    if:/mu, id);
-  }
-  // The gated steps are exactly the ones after the scope detection; the shard
-  // verification in the aggregator is never skipped.
   const { after } = stepLayout(jobs.get("test-sharded"));
   assert.equal(stepIsGated(after[0]), false);
   assert.equal(stepIsGated(after[1]), true);
-  // Pushes, pull requests only: the script itself refuses every other event.
   assert.match(ciWorkflow, /CI_EVENT_NAME: \$\{\{ github\.event_name \}\}/u);
   // Tests read README.md and docs/, so ubuntu Node 24 never skips; nothing else opts out.
-  assert.ok(stepLayout(jobs.get("test")).scope.includes(ALWAYS_RUN_ENV));
+  for (const id of ["fast", "test-full"]) assert.ok(stepLayout(jobs.get(id)).scope.includes(ALWAYS_RUN_ENV), id);
   for (const id of ["test-shard", "test-checks", "test-sharded"]) {
     assert.doesNotMatch(jobs.get(id), /CI_ALWAYS_RUN/u, id);
   }
-  // Required-by-the-gate jobs must have a marker step that the skip also skips.
-  for (const [id, platform] of [["test", "ubuntu-latest"], ["test-sharded", "windows-latest"], ["test-sharded", "macos-latest"]]) {
-    const marker = stepLayout(jobs.get(id)).after.find((step) => stepName(step) === CI_GATE_POLICY.executedStep(platform));
-    assert.ok(marker !== undefined && stepIsGated(marker), `${id} marker step must be gated`);
-  }
-  // The shard and checks steps the aggregator confirms are real, gated steps.
-  const shardTest = stepLayout(jobs.get("test-shard")).after.find((step) => stepName(step) === SHARD_TEST_STEP);
-  assert.ok(shardTest !== undefined && stepIsGated(shardTest), "the shard test step must be gated");
-  for (const name of CHECKS_STEPS) {
-    const step = stepLayout(jobs.get("test-checks")).after.find((candidate) => stepName(candidate) === name);
-    assert.ok(step !== undefined && stepIsGated(step), `${name} must be gated`);
+  for (const id of ["fast", "test-full", "test-shard", "test-checks"]) {
+    assert.ok(stepLayout(jobs.get(id)).after.every(stepIsGated), id);
   }
 });
 
 
-test("CI serializes only macOS Node 18.20.3 shards, gives Linux four workers, and keeps two elsewhere", () => {
+test("CI serializes only macOS Node 18.20.3 shards and gives the fast and full Linux jobs four workers", () => {
   const jobs = jobBlocks(ciWorkflow);
   const policy = ciConcurrencyPolicy(jobs.get("test-shard"));
   assert.notEqual(policy, null);
@@ -791,24 +808,13 @@ test("CI serializes only macOS Node 18.20.3 shards, gives Linux four workers, an
     [policy.serializedOs, policy.serializedNode, policy.serializedValue, policy.defaultValue],
     ["macos-latest", "18.20.3", "1", "2"],
   );
-  const { full, push, pullRequest } = ciMatrices(jobs.get("test-shard"));
-  const perCell = (cells) => cells.map((cell) => [`${cell.os}/${cell.node}`, policy.forCell(cell)]);
-  assert.deepEqual(
-    [...new Set(perCell(full).filter(([, value]) => value === "1").map(([name]) => name))],
-    ["macos-latest/18.20.3"],
-  );
-  assert.equal(new Set(perCell(full).filter(([, value]) => value === "2").map(([name]) => name)).size, 7);
-  assert.deepEqual(
-    [...new Set(perCell(push).map(([name, value]) => `${name}=${value}`))].sort(),
-    ["macos-latest/24=2", "windows-latest/24=2"],
-  );
-  assert.deepEqual([...new Set(perCell(pullRequest).map(([name, value]) => `${name}=${value}`))].sort(), [
-    "macos-latest/24=2",
-    "windows-latest/24=2",
-  ]);
-  // Linux runs the whole suite per job with four workers.
-  assert.match(jobs.get("test"), /AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/mu);
-  assert.doesNotMatch(jobs.get("test"), /matrix\.os == 'macos-latest'/u);
+  const perCell = staticMatrix(jobs.get("test-shard")).map((cell) => [`${cell.os}/${cell.node}`, policy.forCell(cell)]);
+  assert.deepEqual([...new Set(perCell.filter(([, value]) => value === "1").map(([name]) => name))], ["macos-latest/18.20.3"]);
+  assert.equal(new Set(perCell.filter(([, value]) => value === "2").map(([name]) => name)).size, 7);
+  for (const id of ["fast", "test-full"]) {
+    assert.match(jobs.get(id), /AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/mu, id);
+    assert.doesNotMatch(jobs.get(id), /matrix\.os == 'macos-latest'/u, id);
+  }
   // The release no longer runs tests, so it must not carry its own concurrency policy.
   assert.equal(/AGENTIC_SDLC_TEST_CONCURRENCY/u.test(workflow), false);
 });
@@ -827,416 +833,39 @@ function replaceInJob(source, id, from, to) {
 }
 
 
-const AGGREGATOR_PUSH_MATRIX = `github.event_name == 'push' && '{"os":["macos-latest","windows-latest"],"node":[24]}'`;
 const SHARD_STEP_HEAD = "      - name: Run this shard of the test suite\n";
 
 
-test("CI guards reject a weakened matrix, trigger, or concurrency policy", () => {
-  const fixtures = [
-    {
-      name: "pull request matrix without the Node 18 cell",
-      source: replaceInJob(ciWorkflow, "test", '"node":[24,"18.20.3"]', '"node":[24]'),
-      expected: "CI pull request matrix",
-    },
-    {
-      name: "pull request matrix missing a required platform",
-      source: replaceInJob(
-        ciWorkflow,
-        "test-sharded",
-        `'{"os":["macos-latest","windows-latest"],"node":[24]}' || github.event_name == 'push'`,
-        `'{"os":["macos-latest"],"node":[24]}' || github.event_name == 'push'`,
-      ),
-      expected: "CI pull request matrix",
-    },
-    {
-      name: "push matrix missing a gated Node line",
-      source: replaceInJob(
-        ciWorkflow,
-        "test",
-        `github.event_name == 'push' && '{"os":["ubuntu-latest"],"node":["18.20.3","20.12.0","21.6.0",24]}'`,
-        `github.event_name == 'push' && '{"os":["ubuntu-latest"],"node":["18.20.3","20.12.0",24]}'`,
-      ),
-      expected: "CI push matrix",
-    },
-    {
-      name: "push matrix missing the gated macOS cell",
-      source: replaceInJob(
-        ciWorkflow,
-        "test-sharded",
-        AGGREGATOR_PUSH_MATRIX,
-        `github.event_name == 'push' && '{"os":["windows-latest"],"node":[24]}'`,
-      ),
-      expected: "CI push matrix",
-    },
-    {
-      name: "push matrix with a cell the gate does not require",
-      source: replaceInJob(
-        ciWorkflow,
-        "test-sharded",
-        AGGREGATOR_PUSH_MATRIX,
-        `github.event_name == 'push' && '{"os":["macos-latest","windows-latest"],"node":[24,"18.20.3"]}'`,
-      ),
-      expected: "CI push matrix",
-    },
-    {
-      name: "full matrix dropping a Node line",
-      source: replaceInJob(
-        ciWorkflow,
-        "test",
-        '"node":["18.20.3","20.12.0","21.6.0",24]}\') }}\n    runs-on: ${{ matrix.os }}',
-        '"node":["18.20.3","20.12.0",24]}\') }}\n    runs-on: ${{ matrix.os }}',
-      ),
-      expected: "CI full matrix",
-    },
-    {
-      name: "full matrix reduced for every event",
-      source: ciWorkflow.replace("github.event_name == 'pull_request'", "github.event_name != 'never'"),
-      expected: "CI matrix selection",
-    },
-    {
-      name: "missing schedule trigger",
-      source: ciWorkflow.replace(/  schedule:\n    - cron: "[^"]+"\n/u, ""),
-      expected: "CI triggers",
-    },
-    {
-      name: "missing manual trigger",
-      source: ciWorkflow.replace("  workflow_dispatch:\n", ""),
-      expected: "CI triggers",
-    },
-    {
-      name: "Linux worker count not raised",
-      source: ciWorkflow.replace('AGENTIC_SDLC_TEST_CONCURRENCY: "4"', 'AGENTIC_SDLC_TEST_CONCURRENCY: "2"'),
-      expected: "CI test concurrency policy",
-    },
-    {
-      name: "macOS Node 18 shards no longer serialized",
-      source: ciWorkflow.replace("&& '1' ||", "&& '2' ||"),
-      expected: "CI test concurrency policy",
-    },
-    {
-      name: "shard concurrency changed",
-      source: ciWorkflow.replace("|| '2' }}", "|| '4' }}"),
-      expected: "CI test concurrency policy",
-    },
-  ];
-  for (const fixture of fixtures) {
-    assert.notEqual(fixture.source, ciWorkflow, `${fixture.name} must change the workflow`);
-    assert.ok(
-      ciContractErrors(fixture.source).includes(fixture.expected),
-      `${fixture.name} must be rejected as ${fixture.expected}`,
-    );
-  }
-  // A gated cell dropped from the push matrix no longer matches what the gate requires.
-  const dropped = fixtures[2].source;
-  assert.notDeepEqual(eventChecks(dropped, "push"), [...requiredCiJobNames()].sort());
-});
-
-
-test("CI guards reject a missing shard job, a shard that is not run, and a mis-scoped shard", () => {
+test("CI guards reject weakened fast, full, shard, aggregator, and skip policies", () => {
   const doctorStep = "      - name: Run the installation doctor\n        if: steps.scope.outputs.docs_only != 'true'\n        run: npm run doctor\n";
-  const checkStep = "      - name: Check source syntax\n        if: steps.scope.outputs.docs_only != 'true'\n        run: npm run check\n";
   const fixtures = [
-    {
-      name: "shard job removed",
-      source: withoutJob(ciWorkflow, "test-shard"),
-      expected: "CI job boundary",
-    },
-    {
-      name: "third shard dropped from the matrix",
-      source: ciWorkflow.replaceAll('"shard":["1/3","2/3","3/3"]', '"shard":["1/3","2/3"]'),
-      expected: "CI shards",
-    },
-    {
-      name: "shard selector not passed to the runner",
-      source: ciWorkflow.replace("          AGENTIC_SDLC_TEST_SHARD: ${{ matrix.shard }}\n", ""),
-      expected: "CI shards",
-    },
-    {
-      name: "doctor back in every shard",
-      source: replaceInJob(ciWorkflow, "test-shard", SHARD_STEP_HEAD, `${doctorStep}${SHARD_STEP_HEAD}`),
-      expected: "CI shards",
-    },
-    {
-      name: "source check back in every shard",
-      source: replaceInJob(ciWorkflow, "test-shard", SHARD_STEP_HEAD, `${checkStep}${SHARD_STEP_HEAD}`),
-      expected: "CI shards",
-    },
-    {
-      name: "shards on a Linux runner",
-      source: replaceInJob(ciWorkflow, "test-shard", "    runs-on: ${{ matrix.os }}\n", "    runs-on: ubuntu-latest\n"),
-      expected: "CI shards",
-    },
-    {
-      name: "Windows cell back in the unsharded job",
-      source: replaceInJob(ciWorkflow, "test", '"os":["ubuntu-latest"],"node":[24,"18.20.3"]', '"os":["ubuntu-latest","windows-latest"],"node":[24,"18.20.3"]'),
-      expected: "CI sharded platforms",
-    },
-    {
-      name: "macOS cell back in the unsharded job",
-      source: replaceInJob(ciWorkflow, "test", '"os":["ubuntu-latest"],"node":[24,"18.20.3"]', '"os":["ubuntu-latest","macos-latest"],"node":[24,"18.20.3"]'),
-      expected: "CI sharded platforms",
-    },
-    {
-      name: "shard matrix without the macOS shards",
-      source: replaceInJob(
-        ciWorkflow,
-        "test-shard",
-        `github.event_name == 'push' && '{"os":["macos-latest","windows-latest"]`,
-        `github.event_name == 'push' && '{"os":["windows-latest"]`,
-      ),
-      expected: "CI shards",
-    },
+    ["fast job runs the full suite", replaceInJob(ciWorkflow, "fast", "run: npm run test:fast", "run: npm test"), "CI fast tier"],
+    ["fast tier without the CI opt-in", ciWorkflow.replace('          AGENTIC_SDLC_TEST_TIER_IN_CI: "true"\n', ""), "CI fast tier"],
+    ["full suite runs the fast tier", replaceInJob(ciWorkflow, "test-full", "run: npm test\n", "run: npm run test:fast\n"), "CI full suite"],
+    ["fast job without its bound", replaceInJob(ciWorkflow, "fast", `timeout-minutes: ${FAST_TIMEOUT_MINUTES}\n`, "timeout-minutes: 35\n"), "CI job timeout"],
+    ["fast job on schedule too", replaceInJob(ciWorkflow, "fast", `    if: ${FAST_IF}\n`, ""), "CI event split"],
+    ["full suite on every push", replaceInJob(ciWorkflow, "test-full", `    if: ${FULL_IF}\n`, ""), "CI event split"],
+    ["aggregator skipped when a shard fails", replaceInJob(ciWorkflow, "test-sharded", `    if: always() && (${FULL_IF})\n`, `    if: ${FULL_IF}\n`), "CI event split"],
+    ["superseded runs not cancelled", ciWorkflow.replace("  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}\n", "  cancel-in-progress: false\n"), "CI run cancellation"],
+    ["required pull request cell dropped", replaceInJob(ciWorkflow, "fast", ',{"os":"windows-latest","node":24}]}\' ||', "]}' ||"), "CI pull request matrix"],
+    ["push cell dropped", replaceInJob(ciWorkflow, "fast", ',{"os":"ubuntu-latest","node":"21.6.0"}', ""), "CI push matrix"],
+    ["schedule removed", ciWorkflow.replace(/  schedule:\n    - cron: "[^"]+"\n/u, ""), "CI triggers"],
+    ["manual dispatch removed", ciWorkflow.replace("  workflow_dispatch:\n", ""), "CI triggers"],
+    ["shard job removed", withoutJob(ciWorkflow, "test-shard"), "CI job boundary"],
+    ["a shard dropped", ciWorkflow.replaceAll('"shard":["1/3","2/3","3/3"]', '"shard":["1/3","2/3"]'), "CI shards"],
+    ["shard without its selector", ciWorkflow.replace("          AGENTIC_SDLC_TEST_SHARD: ${{ matrix.shard }}\n", ""), "CI shards"],
+    ["shard carrying a shard-independent step", replaceInJob(ciWorkflow, "test-shard", SHARD_STEP_HEAD, `${doctorStep}${SHARD_STEP_HEAD}`), "CI shards"],
+    ["shard on the wrong runner", replaceInJob(ciWorkflow, "test-shard", "    runs-on: ${{ matrix.os }}\n", "    runs-on: ubuntu-latest\n"), "CI shards"],
+    ["aggregator without its checks dependency", ciWorkflow.replace("    needs: [test-shard, test-checks]\n", "    needs: test-shard\n"), "CI sharded aggregator"],
+    ["benchmark moved to the fast job", replaceInJob(ciWorkflow, "fast", "      - name: Run the installation doctor\n", "      - name: Enforce enterprise performance on the required reference runtime\n        if: steps.scope.outputs.docs_only != 'true'\n        run: npm run benchmark:enterprise\n      - name: Run the installation doctor\n"), "CI reference performance gate"],
+    ["ungated fast test step", replaceInJob(ciWorkflow, "fast", "        if: steps.scope.outputs.docs_only != 'true'\n        run: npm run test:fast\n", "        run: npm run test:fast\n"), "CI docs-only skip"],
+    ["fail-open step", replaceInJob(ciWorkflow, "fast", "        run: npm run doctor\n", "        run: npm run doctor\n        continue-on-error: true\n"), "CI fail-open policy"],
+    ["mutable action", ciWorkflow.replace("actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10", "actions/checkout@v4"), "CI immutable action pins"],
+    ["serialized shard concurrency changed", ciWorkflow.replace("&& '1' ||", "&& '2' ||"), "CI test concurrency policy"],
   ];
-  for (const fixture of fixtures) {
-    assert.notEqual(fixture.source, ciWorkflow, `${fixture.name} must change the workflow`);
-    assert.ok(
-      ciContractErrors(fixture.source).includes(fixture.expected),
-      `${fixture.name} must be rejected as ${fixture.expected}`,
-    );
-  }
-});
-
-
-test("CI guards reject a checks job that drops, relocates, or duplicates a shard-independent step", () => {
-  const fixtures = [
-    {
-      name: "runner canary removed from the checks job",
-      source: replaceInJob(ciWorkflow, "test-checks", "run: node --test test/unit/test-suite-runner.test.mjs", "run: true"),
-    },
-    {
-      name: "source check removed from the checks job",
-      source: replaceInJob(ciWorkflow, "test-checks", "run: npm run check", "run: true"),
-    },
-    {
-      name: "doctor removed from the checks job",
-      source: replaceInJob(ciWorkflow, "test-checks", "run: npm run doctor", "run: true"),
-    },
-    {
-      name: "pack dry run removed from the checks job",
-      source: replaceInJob(ciWorkflow, "test-checks", "run: npm pack --dry-run", "run: true"),
-    },
-    {
-      name: "checks job moved to another operating system",
-      source: replaceInJob(ciWorkflow, "test-checks", "    runs-on: ${{ matrix.os }}\n", "    runs-on: ubuntu-latest\n"),
-    },
-    {
-      name: "checks job without the Windows cells",
-      source: replaceInJob(
-        ciWorkflow,
-        "test-checks",
-        `github.event_name == 'push' && '{"os":["macos-latest","windows-latest"],"node":[24]}'`,
-        `github.event_name == 'push' && '{"os":["macos-latest"],"node":[24]}'`,
-      ),
-    },
-    {
-      name: "checks job running the test suite",
-      source: replaceInJob(ciWorkflow, "test-checks", "run: npm run doctor", "run: npm test"),
-    },
-    {
-      name: "checks job renamed",
-      source: replaceInJob(ciWorkflow, "test-checks", "    name: checks (", "    name: extras ("),
-    },
-  ];
-  for (const fixture of fixtures) {
-    assert.notEqual(fixture.source, ciWorkflow, `${fixture.name} must change the workflow`);
-    assert.ok(ciContractErrors(fixture.source).includes("CI checks job"), `${fixture.name} must be rejected`);
-  }
-  assert.ok(
-    ciContractErrors(replaceInJob(ciWorkflow, "test-checks", "run: node --test test/unit/test-suite-runner.test.mjs", "run: true"))
-      .includes("CI test-runner bootstrap canary"),
-  );
-  // Merged from "CI fails closed without the independent runner canary and the release without its CI gate":
-  // the canary removed from the first job that runs it (the unsharded test job) also fails closed.
-  assert.ok(
-    ciContractErrors(ciWorkflow.replace("node --test test/unit/test-suite-runner.test.mjs", "true"))
-      .includes("CI test-runner bootstrap canary"),
-  );
-});
-
-
-test("CI guards reject an aggregator that does not fail on a failed shard or changes a required name", () => {
-  const verifyCommand = 'node scripts/verify-ci-shards.mjs --platform "$MATRIX_OS" --node "$MATRIX_NODE" --shards 3';
-  const fixtures = [
-    {
-      name: "aggregator skipped when a shard fails (no always())",
-      source: ciWorkflow.replace("    if: always()\n", ""),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator without its dependency on the shards and checks",
-      source: ciWorkflow.replace("    needs: [test-shard, test-checks]\n", ""),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator without its dependency on the checks job",
-      source: ciWorkflow.replace("    needs: [test-shard, test-checks]\n", "    needs: test-shard\n"),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator that tolerates a failed verification",
-      source: ciWorkflow.replace('--shards 3\n        env:', '--shards 3 || true\n        env:'),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator verification replaced by a no-op",
-      source: ciWorkflow.replace(`        run: ${verifyCommand}\n`, "        run: echo ok\n"),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator expecting fewer shards than are run",
-      source: ciWorkflow.replace('--node "$MATRIX_NODE" --shards 3\n', '--node "$MATRIX_NODE" --shards 2\n'),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator verifying another platform",
-      source: ciWorkflow.replace('--platform "$MATRIX_OS" --node "$MATRIX_NODE" --shards 3\n', '--platform ubuntu-latest --node "$MATRIX_NODE" --shards 3\n'),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator verifying a fixed platform instead of its own",
-      source: ciWorkflow.replaceAll('--platform "$MATRIX_OS"', "--platform windows-latest"),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator without Actions read permission",
-      source: ciWorkflow.replace("      actions: read\n      contents: read\n", "      contents: read\n"),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator marked fail-open",
-      source: ciWorkflow.replace("    needs: [test-shard, test-checks]\n", "    needs: [test-shard, test-checks]\n    continue-on-error: true\n"),
-      expected: "CI fail-open policy",
-    },
-    // Merged from "CI guards reject fail-open performance configuration".
-    {
-      name: "benchmark step marked fail-open",
-      source: ciWorkflow.replace(
-        "        run: npm run benchmark:enterprise\n",
-        "        run: npm run benchmark:enterprise\n        continue-on-error: true\n",
-      ),
-      expected: "CI fail-open policy",
-    },
-    {
-      name: "test job carrying the benchmark marked fail-open",
-      source: ciWorkflow.replace("  test:\n", "  test:\n    continue-on-error: true\n"),
-      expected: "CI fail-open policy",
-    },
-    {
-      name: "required check name changed",
-      source: ciWorkflow.replace("    name: test (${{ matrix.os }}, ${{ matrix.node }})\n", "    name: sharded (${{ matrix.os }}, ${{ matrix.node }})\n"),
-      expected: "CI required check names",
-    },
-    {
-      name: "required check name dropped",
-      source: ciWorkflow.replace("    name: test (${{ matrix.os }}, ${{ matrix.node }})\n", ""),
-      expected: "CI required check names",
-    },
-    {
-      name: "unsharded job renamed",
-      source: ciWorkflow.replace("  test:\n    timeout-minutes: 35\n", "  test:\n    name: unit (${{ matrix.os }}, ${{ matrix.node }})\n    timeout-minutes: 35\n"),
-      expected: "CI required check names",
-    },
-  ];
-  for (const fixture of fixtures) {
-    assert.notEqual(fixture.source, ciWorkflow, `${fixture.name} must change the workflow`);
-    assert.ok(
-      ciContractErrors(fixture.source).includes(fixture.expected),
-      `${fixture.name} must be rejected as ${fixture.expected}`,
-    );
-  }
-});
-
-
-test("CI guards reject a weakened documentation-only skip", () => {
-  const gated = "if: steps.scope.outputs.docs_only != 'true'";
-  const fixtures = [
-    {
-      name: "test step not gated by the scope",
-      source: ciWorkflow.replace(`      - name: Run the test suite\n        ${gated}\n`, "      - name: Run the test suite\n"),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "skip that fails open when the scope output is missing",
-      source: ciWorkflow.replace(`${gated}\n        run: npm test`, "if: steps.scope.outputs.docs_only == 'false'\n        run: npm test"),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "skip keyed on the event instead of the diff",
-      source: ciWorkflow.replace(`${gated}\n        run: npm test`, "if: github.event_name != 'schedule'\n        run: npm test"),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "whole job skipped instead of its steps",
-      source: ciWorkflow.replace("  test:\n", "  test:\n    if: github.event_name != 'pull_request'\n"),
-      expected: "CI required job skipped",
-    },
-    {
-      name: "shard job skipped as a whole",
-      source: ciWorkflow.replace("  test-shard:\n", "  test-shard:\n    if: false\n"),
-      expected: "CI required job skipped",
-    },
-    {
-      name: "checks job skipped as a whole",
-      source: ciWorkflow.replace("  test-checks:\n", "  test-checks:\n    if: false\n"),
-      expected: "CI required job skipped",
-    },
-    {
-      name: "checks step not gated by the scope",
-      source: replaceInJob(ciWorkflow, "test-checks", `${gated}\n        run: npm run doctor`, "if: always()\n        run: npm run doctor"),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "shard test step not gated by the scope",
-      source: replaceInJob(ciWorkflow, "test-shard", `${gated}\n        run: npm test`, "if: always()\n        run: npm test"),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "scope detection missing",
-      source: ciWorkflow.replace(/      - id: scope\n        name: Detect Markdown-only changes\n        run: node scripts\/ci-change-scope\.mjs\n        env:\n(?:          [A-Z_]+: .*\n){3}/u, ""),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "scope detection without the base commit",
-      source: ciWorkflow.replace("          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}\n", ""),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "ubuntu Node 24 allowed to skip on docs-only changes",
-      source: ciWorkflow.replace("          # Tests read README.md and docs/, so this reference cell never skips.\n          CI_ALWAYS_RUN: ${{ matrix.os == 'ubuntu-latest' && matrix.node == 24 }}\n", ""),
-      expected: "CI reference cell skips",
-    },
-    {
-      name: "always-run flag widened to every Unix cell",
-      source: ciWorkflow.replace("CI_ALWAYS_RUN: ${{ matrix.os == 'ubuntu-latest' && matrix.node == 24 }}", "CI_ALWAYS_RUN: ${{ matrix.os == 'ubuntu-latest' }}"),
-      expected: "CI reference cell skips",
-    },
-    {
-      name: "always-run flag pointing at another Node line",
-      source: ciWorkflow.replace("matrix.os == 'ubuntu-latest' && matrix.node == 24 }}\n", "matrix.os == 'ubuntu-latest' && matrix.node == 20 }}\n"),
-      expected: "CI reference cell skips",
-    },
-    {
-      name: "aggregator confirmation that the suite ran is always skipped",
-      source: ciWorkflow.replace(`      - name: Confirm every shard ran the test suite\n        ${gated}\n`, "      - name: Confirm every shard ran the test suite\n        if: always()\n"),
-      expected: "CI docs-only skip",
-    },
-    {
-      name: "aggregator confirmation does not require executed shards",
-      source: ciWorkflow.replace(" --require-executed", ""),
-      expected: "CI sharded aggregator",
-    },
-    {
-      name: "aggregator shard verification gated by the scope",
-      source: ciWorkflow.replace("      - name: Require every shard of this Node line\n", `      - name: Require every shard of this Node line\n        ${gated}\n`),
-      expected: "CI docs-only skip",
-    },
-  ];
-  for (const fixture of fixtures) {
-    assert.notEqual(fixture.source, ciWorkflow, `${fixture.name} must change the workflow`);
-    assert.ok(
-      ciContractErrors(fixture.source).includes(fixture.expected),
-      `${fixture.name} must be rejected as ${fixture.expected}`,
-    );
+  for (const [name, source, expected] of fixtures) {
+    assert.notEqual(source, ciWorkflow, `${name} must change the workflow`);
+    assert.ok(ciContractErrors(source).includes(expected), `${name}: ${JSON.stringify(ciContractErrors(source))}`);
   }
 });
 
@@ -1252,9 +881,9 @@ test("the release gate is one Linux job instead of a re-run of the test matrix",
   // The packed artifact is still smoke-verified exactly once, in the package job.
   assert.equal((workflow.match(/node scripts\/verify-release-package\.mjs|scripts\/verify-release-package\.mjs/gu) ?? []).length, 1);
   assert.equal((workflow.match(/^\s+run: npm run check$/gmu) ?? []).length, 1);
-  // The benchmark that used to run in the release matrix is part of the required CI cell.
+  // The benchmark that used to run in the release matrix runs with the full suite.
   assert.match(
-    jobBlocks(ciWorkflow).get("test"),
+    jobBlocks(ciWorkflow).get("test-full"),
     /if: steps\.scope\.outputs\.docs_only != 'true' && matrix\.os == 'ubuntu-latest' && matrix\.node == 24\n\s+run: npm run benchmark:enterprise/u,
   );
 });
