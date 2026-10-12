@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.35
+
+- Windows fixes from the first Windows fast-tier run. Paths are compared through one helper that resolves Windows 8.3 short names (`C:\Users\RUNNER~1`) and case: the base worktree is no longer recreated on every call (which discarded a write in progress), records publish from a project whose root is spelled with a short name, a project in a subfolder publishes from the right base-worktree subfolder (asked of `git rev-parse --show-prefix`), and `AGENTIC_SDLC_UNGOVERNED_REPOS` and trusted remotes match the repository git reports. Trusted remotes recorded by earlier releases are still read. The run watchdog no longer holds the project folder as its working directory, and on Windows, where stopping a process runs none of its handlers, it removes the run record itself. Test-only fixes for Windows: POSIX file modes are not asserted, shell commands quote Windows paths, spawned module scripts import `file:` URLs, and the real AppContainer smoke tests skip when the provider probe fails on the host. The test runner accepts a tier together with `AGENTIC_SDLC_TEST_SHARD` and runs one slice of the tier (whole files split by cost, smoke files by selected tests). Windows stays in the nightly full suite and outside the release gate. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.34
 
 - CI only: the fast push and pull request runs keep every cell within about five minutes (job timeout 6 minutes). Windows needs longer for the fast tier and now runs only in the nightly full suite, so the release gate requires five cells: `test (ubuntu-latest, 18.20.3|20.12.0|21.6.0|24)` and `test (macos-latest, 24)`. The test tier no longer reports every smoke test as missing on Node 18, 20 and 21, which name ES module test files by `file:` URL. The process-hygiene hook test no longer stops unrelated test processes. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
