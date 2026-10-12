@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.21
+
+- GitHub channel: a signed message copied into a new comment no longer reads as trusted. A signed comment counts only when its author is the repository's owner, a member or a collaborator, and only the first time in a read: a second comment carrying the same signed message is `[untrusted]`, so it cannot reopen answered questions or announce a version. Change Observatory: no change (it shows the trust it receives). Compatibility: message format unchanged; older plugins keep reading new messages as before. A teammate whose GitHub account is not a collaborator now sees their signed messages as untrusted on other computers: add them as collaborators.
+
 ## 0.159.20
 
 - The release package check passes again: the manifest sync script is now `npm run sync-version` instead of an npm `version` lifecycle hook, which the package policy forbids. `npm run release` still syncs every manifest; after a manual `npm version`, run `npm run sync-version`. The GitHub Action example test follows the documented minimum, v0.21.0. Change Observatory: no change. Compatibility: no change for older plugins.

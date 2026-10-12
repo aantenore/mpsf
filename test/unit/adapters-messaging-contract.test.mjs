@@ -130,7 +130,14 @@ test("github: agent comments are signed; hand-written ones are trusted only from
   const body = toGithubBody(message, "abc", signature);
   const trust = trustContext(null);
   const comment = (extra) => ({ id: 7, created_at: "2026-01-01T00:00:00Z", user: { login: "x" }, ...extra });
-  assert.equal(fromGithubComment(comment({ body, author_association: "NONE" }), trust).trust, "trusted");
+  assert.equal(fromGithubComment(comment({ body, author_association: "OWNER" }), trust).trust, "trusted");
+  // A signed body copied into a comment by someone outside the repository is a replay.
+  assert.equal(fromGithubComment(comment({ body, author_association: "NONE" }), trust).trust, "untrusted");
+  // A member re-posting an already seen signed message in the same read is a replay too.
+  const seen = new Map();
+  assert.equal(fromGithubComment(comment({ body, author_association: "MEMBER" }), trust, seen).trust, "trusted");
+  assert.equal(fromGithubComment(comment({ body, author_association: "MEMBER" }), trust, seen).trust, "trusted", "the same comment read twice");
+  assert.equal(fromGithubComment(comment({ id: 8, body, author_association: "MEMBER" }), trust, seen).trust, "untrusted");
   assert.equal(fromGithubComment(comment({ body: body.replace("ciao", "forged"), author_association: "OWNER" }), trust).trust, "untrusted");
   assert.equal(fromGithubComment(comment({ body: "hand written", author_association: "COLLABORATOR" }), trust).trust, "trusted");
   assert.equal(fromGithubComment(comment({ body: "hand written", author_association: "NONE" }), trust).trust, "untrusted");
