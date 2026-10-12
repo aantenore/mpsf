@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.40** — Windows: the base-branch guard can read the trusted remote again, and the local-release sandbox launcher runs `icacls`.
 - **0.159.39** — test only: two tests no longer assume one drive or one spelling of a local remote path on Windows.
 - **0.159.38** — test only: the concurrent workflow/task start test also fixes which start takes the story's single-flight lock.
 - **0.159.37** — Windows is back in push and pull-request CI, as three fast-tier shards of about five minutes each.
@@ -46,7 +47,6 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - **0.159.33** — push and pull-request CI runs the fast test tier in a few minutes per cell; the full suite runs nightly and on demand and no longer blocks releases.
 - **0.159.32** — host pages in `docs/hosts/` (Claude Code, Codex, what differs); every Codex-only section has its Claude Code counterpart.
 - **0.159.31** — the slowest test files build path-independent fixtures once and copy them per test; every behavior is still asserted.
-- **0.159.30** — docs no longer read as Codex-only and match the current claim, coordinator, forge, messaging and state-branch logic.
 
 ## Documentation Map
 

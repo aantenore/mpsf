@@ -247,6 +247,12 @@ try {
 }
 
 $icacls = Join-Path $env:SystemRoot "System32\icacls.exe"
+# The launcher runs with a minimal environment; without .EXE in PATHEXT, PowerShell treats
+# icacls.exe as a document and refuses to run it in a pipeline. The smoke process gets its own
+# environment below, so this changes only the launcher.
+if (-not (@(([string]$env:PATHEXT) -split ";") -contains ".EXE")) {
+  $env:PATHEXT = (@(".COM", ".EXE") + @(([string]$env:PATHEXT) -split ";" | Where-Object { $_ })) -join ";"
+}
 $name = "agentic-sdlc-smoke-" + [Guid]::NewGuid().ToString("N")
 
 if ($Probe) {

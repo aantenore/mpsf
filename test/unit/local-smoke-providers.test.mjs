@@ -120,6 +120,8 @@ test("the AppContainer launcher script keeps its fail-closed contract", () => {
   assert.match(script, /JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE/u);
   assert.match(script, /\[Guid\]::NewGuid\(\)/u);
   assert.match(script, /\/remove:g/u);
+  // The minimal launcher environment has no PATHEXT; icacls.exe must still run as an application.
+  assert.match(script, /\$env:PATHEXT = /u);
   assert.match(script, /DeleteProfile\(\$name\)/u);
   assert.match(script, /exit 125/u);
   assert.doesNotMatch(script, /internetClient|privateNetworkClientServer|LoopbackExempt/u);
