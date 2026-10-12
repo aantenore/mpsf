@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.32** — host pages in `docs/hosts/` (Claude Code, Codex, what differs); every Codex-only section has its Claude Code counterpart.
 - **0.159.31** — the slowest test files build path-independent fixtures once and copy them per test; every behavior is still asserted.
 - **0.159.30** — docs no longer read as Codex-only and match the current claim, coordinator, forge, messaging and state-branch logic.
 - **0.159.29** — README, install, messaging, how-it-works, skill and command docs cover the changes of 0.159.21-0.159.28.
@@ -46,8 +47,6 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - **0.159.25** — secret scan reads UTF-16 files, catches unquoted credentials and common token prefixes, and lists files it could not read.
 - **0.159.24** — the guard checks the script files a command runs; inside an agent session records default to the agent actor.
 - **0.159.23** — command reference covers roles, coordinator, known-error, knowledge and context budget; Observatory labels every request route.
-- **0.159.22** — unused exported helpers removed; no behavior change.
-- **0.159.21** — a copied signed GitHub comment reads as untrusted; signed comments count only from owners, members and collaborators.
 
 ## Documentation Map
 

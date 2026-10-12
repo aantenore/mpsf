@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.32
+
+- Documentation only: host-specific pages moved to `docs/hosts/` (`README.md` with what Claude Code and Codex share and what differs, `claude-code.md`, `codex.md`, `codex-session-metering.md`); Windows support moved to `docs/windows.md`. The old paths (`docs/claude-code-install.md`, `docs/portable-install.md`, `docs/codex-session-metering.md`) stay as short pages pointing to the new ones. Every section that covered only Codex now gives the Claude Code counterpart, or says there is none: metering (CodeBurn or `budget usage record` on Claude Code), RTK autoconfiguration (Codex only), install, update, uninstall and doctor, the CLI path (`~/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs`). The README keeps one install/update/uninstall/doctor table and the last ten releases; the docs index is grouped by host, concepts, several computers and reference. A root `CLAUDE.md` imports `AGENTS.md` for contributors using Claude Code. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.31
 
 - Test suite only: the slowest end-to-end files build their expensive, path-independent fixtures once and copy them per test, and one duplicated certification fixture is merged into the scenario that already builds it. Every behavior is still asserted; the touched files run about 290 seconds faster in total. Change Observatory: no change. Compatibility: no change.
