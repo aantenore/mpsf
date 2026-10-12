@@ -116,7 +116,10 @@ public static class AgenticSdlcAppContainer {
   [DllImport("kernel32.dll", SetLastError = true)] static extern bool CloseHandle(IntPtr handle);
 
   static void Check(bool ok, string what) {
-    if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error(), what);
+    if (ok) return;
+    int error = Marshal.GetLastWin32Error();
+    // Name the Windows error with its code, so a failure on the user's host can be diagnosed.
+    throw new Win32Exception(error, what + ": " + new Win32Exception(error).Message + " (error " + error + ")");
   }
 
   public static string CreateProfile(string name) {
@@ -312,6 +315,12 @@ try {
   foreach ($key in @("PATH", "SYSTEMROOT", "WINDIR")) {
     $value = [Environment]::GetEnvironmentVariable($key)
     if ($value) { $environment.Add("$key=$value") }
+  }
+  # CreateProcess for an AppContainer rewrites the profile folders in the child's environment and
+  # fails with error 203 when they are absent; the minimal launcher environment has none.
+  foreach ($pair in @(@("LOCALAPPDATA", "LocalApplicationData"), @("USERPROFILE", "UserProfile"))) {
+    $value = [Environment]::GetFolderPath($pair[1])
+    if ($value) { $environment.Add("$($pair[0])=$value") }
   }
   $environment.Add("TEMP=$folder")
   $environment.Add("TMP=$folder")

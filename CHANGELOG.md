@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.41
+
+- Windows: the AppContainer launcher of a local release gives the smoke process `LOCALAPPDATA` and `USERPROFILE`, without which Windows refused to start a process in the container (CreateProcess error 203), so every sandboxed smoke run ended with exit 125. A failing Windows call in the launcher now names the Windows error and its code. Windows CI runs the real AppContainer smoke tests on every push and pull request. Change Observatory: no change. Compatibility: no record, ref or schema format changed; the launcher script hash is bound into a local-release authorization, as with any launcher change.
+
 ## 0.159.40
 
 - Windows fixes found by the new Windows fast shards. The merge and push guard reads the trusted remote with `GIT_CONFIG_GLOBAL=/dev/null` instead of `\\.\nul`, which Git for Windows refused, so on Windows the remote base was never verified: a non-governed repository was guarded and `protect_base_branch: false` on the remote base had no effect (the guard failed closed). The AppContainer launcher of a local release adds `.EXE` to `PATHEXT` for itself, because in its minimal environment Windows PowerShell refused to run `icacls.exe` and every sandboxed smoke run ended with exit 125. Change Observatory: no change. Compatibility: no record, ref or schema format changed; a local-release authorization binds the launcher script hash, so an authorization made with an older plugin is re-approved as before after an update.
