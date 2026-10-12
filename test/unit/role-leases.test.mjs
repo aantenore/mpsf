@@ -9,7 +9,7 @@ import test from "node:test";
 import { assignedHolder, planRoleLease, rendezvousOrder, resolveRole } from "../../lib/coordination-roles.mjs";
 import { forgetSharedRefState } from "../../lib/engine/shared-refs.mjs";
 import { claimLeaseHolds } from "../../lib/engine/story-waits.mjs";
-import { mergeClonePresence, presenceActivity, pushAccepted, readCoordinationCopies, releaseAtSessionEnd, rolesStatus, rolesTick, TICK_MS } from "../../lib/engine/role-leases.mjs";
+import { mergeClonePresence, presenceActivity, pushAccepted, readCoordinationCopies, releaseAtSessionEnd, rolesStatus, rolesTick, TICK_MS, TICK_NETWORK_TIMEOUT_ENV, TICK_NETWORK_TIMEOUT_SECONDS, tickNetworkTimeoutSeconds } from "../../lib/engine/role-leases.mjs";
 
 const NOW = Date.parse("2026-10-11T12:00:00Z");
 const MIN = 60_000;
@@ -221,4 +221,11 @@ test("two clones on one computer: one holds the roles, the end of the other's se
   assert.equal(seen.computers.find((item) => item.host === "pc-x").alive, true, "the computer is still there");
   const last = releaseAtSessionEnd(a.dir, { env: a.env, now: NOW + 3 * MIN, sessionId: "sa" });
   assert.deepEqual(last.released.sort(), ["coordinator", "knowledge"]);
+});
+
+test("the tick's network limit defaults above the old 3 seconds and follows its variable within bounds", () => {
+  assert.equal(tickNetworkTimeoutSeconds({}), TICK_NETWORK_TIMEOUT_SECONDS);
+  assert.ok(TICK_NETWORK_TIMEOUT_SECONDS > 3);
+  assert.equal(tickNetworkTimeoutSeconds({ [TICK_NETWORK_TIMEOUT_ENV]: "45" }), 45);
+  for (const bad of ["0", "-1", "abc", "301", "2.5"]) assert.equal(tickNetworkTimeoutSeconds({ [TICK_NETWORK_TIMEOUT_ENV]: bad }), TICK_NETWORK_TIMEOUT_SECONDS);
 });

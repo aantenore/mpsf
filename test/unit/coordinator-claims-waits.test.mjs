@@ -46,3 +46,14 @@ test("settle-waits closes expired explicit waits and stale questions only", () =
   ];
   assert.deepEqual(planSettleWaits(waits, { now: NOW }).map((item) => item.id), ["WAIT-1", "WAIT-3", "q:10"]);
 });
+
+test("free-claims does not free a claim whose holder's presence ended only minutes ago", () => {
+  const late = (host) => ({ host, at: iso(NOW - 35 * MIN), expires_at: iso(NOW - 5 * MIN), stories: [] });
+  const presence = [late("pc-slow"), gone("pc-off"), alive("pc-x")];
+  const stories = [abandoned("ST-A", { host: "pc-slow" }), abandoned("ST-B", { host: "pc-off" })];
+  const plans = Object.fromEntries(planFreeClaims({ stories, presence, now: NOW }).map((item) => [item.story_id, item]));
+  assert.equal(plans["ST-A"].action, "ask");
+  assert.equal(plans["ST-A"].reason, "holder_presence_late");
+  assert.equal(plans["ST-B"].action, "free");
+  assert.equal(planFreeClaims({ stories: stories.slice(0, 1), presence, now: NOW, graceMs: 0 })[0].action, "free");
+});
