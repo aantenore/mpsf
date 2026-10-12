@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.36
+
+- Test only: the concurrent workflow-start and task-start test no longer depends on a fixed 750 ms head start. The delayed workflow start now waits until the task start holds the story's task-start boundary lock or has written its receipt, so a slow process start under load cannot flip which side wins. The product already serializes both starts on that lock. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.35
 
 - Windows fixes from the first Windows fast-tier run. Paths are compared through one helper that resolves Windows 8.3 short names (`C:\Users\RUNNER~1`) and case: the base worktree is no longer recreated on every call (which discarded a write in progress), records publish from a project whose root is spelled with a short name, a project in a subfolder publishes from the right base-worktree subfolder (asked of `git rev-parse --show-prefix`), and `AGENTIC_SDLC_UNGOVERNED_REPOS` and trusted remotes match the repository git reports. Trusted remotes recorded by earlier releases are still read. The run watchdog no longer holds the project folder as its working directory, and on Windows, where stopping a process runs none of its handlers, it removes the run record itself. Test-only fixes for Windows: POSIX file modes are not asserted, shell commands quote Windows paths, spawned module scripts import `file:` URLs, and the real AppContainer smoke tests skip when the provider probe fails on the host. The test runner accepts a tier together with `AGENTIC_SDLC_TEST_SHARD` and runs one slice of the tier (whole files split by cost, smoke files by selected tests). Windows stays in the nightly full suite and outside the release gate. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
