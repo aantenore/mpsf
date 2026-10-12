@@ -85,7 +85,7 @@ test("package, documentation, and CI/release matrices use the safe runtime floor
   );
   assert.equal(packageJson.engines.node, NODE_ENGINE_RANGE);
 
-  for (const relativePath of ["README.md", "docs/portable-install.md"]) {
+  for (const relativePath of ["README.md", "docs/hosts/codex.md"]) {
     const source = fs.readFileSync(path.join(PROJECT_ROOT, relativePath), "utf8");
     assert.match(
       source,

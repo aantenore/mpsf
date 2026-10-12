@@ -199,8 +199,8 @@ Each part has one job:
 
 A Codex plugin installation does not create a global `mpsf` command (the
 `agentic-sdlc` bin is kept as an alias). In Claude Code, `/mpsf:<name>` slash
-commands (see `commands/`) run the same CLI and the plugin root is
-`${CLAUDE_PLUGIN_ROOT}`; see [Claude Code Installation](claude-code-install.md).
+commands (see `commands/`) run the same CLI through `${CLAUDE_PLUGIN_ROOT}`; from a shell
+it is `~/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs`; see [Claude Code Installation](hosts/claude-code.md).
 The command name used in the examples below is concise notation for the CLI
 entry point. On Codex, run the installer-managed staging copy directly:
 
@@ -636,7 +636,7 @@ mpsf budget status --proposal ASSESS-001
 Capture the baseline after checkpoint 2 approval and before `apply`. The Codex
 host supplies `CODEX_THREAD_ID`; manual recovery may pass `--thread-id`.
 Collection reads no prompt bodies, page, web API, or authenticated service. See
-[Native Codex Session Metering](codex-session-metering.md) and
+[Native Codex Session Metering](hosts/codex-session-metering.md) and
 [Limits and Metering](limits-and-metering.md).
 
 On Claude Code there is no Codex session to read, so the native meter does not start (`budget meter start` says so and lists the options). Either enable the `codeburn` adapter with CodeBurn's Claude Code log provider (`budget_policy.metering_adapters.codeburn.enabled` and `.provider`, then `--adapter codeburn`), or record usage by hand with `mpsf budget usage record --proposal <id> --input-tokens <n> --output-tokens <n>`. Both are estimated, like the Codex meter: they drive soft limits and warnings, not hard limits. The budget model itself is the same on both hosts.

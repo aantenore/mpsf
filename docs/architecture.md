@@ -406,7 +406,7 @@ flowchart LR
 
 ### Host hook guard
 
-In a repository with `.sdlc/project.json` (in the working tree, the index or the committed base branch), the PreToolUse hook blocks `gh pr merge`, a `gh api` PUT on a pull request's `/merge` endpoint, and `git push` to `main` or `master` when they run outside the governed delivery chain (a local `git merge` is not blocked by this rule). Agent edits to `host_policy.guard` are denied. A person can lift the block with `host_policy.guard.protect_base_branch: false`, which must be committed to the base branch. It counts only when read from the remote base branch at a URL that a person recorded with `mpsf guard trust-remote`. That URL lives in a user-level file under `~/.config/agentic-sdlc/`, and the command is refused inside an agent session. See [Base-branch guard](claude-code-install.md#base-branch-guard).
+In a repository with `.sdlc/project.json` (in the working tree, the index or the committed base branch), the PreToolUse hook blocks `gh pr merge`, a `gh api` PUT on a pull request's `/merge` endpoint, and `git push` to `main` or `master` when they run outside the governed delivery chain (a local `git merge` is not blocked by this rule). Agent edits to `host_policy.guard` are denied. A person can lift the block with `host_policy.guard.protect_base_branch: false`, which must be committed to the base branch. It counts only when read from the remote base branch at a URL that a person recorded with `mpsf guard trust-remote`. That URL lives in a user-level file under `~/.config/agentic-sdlc/`, and the command is refused inside an agent session. See [Base-branch guard](hosts/claude-code.md#base-branch-guard).
 
 ## Capability Discovery Layer
 

@@ -5,19 +5,44 @@ This page is the documentation map. Start with the goal that matches what you wa
 ## Start here
 
 - [Getting started](getting-started.md) — try it in five minutes, choose a natural-language starter, understand what you will approve, and distinguish a new PR, an existing PR, and a local-only result.
-- [Project overview](../README.md) — what the plugin does, installation, the normal two-checkpoint experience, and maintainer commands.
-- [How it works](how-it-works.md) — the advanced lifecycle from project context and requirement agreement through per-delivery autonomy, execution, verification, and release evidence.
+- [Project overview](../README.md) — what the plugin does, the normal two-checkpoint experience, and maintainer commands.
+
+## Your host
+
+The plugin runs in Claude Code and in Codex with the same skills, CLI and records. Only installation and a few host details differ.
+
+- [Hosts](hosts/README.md) — what is shared and what differs, in one table.
+- [Claude Code](hosts/claude-code.md) — marketplace install, slash commands, hooks, update, troubleshooting.
+- [Codex](hosts/codex.md) — transactional installer, build verification, update, uninstall, doctor.
+- [Windows](windows.md) — what runs on Windows and the local-release sandbox, on both hosts.
+
+## How it works and what you control
+
+- [How it works](how-it-works.md) — the lifecycle from project context and requirement agreement through per-delivery autonomy, execution, verification, and release evidence.
 - [Limits and metering](limits-and-metering.md) — how requirement ceilings and explicit pull-request or local-release choices constrain actions, files, capabilities, time, steps, tokens, calls, cost, and custom metrics.
-- [Change Observatory](change-observatory.md) — open and interpret the bundled visual request/change/decision lineage.
-- [Token efficiency](token-efficiency.md) — context packs, short command output, compact JSON and shell-output filtering, without changing canonical evidence.
-- [Configuration safety](configuration-safety.md) — keep project policy stable across plugin updates and apply only a reviewed migration plan.
-- [Self-service CLI](self-service-cli.md) — get focused help, one next action, safe presentation presets, shell completion, and deterministic JSON without learning internal record names.
-- [Claude Code installation](claude-code-install.md) — install, verify, and use the plugin from Claude Code, and see which Codex-only steps do not apply.
+- [Assessment interactions](agent-interactions.md) — what the agent asks during an assessment and what you answer.
 - [Configurable workflows](configurable-workflows.md) — use governed project, change-request, assessment, or generic processes without changing active history or delivery authority.
+- [Configuration safety](configuration-safety.md) — keep project policy stable across plugin updates and apply only a reviewed migration plan.
+- [Token efficiency](token-efficiency.md) — context packs, short command output, compact JSON and shell-output filtering, without changing canonical evidence.
+- [Change Observatory](change-observatory.md) — open and interpret the bundled visual request/change/decision lineage.
+
+## Several computers
+
 - [Messages between computers](messaging.md) — optional short notes between computers (signed messages on the project's git remote by default, a GitHub issue, a folder, or none), how to work without them, and what never to send.
-- [Adapters and roles](adapters-and-roles.md) — replace the messaging channel or the record store, understand assurance levels, and name a coordinator.
-- [Changelog](../CHANGELOG.md) — what changed in each release.
+- [Adapters and roles](adapters-and-roles.md) — replace the messaging channel or the record store, keep operational records on the `sdlc-state` branch, understand assurance levels, and the coordinator role.
+
+## Reference
+
+- [Self-service CLI](self-service-cli.md) — focused help, one next action, safe presentation presets, shell completion, exit codes and deterministic JSON.
+- [Command reference](../skills/agentic-sdlc/references/commands.md) — every CLI command.
+- [Architecture](architecture.md) — components, canonical records, validation, and the trust model.
+- [Knowledge-base structure](kb-structure.md) — which `.sdlc/` files are canonical, derived, append-only, or releasable.
+- [CodeBurn adapter](codeburn-metering.md) — opt-in metering from local session logs, the option for Claude Code.
+- [Native Codex session meter](hosts/codex-session-metering.md) — Codex only.
+- [Product assessment](product-assessment.md) — product intent, strengths, gaps, and improvement direction.
 - [Examples](examples/README.md) — copy-paste material that is tested but not active here, starting with a GitHub Action that proposes a work brief from a labelled issue.
+- [Design notes](plans/) — design documents, not user guides.
+- [Changelog](../CHANGELOG.md) — what changed in each release.
 
 ## Find a page by goal
 
@@ -37,8 +62,8 @@ This page is the documentation map. Start with the goal that matches what you wa
 | Run or explain an assessment | [Assessment interactions](agent-interactions.md) | What the agent asks, what the user must answer, and concrete examples |
 | Choose autonomy for a requirement, pull request, or local release | [Limits and metering](limits-and-metering.md) | Requirement ceiling, per-delivery selection, local rollback, exception boundaries, and resource limits |
 | Revoke a delegated authorization | [Limits and metering — Check and revoke a delegated authorization](limits-and-metering.md#check-and-revoke-a-delegated-authorization) | When to revoke, what already-issued usage receipts keep, what revocation does not undo, and how to verify with `authorization status` |
-| Measure the exact local Codex task | [Native Codex session meter](codex-session-metering.md) | Authentication-free local counters, task binding, deltas, and limit semantics |
-| Keep a legacy CodeBurn project working | [CodeBurn adapter reference](codeburn-metering.md) | Disabled-by-default compatibility, snapshot/delta contracts, and library APIs |
+| Measure the exact local Codex task | [Native Codex session meter](hosts/codex-session-metering.md) | Authentication-free local counters, task binding, deltas, and limit semantics (Codex only) |
+| Measure tokens under Claude Code, or keep a CodeBurn project working | [CodeBurn adapter reference](codeburn-metering.md) | Disabled-by-default adapter, snapshot/delta contracts, and library APIs |
 | Reduce command and response tokens | [Token efficiency](token-efficiency.md) | Context packs, short output, agent JSON, hook budgets, RTK, Caveman, and measured net usage |
 | Work without a messaging channel, or keep records outside git | [Adapters and roles](adapters-and-roles.md) | Providers, record stores, assurance levels, config examples |
 | Name a coordinator for several computers | [Adapters and roles — Coordinator role](adapters-and-roles.md#coordinator-role) | Duties, lease, fallback, and what is enforced today |
@@ -50,8 +75,9 @@ This page is the documentation map. Start with the goal that matches what you wa
 | Check readiness of an assessment, breakdown, or capability profile | [Self-service CLI — Check phase readiness](self-service-cli.md#check-phase-readiness) | `assessment status`, `breakdown status`, `breakdown policy show`/`set`, and `capability profile status` |
 | See which skills, plugins, and MCP servers are already installed, and let the plugin suggest the relevant ones | [Self-service CLI — See what tools are already installed](self-service-cli.md#see-what-tools-are-already-installed) | `capability inventory`, `capability recommend --from-inventory`, and the suggestion at `task start` and in `status` |
 | Understand `.sdlc/` storage | [Knowledge-base structure](kb-structure.md) | Which files are canonical, derived, append-only, or releasable |
-| Install, update, or repair the plugin on Codex | [Portable install](portable-install.md) | Cross-platform installation, local marketplace setup, and troubleshooting |
-| Install, update, or repair the plugin on Claude Code | [Claude Code installation](claude-code-install.md) | Marketplace install, slash commands, path resolution, and Codex-only steps that do not apply |
+| Install, update, or repair the plugin on Claude Code | [Claude Code installation](hosts/claude-code.md) | Marketplace install, slash commands, path resolution, and Codex-only steps that do not apply |
+| Install, update, or repair the plugin on Codex | [Codex](hosts/codex.md) | Transactional installer, local marketplace setup, and troubleshooting |
+| See what differs between Claude Code and Codex | [Hosts](hosts/README.md) | Install, update, doctor, hooks, metering and settings per host |
 | Understand the product assessment | [Product assessment](product-assessment.md) | Product intent, strengths, gaps, and improvement direction |
 
 ## Recommended reading paths
@@ -75,9 +101,8 @@ This page is the documentation map. Start with the goal that matches what you wa
 2. [Architecture](architecture.md)
 3. [Knowledge-base structure](kb-structure.md)
 4. [Configurable workflows](configurable-workflows.md)
-5. [Native Codex session meter](codex-session-metering.md)
-6. [CodeBurn adapter reference](codeburn-metering.md), for legacy configurations and for metering under Claude Code
-7. [Claude Code installation](claude-code-install.md#what-does-not-apply-on-claude-code), what differs on Claude Code
+5. [Hosts](hosts/README.md), what differs between Claude Code and Codex
+6. [CodeBurn adapter reference](codeburn-metering.md) (Claude Code) or [Native Codex session meter](hosts/codex-session-metering.md) (Codex)
 
 ### Maintainer changing the plugin
 
@@ -87,7 +112,7 @@ This page is the documentation map. Start with the goal that matches what you wa
 4. [Configurable workflows](configurable-workflows.md)
 5. [Token efficiency](token-efficiency.md)
 6. [Knowledge-base structure](kb-structure.md)
-7. [Portable install](portable-install.md)
+7. [Hosts](hosts/README.md), [Claude Code](hosts/claude-code.md) and [Codex](hosts/codex.md)
 8. [Design notes](plans/), meaning design documents rather than user guides: [context module](plans/context-module.md), [pluggable adapters](plans/pluggable-adapters.md), [Windows local release](plans/windows-local-release.md), [skill context diet](plans/skill-context-diet.md), [engine onboarding](plans/engine-onboarding.md)
 
 ## The core idea in one diagram

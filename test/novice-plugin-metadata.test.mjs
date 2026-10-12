@@ -153,7 +153,7 @@ test("local novice guidance verifies rollback before release and requires a term
 });
 
 test("installer guides bind candidate registration to the exact returned target", () => {
-  for (const relativePath of ["README.md", "docs/portable-install.md", "docs/self-service-cli.md"]) {
+  for (const relativePath of ["docs/hosts/codex.md"]) {
     const document = read(relativePath);
     assert.match(document, /candidate_registration\.command\.argv/u, relativePath);
     assert.match(document, /candidate_registration\.verification\.argv/u, relativePath);
@@ -251,7 +251,7 @@ test("the Claude Code packaging stays version-locked to the package and exposes 
 });
 
 test("the Claude Code installation guide documents the marketplace flow and the Codex-only exclusions", () => {
-  const guide = read("docs/claude-code-install.md");
+  const guide = read("docs/hosts/claude-code.md");
   const docsIndex = read("docs/README.md");
   const readme = read("README.md");
 
@@ -260,7 +260,7 @@ test("the Claude Code installation guide documents the marketplace flow and the 
   assert.match(guide, /\$\{CLAUDE_PLUGIN_ROOT\}/u);
   assert.match(guide, /install-personal-marketplace-v2\.py/u);
   assert.match(guide, /does not apply/iu);
-  assert.match(docsIndex, /\[Claude Code installation\]\(claude-code-install\.md\)/u);
+  assert.match(docsIndex, /\[Claude Code installation\]\(hosts\/claude-code\.md\)/u);
 
   // The guide says skill bodies locate the plugin root themselves; every skill using <plugin-root> must define it.
   for (const skillName of fs.readdirSync(path.join(repoRoot, "skills")).sort()) {
@@ -270,7 +270,7 @@ test("the Claude Code installation guide documents the marketplace flow and the 
     if (!skill.includes("<plugin-root>")) continue;
     assert.match(skill, /(?:plugin root|<plugin-root>)[^.]*\bexactly two directories above/iu, `${relativePath} does not define <plugin-root>`);
   }
-  assert.match(readme, /\[Claude Code Installation\]\(docs\/claude-code-install\.md\)/u);
+  assert.match(readme, /\[Claude Code Installation\]\(docs\/hosts\/claude-code\.md\)/u);
 });
 
 test("delivery guidance agrees the delivery shape, write scope, and local commit ownership up front", () => {

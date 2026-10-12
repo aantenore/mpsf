@@ -48,66 +48,6 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - **0.159.23** — command reference covers roles, coordinator, known-error, knowledge and context budget; Observatory labels every request route.
 - **0.159.22** — unused exported helpers removed; no behavior change.
 - **0.159.21** — a copied signed GitHub comment reads as untrusted; signed comments count only from owners, members and collaborators.
-- **0.159.20** — release package check passes again: manifest sync is `npm run sync-version` instead of an npm `version` hook.
-- **0.159.19** — gates, claims and story writes verify every upstream receipt; fast views label unverified receipts as not re-checked.
-- **0.159.18** — the test suite is slimmer: redundant scenarios are merged, with the same behaviors still asserted.
-- **0.159.17** — the guard closes session-marker, alias, variable and API bypasses of the merge and push rules.
-- **0.159.16** — messages injected into the agent show their trust; untrusted requests and version announcements are ignored.
-- **0.159.15** — an agent can no longer confirm edits to gates, trusted keys or host policy with `config migrate --apply`.
-- **0.159.14** — how-it-works examples name the current version.
-- **0.159.13** — the Stop hook reaps only with a machine-local opt-in; the shared config can only narrow it.
-- **0.159.12** — skill and install docs aligned with the code: `story cancel`, governed story-branch push, `git` messaging provider, coordinator duties.
-- **0.159.11** — known-error apply stays inside the project and needs a real person's acceptance.
-- **0.159.10** — the guard protects delivery action receipts, story claims and the whole record tree.
-- **0.159.9** — messages signed by another key can no longer read as trusted through the signature cache.
-- **0.159.8** — documentation and CLI help aligned with the code.
-- **0.159.7** — tests only: sealed-receipt checks ask for the full re-verification.
-- **0.159.6** — version bumps update every plugin manifest, the `agentic-sdlc` bridge included.
-- **0.159.5** — `npm run test:fast` runs a quick local subset of the tests; the suite no longer inherits `NODE_USE_SYSTEM_CA`.
-- **0.159.4** — clones of one project on one computer share its presence; roles stay with the clone that holds them.
-- **0.159.3** — stand-in for role holders on old plugins; waiting channel messages tick sooner.
-- **0.159.2** — main-green reads the newest commit that ran CI; roles tick detached from the hook; duty outcomes in roles status; fewer default reserved actions.
-- **0.159.1** — `--json` error output stays parseable (no known-error hint appended); bridge entry version-locked again.
-- **0.159.0** — traces, workflow instances and final gate receipts on the `sdlc-state` branch too (re-run `state migrate`): histories both computers extended are rebased, never overwritten; dependency checks, closing records, the fork warning and story sync read them from there.
-- **0.158.3** — CLI messages and examples say `mpsf <command>`; `agentic-sdlc` stays an alias.
-- **0.158.0** — `coordinator merge` also on GitLab (merge requests) and Gitea/Forgejo: forge picked from the remote, token from the environment or the system keychain.
-- **0.157.7** — base-drift and secret-scan coverage checks read Git a fixed number of times instead of several times per file.
-- **0.157.6** — push budget per computer: channel messages, presence and role leases leave in one push at most every 2 minutes, with backoff after failures.
-- **0.157.5** — story commit checks read Git once per range instead of several times per commit, so gates and status are faster on long story branches.
-- **0.157.4** — claims renewed by the agent's work in their worktree; presence fetched before judging a claim abandoned.
-- **0.157.3** — repository renamed to `aantenore/mpsf`; old URLs redirect, marketplace `aantenore` unchanged.
-- **0.157.2** — skills brought up to date: several computers (roles, presence, the `sdlc-state` branch, plugin versions without update requests, newer record formats) and the capability catalog.
-- **0.157.1** — role duties one at a time on the base worktree; subfolder projects; ticks robust to clock changes.
-- **0.157.0** — capability catalog: an optional `.sdlc/capability-discovery/catalog.json` allowlist limits the installed-tool inventory, recommendations and suggestions to the skills, commands, plugins and MCP servers the project declares.
-- **0.156.1** — coordinator duties for claims and waits: `coordinator free-claims` (with the handoff pack of each freed story), `settle-waits` and `handoff`, each idempotent with `--dry-run`, run only where the coordinator role is held.
-- **0.156.0** — records name their format in `schema_version`; records without it read as format 1, and records from a newer plugin raise a warning instead of an error.
-- **0.155.0** — renamed to **mpsf** (My Personal Software Factory): plugin `mpsf@aantenore`, `/mpsf:...` commands; the old `agentic-sdlc` entry is a bridge that installs mpsf on the next session. Records, refs and config unchanged.
-- **0.154.0** — operational records off the base branch: `state migrate` moves action receipts, executions and gate reports (not the final receipts) to an orphan `sdlc-state` branch of the same remote; the hooks sync them in the background (throttled, fast-forward only, `[skip ci]`); the Change Observatory shows them; older plugins are asked to update.
-- **0.153.7** — the repository no longer carries its own `.sdlc` folder; nothing changes for projects using the plugin.
-- **0.153.6** — computers no longer ask each other to update the plugin: each one warns only its own person, with the update command; requests from older plugins are shown as information and nothing reacts to them.
-- **0.153.5** — main-green and knowledge distill run by themselves on the role holder, publishing only records to the base branch.
-- **0.153.3** — record duties (main-green, knowledge distill) run on the base worktree and publish to the base branch, not in the checkout.
-- **0.153.2** — `knowledge distill` reads the records of the freshly fetched base branch, not the working tree.
-- **0.153.1** — role duties start by themselves on the role holder (detached; messaging, merge and main-green duties stay manual); a pinned coordinator's reserved actions are refused on the other computers.
-- **0.153.0** — knowledge role: traps, fixes and channel answers distilled into `.sdlc/knowledge` and shown in the context pack of the stories they touch; the pack is printed at story claim and task start; per-worker context budget (`context budget`), usage in the Change Observatory.
-- **0.152.1** — coordinator tasks read the stories from the remote base branch (fresh state reader), not the working tree.
-- **0.152.0** — coordinator tasks as commands that run only on the coordinator: `coordinator digest` (replaces the heartbeat), `coordinator check-records`, `coordinator main-green` (P1 fix story, never a revert), `coordinator merge` (serial merges through a forge adapter, GitHub first); welcomes only from the coordinator.
-- **0.151.3** — claims renewed by work (two-hour time to live for new projects); presence and roles handed back when a session ends; computers and roles in the Change Observatory.
-- **0.151.2** — English output: hook texts, channel `[auto]` messages, waits and `roles status` in English (`--locale it` keeps Italian for `wait` and `roles status`); the update request keeps its `[auto] aggiorna il plugin` prefix so older plugins still recognize it. Logo in the README; repository links in `package.json`.
-- **0.151.1** — fresh state reader: the base branch is read as the remote has it (bounded fetch, `git show`/`ls-tree`, never the working tree); the context pack says how many commits the checkout is behind it.
-- **0.150.0** — messages between computers on git: one signed ref per computer in the project's remote, any git host, default for new channels (projects with a GitHub channel issue keep it); signed messages and computer keys registered in `.sdlc/machines`, untrusted ones marked in `message read` and the Change Observatory.
-- **0.149.3** — first step of the rename to **mpsf** (My Personal Software Factory): `mpsf` command next to `agentic-sdlc`, `MPSF_*` variables as aliases of `AGENTIC_SDLC_*`.
-- **0.149.2** — Codex `SessionEnd` hook within its 3-second limit: no more timeout notice on every run.
-- **0.149.1** — computers and roles without messages: presence refs on the remote, coordinator and knowledge roles held by one alive computer each through create-only leases, handed over at renewal; `roles status`.
-- **0.149.0** — known error database: when a gate, a test record or a command fails, the CLI shows the recorded fix of the same failure (deterministic signature, same on every computer); `known-error add --from-last-failure` records a new fix, `known-error outcome` reports whether it worked, a safe fix accepted by a person runs with `known-error apply`; Change Observatory panel "Known errors".
-- **0.148.5** — stable computer id: kept in `~/.config/agentic-sdlc/machine.json`, same value as before, unchanged when the host name changes; an Ed25519 key per computer for signed coordination.
-- **0.148.4** — quieter channel: a step only a person takes goes to the person of the session that waits, never to the channel; update requests only to computers seen in the last 2 hours; phase changes, commits, pushes, pull requests and test results stay in the records and the Change Observatory; alerts are deduplicated by state, not by wording.
-- **0.148.3** — story priorities: one order P1 > P2 > P3 > none, then the oldest, in `next`, keep-going, offers, `status` and the Observatory; a fix from an incident inherits the priority from its severity; a broken main becomes a P1 fix story.
-- **0.148.2** — the channel stops repeating `[auto] stato`: status goes out only when the set of stories or their phase changes, plus one notice per story and phase stalled for 4 h (`AGENTIC_SDLC_MESSAGING_STALL_HOURS`); a claim released on another computer is no longer reported as active from an outdated checkout or worktree.
-- **0.148.1** — fixes: `task start` with an invalid delivery profile returns a blocked decision instead of aborting; an invalid `--autonomy-ceiling` is a user error listing the allowed values; the Codex installer updates a plugin installed under the old package name; docs: hooks work in Codex through `CLAUDE_PLUGIN_ROOT`.
-- **0.148.0** — `context pack` and `context get` give an agent the small slice of a story it needs; commands print a short form inside agent sessions (`--verbose` for the full text); `--json-profile agent|full`; hook output is deduplicated and budgeted.
-- **0.147.0** — messaging is optional (`github`, `local` or `none`); records go through a store (`git-sdlc` or `local-fs`); `host_policy.adapters` and a `coordinator` role in `host_policy.roles`.
-- **0.146.13 to 0.146.17** — more delegable approvals (`delivery.approve`, `baseline.approve`, `story.supersede`), a stricter base-branch guard with a person-only `guard trust-remote`, retries when publishing records, no automatic "need help" for finished stories, a much shorter skill front door, and an early, clear stop for local releases on hosts without a sandbox (Windows).
 
 ## Documentation Map
 
@@ -117,10 +57,9 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - [Autonomy, Limits, and Metering](docs/limits-and-metering.md) — concrete time, step, token, cost, reserve, warning, and stop-policy examples.
 - [Configuration Safety](docs/configuration-safety.md) — why project behavior is pinned, how to preview an upgrade, and how to recover from drift without hidden policy changes.
 - [Token Efficiency](docs/token-efficiency.md) — context packs, short command output, compact derived JSON, the RTK command gateway, lifecycle observations, and budget-safe savings telemetry.
-- [Native Codex Session Metering](docs/codex-session-metering.md) — authentication-free local token/call observations, exact task binding, and limit semantics.
 - [Assessment Interactions](docs/agent-interactions.md) — the precise contract used for every user question.
-- [Claude Code Installation](docs/claude-code-install.md) — install from the bundled marketplace, use the slash commands, and see which Codex-only steps do not apply.
-- [Portable Installation](docs/portable-install.md) — installation, update, diagnosis, and recovery on supported platforms.
+- [Hosts](docs/hosts/README.md) — what Claude Code and Codex share and what differs: [Claude Code Installation](docs/hosts/claude-code.md), [Codex](docs/hosts/codex.md) and the [native Codex session meter](docs/hosts/codex-session-metering.md).
+- [Windows](docs/windows.md) — what runs on Windows and the local-release sandbox.
 - [Self-service CLI](docs/self-service-cli.md) — focused help, one-step status, safe presentation presets, shell completion, and machine output.
 - [Change Observatory](docs/change-observatory.md) — launch the local visual lineage app and understand its evidence and security model.
 - [Configurable Workflows](docs/configurable-workflows.md) — select a governed process, customize labels safely, and keep running history pinned and append-only.
@@ -142,64 +81,19 @@ Earlier releases in those lines contain an upstream native shutdown livelock.
 /mpsf:doctor
 ```
 
-Then use a starter command — `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local`, `/mpsf:observe` — or just describe the outcome in plain language. The hooks are enabled with the plugin, and the Codex-only steps below (transactional installer, token-efficiency autoconfiguration) are not needed. Full guide: [Claude Code Installation](docs/claude-code-install.md).
+Then use a starter command — `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local`, `/mpsf:observe` — or just describe the outcome in plain language. The hooks are enabled with the plugin, and the Codex-only steps (transactional installer, token-efficiency autoconfiguration) are not needed. Full guide: [Claude Code Installation](docs/hosts/claude-code.md).
 
 ### Codex
 
-Install from the `aantenore` source repository. Keep this checkout separate from the generated personal-plugin directory:
+Codex installs from a source checkout through a transactional installer (check, plan, apply, register, validate, confirm, with a byte-exact restore):
 
 ```bash
 git clone https://github.com/aantenore/mpsf.git
 cd mpsf
 python3 scripts/install-personal-marketplace-v2.py check
-python3 scripts/install-personal-marketplace-v2.py plan --json
-python3 scripts/install-personal-marketplace-v2.py apply --plan-hash <plan_hash-from-plan> --json
-# Required: run candidate_registration.command.argv with its exact environment,
-# then candidate_registration.verification.argv with its exact environment.
-# Default target example only; do not use it for a custom returned target:
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin add agentic-sdlc-codex-plugin@personal --json
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin list --json
-python3 scripts/install-personal-marketplace-v2.py validate --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/install-personal-marketplace-v2.py confirm --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/autoconfigure-token-efficiency.py apply --json
 ```
 
-Installer V2 is the canonical local installation path. `apply` retains the
-byte-exact previous plugin and marketplace state and binds the exact Codex
-executable, state directory, installed entry, and cache identity seen before
-the update. If Codex uses non-default locations, pass `--codex-executable`
-and/or `--codex-home` to `apply`. Before validation, execute
-`technical_details.candidate_registration.command.argv` with exactly its
-`environment`, then execute `verification.argv` with exactly its
-`environment`. The two `env ... codex` lines above illustrate only the default
-target; never substitute them when the returned executable, `HOME`, or
-`CODEX_HOME` differs. The returned `confirm` and `restore` commands reuse that
-target and reject a different one. After registration and validation, use
-`confirm` to keep the update or the returned `restore` command to roll it back.
-Confirmation verifies the candidate Codex list and cache before deleting
-recovery data.
-Restore is not reported as complete until the prior staging copy has also been
-returned to the exact installed-or-absent Codex state captured by `apply`
-through the official Codex command, and its list, cache fingerprint, and
-provenance match. If that Codex step fails, the receipt remains open and
-the JSON result returns `staging_restored`, `codex_reconciled`,
-`partial_failure`, and an exact retry command. Codex is resolved from `PATH`
-during `apply`, and retries reuse that receipt-bound executable and state
-directory. Use `--codex-executable` or `--codex-home` on `apply` when those
-locations are intentionally non-default.
-
-After confirmation, run the returned
-`post_confirm_autoconfigure_command`. The same command is shown above for a
-source checkout. It verifies the bundled Caveman skill and native Codex-session
-meter, then byte-verifies and configures RTK when RTK 0.43+ is already
-available. It never installs or configures CodeBurn, never authenticates, and
-never accesses the network. If RTK is absent, the plugin remains operational
-through its native command fallback.
-
-Autoconfiguration is intentionally post-confirm because RTK's Codex guidance is
-user-global and therefore outside the reversible plugin-copy transaction. See
-[Portable Installation](docs/portable-install.md) for the user-global scope,
-runtime trust boundary, and update behavior.
+Then follow [Codex install](docs/hosts/codex.md#install) for the remaining steps. What differs between the two hosts is in [Hosts](docs/hosts/README.md).
 
 ### Start a new task
 
@@ -325,7 +219,7 @@ If you are new to the plugin, continue with [Getting Started](docs/getting-start
 The CLI explains the outcome, practical impact, any decision needed, what remains protected, and one next step before showing optional technical details. Focused help and completion work even outside an initialized project:
 
 ```bash
-# Codex install path; on Claude Code use "${CLAUDE_PLUGIN_ROOT}/bin/mpsf.mjs"
+# Codex install path; on Claude Code: ~/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs
 PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
 node "$PLUGIN_CLI" help
 node "$PLUGIN_CLI" help autonomy delivery approve --locale it
@@ -614,16 +508,19 @@ Records can also live in plain files instead of git (`"records": { "provider": "
 
 With several computers, one can be named coordinator: it merges pull requests one at a time, publishes records, frees abandoned claims, settles expired waits and keeps the base branch green (stories are not assigned: every computer claims its own), while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`, and optionally `reserved_actions`). With that section, a reserved action (by default merging a pull request and refreshing the baseline) is refused on a computer that does not hold the coordinator lease; without it, roles are assigned automatically among the computers alive on the remote and nothing is refused. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
 
-## Native Codex Metering Versus Exact Metering (and Claude Code)
+## Metering
 
-The bundled `codex-session` adapter reads only the exact task's local
-`token_count` events. It is direct and authentication-free, but not
-provider-signed billing evidence and cannot by itself guarantee a hard stop.
+Every limit is measured from usage receipts, whatever the host. Where the numbers come from depends on the host:
+
+- **Codex:** the bundled `codex-session` adapter reads only the exact task's local `token_count` events. It is direct and authentication-free.
+- **Claude Code:** there is no native session meter; use the opt-in `codeburn` adapter with CodeBurn's Claude Code log provider, or record usage with `budget usage record`.
+
+None of these is provider-signed billing evidence, so none can by itself guarantee a hard stop:
 
 ```mermaid
 flowchart TD
   A["Choose a token or cost limit"] --> B{"Must it enforce a hard stop?"}
-  B -- "No: warning or forecast" --> C["Local Codex token_count<br/>estimated + advisory_observed"]
+  B -- "No: warning or forecast" --> C["Local session counters<br/>estimated + advisory_observed"]
   C --> D["Store immutable baseline,<br/>incremental deltas, and receipts"]
   B -- "Yes" --> E{"Trusted signed adapter<br/>covers this exact metric?"}
   E -- "Yes" --> F["Exact cumulative receipts<br/>may satisfy the hard gate"]
@@ -632,7 +529,8 @@ flowchart TD
 
 | Source | Best use | Assurance | Can satisfy an exact hard limit? |
 | --- | --- | --- | --- |
-| **Native Codex session meter** | Exact-task token/call visibility and soft-limit warnings; cost unavailable | `estimated` / `advisory_observed` | **No**. A mapped hard metric records the evidence but stops with `metering_violation` |
+| **Native Codex session meter** (Codex) | Exact-task token/call visibility and soft-limit warnings; cost unavailable | `estimated` / `advisory_observed` | **No**. A mapped hard metric records the evidence but stops with `metering_violation` |
+| **CodeBurn adapter or manual records** (any host, the option on Claude Code) | Token, call and cost estimates from local session logs, or values you enter | `estimated` | **No**, same as above |
 | **Trusted runtime/provider adapter** | Financial or operational enforcement | Signed, identity-bound, cumulative exact receipts | **Yes**, only for the explicitly trusted metrics and approved pricing reference |
 
 After proposal approval, capture the exact task baseline **before** `apply`.
@@ -660,8 +558,8 @@ source event into immutable snapshots and monotonic deltas. It stores no prompt
 or response body, executes no shell, and calls no web or authenticated API.
 RTK and Caveman savings affect the next real measured total; the plugin never
 deducts synthetic savings from usage. CodeBurn remains a disabled, opt-in
-legacy adapter for existing projects. Full details are in
-[Native Codex Session Metering](docs/codex-session-metering.md) and
+adapter, the one to use on Claude Code. Full details are in
+[Native Codex Session Metering](docs/hosts/codex-session-metering.md), [CodeBurn](docs/codeburn-metering.md) and
 [Autonomy, Limits, and Metering](docs/limits-and-metering.md).
 
 Deliveries are measured too: `status`, `autonomy delivery status`, and the
@@ -677,7 +575,7 @@ An agent working on one story should not read whole records. `mpsf context pack 
 
 ## Windows
 
-The CLI, hooks, messaging, claims and pull-request delivery run on Windows. A local release runs its smoke test in a per-run AppContainer (no network, no loopback, read-only); where PowerShell is locked down the proposal stops early and lists the options (the CLI inside WSL2, or a pull request). See [Portable installation](docs/portable-install.md#windows).
+The CLI, hooks, messaging, claims and pull-request delivery run on Windows. A local release runs its smoke test in a per-run AppContainer (no network, no loopback, read-only); where PowerShell is locked down the proposal stops early and lists the options (the CLI inside WSL2, or a pull request). See [Portable installation](docs/windows.md).
 
 ## RTK Context Optimization
 
@@ -773,123 +671,26 @@ node bin/mpsf.mjs output status \
 
 The final chat response reports the assessment verdict, major risks, recommendations, artifact path, verification performed, limitations, and open decisions.
 
-## Install (Codex)
+## Install, Update, Uninstall, Diagnose
 
-For Claude Code use the marketplace commands in [Quick Start](#claude-code); see [Claude Code Installation](docs/claude-code-install.md).
+| | Claude Code | Codex |
+|---|---|---|
+| Install | `/plugin marketplace add aantenore/mpsf`, `/plugin install mpsf@aantenore` | transactional installer: [Codex install](docs/hosts/codex.md#install) |
+| Update | `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins` | rerun the installer and `codex plugin add`: [Codex update](docs/hosts/codex.md#update) |
+| Uninstall | `/plugin uninstall mpsf@aantenore` | `codex plugin remove agentic-sdlc-codex-plugin@personal`: [Codex uninstall](docs/hosts/codex.md#uninstall) |
+| Diagnose | `/mpsf:doctor` | `npm run doctor`: [Codex doctor](docs/hosts/codex.md#doctor) |
 
-Use a source checkout that is separate from the generated personal-plugin directory:
-
-```bash
-cd /path/to/mpsf
-python3 scripts/install-personal-marketplace-v2.py check
-python3 scripts/install-personal-marketplace-v2.py plan --json
-python3 scripts/install-personal-marketplace-v2.py apply --plan-hash <plan_hash-from-plan> --json
-# Execute the exact candidate_registration argv/environment returned by apply.
-# Default target example only:
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin add agentic-sdlc-codex-plugin@personal --json
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin list --json
-python3 scripts/install-personal-marketplace-v2.py validate --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/install-personal-marketplace-v2.py confirm --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/autoconfigure-token-efficiency.py apply --json
-```
-
-Installer V2 is canonical. Use its returned `restore` command instead of
-`confirm` if validation or plugin registration fails. After confirmation, the
-token-efficiency autoconfiguration verifies the bundled Caveman/native-meter
-components and configures an existing verified RTK binary. It does not use or
-install CodeBurn.
-
-On systems where Python 3 is exposed as `python` or `py -3`, use that launcher for the same script. Start a new Codex task after installation so the app reloads plugin skills and agent cards.
-
-`check` and `plan` are read-only. `apply` accepts only the exact current plan
-hash, rechecks it under a lock, stages and byte-verifies the package, then
-updates `~/plugins/agentic-sdlc-codex-plugin` and the matching entry in
-`~/.agents/plugins/marketplace.json` while retaining byte-exact recovery data.
-`validate` proves that state is still unchanged; `confirm` removes the retained
-copy only after the official candidate list/cache matches, while `restore`
-puts the prior local bytes back and uses the official Codex add/remove command
-required by the installed-or-absent state captured during `apply`. A failed or
-missing Codex command leaves a retryable partial state instead of claiming a
-completed rollback. The installer refuses unsafe destinations instead of
-traversing or replacing a symlink, Windows junction/reparse point, Git
-checkout, source checkout, unmanaged directory, or linked Codex cache
-ancestor. Running the script without a mode is the same as `plan`; it never
-installs implicitly.
-
-## Update (Codex)
-
-On Claude Code run `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins`.
-
-Update the source checkout, rerun the staging installer, and add the plugin again. The current Codex CLI has no dedicated plugin-update subcommand; re-adding refreshes the installed cache, including when the version is unchanged.
-
-```bash
-cd /path/to/mpsf
-python3 scripts/install-personal-marketplace-v2.py plan --json
-python3 scripts/install-personal-marketplace-v2.py apply --plan-hash <plan_hash-from-plan> --json
-# Execute the exact candidate_registration argv/environment returned by apply.
-# Default target example only:
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin add agentic-sdlc-codex-plugin@personal --json
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin list --json
-python3 scripts/install-personal-marketplace-v2.py validate --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/install-personal-marketplace-v2.py confirm --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/autoconfigure-token-efficiency.py apply --json
-```
-
-The last step is the same post-confirm autoconfiguration used for a fresh
-install. It re-verifies the newly staged Caveman/native-meter files and the
-currently selected RTK executable before refreshing global RTK guidance.
-
-Do not edit the generated tree under `~/plugins` directly. Start a new Codex task after the refresh.
-
-## Uninstall (Codex)
-
-On Claude Code use `/plugin uninstall mpsf@aantenore`.
-
-Remove the installed plugin and cache with the supported Codex command:
-
-```bash
-codex plugin remove agentic-sdlc-codex-plugin@personal
-codex plugin list --json
-```
-
-This intentionally leaves the source checkout, generated staging directory, and personal marketplace entry in place. For permanent local cleanup, remove only `~/plugins/agentic-sdlc-codex-plugin` and only the matching JSON entry from `~/.agents/plugins/marketplace.json`; preserve every unrelated plugin entry. Do not remove the shared `personal` marketplace source just to uninstall this plugin.
-
-Plugin removal also leaves RTK's independent global Codex instructions in
-place. If no other project should use them, remove and verify them explicitly:
-
-```bash
-rtk init -g --codex --uninstall
-rtk init -g --codex --show
-```
-
-## Diagnose An Install
-
-On Claude Code run `/mpsf:doctor`. The `codex ...` lines below apply to Codex only.
-
-Run the built-in doctor from the source checkout. The npm script and direct CLI form execute the same checks; without `--root` it checks the project in the current directory, and `--root` points it at another project's KB and output registry:
+Uninstalling removes the plugin only; every `.sdlc/` record stays in the project repository. From a source checkout, on either host, the doctor runs as:
 
 ```bash
 npm run doctor
 npm run doctor -- --root /path/to/target-project --json
 node bin/mpsf.mjs doctor --root /path/to/target-project --json
-codex plugin list --available --json
-npm run check
-npm pack --dry-run --json
 ```
 
-Doctor checks the Node runtime, version consistency, build identity, the effective configuration, the first assessment prompt, the core and assessment skills, the assessment agent card and preset, the token-efficiency components (RTK adapter and provider, Caveman skill, agent card and provider, Codex session meter, autoconfiguration script), the context-optimization and project-bootstrap schemas, the Change Observatory entry point, launcher, skill, agent card and UI files, and the project records when `.sdlc/` exists. A failed check returns a non-zero exit code.
+Doctor checks the Node runtime, version consistency, build identity, the effective configuration, the skills and agent cards, the token-efficiency components, the Change Observatory files, and the project records when `.sdlc/` exists. A failed check returns a non-zero exit code. Without `--root` it checks the project in the current directory.
 
 Exit codes are categorized so a pipeline can tell a rejected request (`1`) from a bad invocation (`2`), a write refused by the mutation guard (`3`), a broken installation (`4`), an internal failure (`70`), and a message that `message send` kept in the local outbox for later sending (`75`, not an error; do not resend). See [Self-service CLI](docs/self-service-cli.md#read-the-exit-code-in-a-pipeline).
-
-For maintainer validation when the Codex system validators are available:
-
-```bash
-uv run --with pyyaml python /path/to/plugin-creator/scripts/validate_plugin.py .
-uv run --with pyyaml python /path/to/skill-creator/scripts/quick_validate.py skills/agentic-sdlc
-uv run --with pyyaml python /path/to/skill-creator/scripts/quick_validate.py skills/agentic-sdlc-assessment
-```
-
-If the plugin is absent or shows an older version, rerun the installer and `codex plugin add`, confirm the result with `codex plugin list --json`, then open a new Codex task. See [Portable Codex Install](docs/portable-install.md) for the full troubleshooting matrix.
 
 ## Derived Verification
 
@@ -1000,8 +801,8 @@ bin/agentic-sdlc.mjs                          Alias of the `mpsf` bin kept for o
 legacy/agentic-sdlc/                         Bridge entry that installs mpsf and removes itself
 hooks/                                       Host hooks (hooks.json, guard) for both supported hosts
 config/                                      Plugin defaults: feature compatibility, context, waits, release policy
-docs/agent-interactions.md                   Two-checkpoint assessment interaction
-docs/portable-install.md                     Install and recovery guide
+docs/                                        Host-neutral guides (start at docs/README.md)
+docs/hosts/                                  Per-host pages: Claude Code, Codex, Codex session meter
 schemas/                                     Canonical data contracts
 lib/engine/                                  Command implementations and everything with effects
 lib/lifecycle/                               Pure lifecycle rules: validators, normalizers, decisions
@@ -1025,4 +826,4 @@ templates/                                   Reusable artifact templates
 ui/change-observatory/                        Bundled build-free lineage application
 ```
 
-More detail: [Assessment Interactions](docs/agent-interactions.md), [Change Observatory](docs/change-observatory.md), [Claude Code Installation](docs/claude-code-install.md), and [Portable Codex Install](docs/portable-install.md).
+More detail: [Assessment Interactions](docs/agent-interactions.md), [Change Observatory](docs/change-observatory.md), [Claude Code Installation](docs/hosts/claude-code.md), and [Codex](docs/hosts/codex.md).

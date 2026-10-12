@@ -3,11 +3,14 @@
 The plugin pins each initialized project's complete effective configuration. Updating the plugin can add new defaults, but it cannot silently change the rules already governing that project.
 
 A Codex or Claude Code plugin installation does not create a global `mpsf`
-executable (Claude Code: see [Claude Code installation](claude-code-install.md)). Set the installer-managed entry point once before using the
-commands in this guide:
+executable. Set the installed entry point once before using the commands in
+this guide:
 
 ```bash
+# Codex (installer-managed staging copy):
 PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
+# Claude Code (installed plugin cache; see hosts/claude-code.md):
+# PLUGIN_CLI="$HOME/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs"
 node "$PLUGIN_CLI" help config
 ```
 

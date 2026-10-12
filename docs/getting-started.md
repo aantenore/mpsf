@@ -6,7 +6,7 @@ You do not need to create record IDs, write JSON, choose CLI commands, or unders
 
 ## Try It In Five Minutes
 
-Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git. The local-only trial in step 4 also needs the smoke-test sandbox. It is built into macOS; on Linux, install bubblewrap at `/usr/bin/bwrap`. On Windows, run the CLI inside WSL2 (see [Windows](portable-install.md#windows)) or use a pull-request delivery instead.
+Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git. The local-only trial in step 4 also needs the smoke-test sandbox. It is built into macOS; on Linux, install bubblewrap at `/usr/bin/bwrap`. On Windows, run the CLI inside WSL2 (see [Windows](windows.md)) or use a pull-request delivery instead.
 
 **1. Install the plugin.**
 
@@ -19,7 +19,7 @@ In Claude Code:
 ```
 
 In Codex, follow the installer steps in the [README Quick Start](../README.md#codex).
-`doctor` should report a usable runtime; see [Claude Code Installation](claude-code-install.md) or [Portable Codex Install](portable-install.md#doctor) if it does not.
+`doctor` should report a usable runtime; see [Claude Code Installation](hosts/claude-code.md) or [Codex](hosts/codex.md#doctor) if it does not.
 
 **2. Create a disposable project.** Nothing touches a real repository while you
 experiment:
@@ -408,7 +408,7 @@ Common pauses are handled as follows:
 | `.sdlc/config.json` or `.sdlc/project.json` is missing or damaged | Restore the file from version control (for a configuration that held only the defaults, the message names the bundled file to copy back); commands stay blocked so the agreed privacy rules are never replaced by defaults |
 | History is near or above its read limit | Follow [the history size limit](how-it-works.md#history-size-limit); never delete or edit history files |
 
-For installation failure, use the exact `restore` command returned by the installer transaction. Do not manually delete or overwrite an uncertain destination. See [Portable Installation](portable-install.md) for install-specific recovery.
+For an installation failure on Claude Code, check `/plugin` and reinstall with `/plugin uninstall mpsf@aantenore` then `/plugin install mpsf@aantenore` (see [Claude Code troubleshooting](hosts/claude-code.md#troubleshooting)). On Codex, use the exact `restore` command returned by the installer transaction and do not manually delete or overwrite an uncertain destination (see [Codex install](hosts/codex.md)).
 
 ## Starting Over A Project Nobody Has Seen
 

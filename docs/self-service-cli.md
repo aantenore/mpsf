@@ -15,9 +15,9 @@ automation.
 
 A Codex or Claude Code plugin installation does not create a global `mpsf`
 (or `agentic-sdlc`) executable. In the examples below, that name is shorthand
-for the installer-managed entry point (in Claude Code the plugin root is
-`${CLAUDE_PLUGIN_ROOT}`, see [Claude Code installation](claude-code-install.md);
-the slash commands `/mpsf:<name>` wrap the common ones):
+for the installed entry point (on Claude Code it is
+`~/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs`, see [Claude Code installation](hosts/claude-code.md);
+the slash commands `/mpsf:<name>` wrap the common ones). On Codex:
 
 ```bash
 PLUGIN_CLI="$HOME/plugins/agentic-sdlc-codex-plugin/bin/mpsf.mjs"
@@ -26,7 +26,7 @@ node "$PLUGIN_CLI" help
 
 An npm installation may expose the same CLI through its npm bin shim. To test
 the exact installed cache instead, derive the version and cache root as shown in
-[Portable Installation](portable-install.md#verify-the-exact-build-not-only-the-version).
+[Codex install](hosts/codex.md#verify-the-exact-build-not-only-the-version).
 
 ## Find the right command
 
@@ -652,54 +652,12 @@ share the correlation ID or a support bundle instead, and stop the process with
 
 ## Install or update locally
 
-On Claude Code install and update through the marketplace:
-`/plugin marketplace add aantenore/mpsf`, `/plugin install mpsf@aantenore`, and
-later `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`
-followed by `/reload-plugins` (see [Claude Code installation](claude-code-install.md)).
-The rest of this section is the Codex installer, which Claude Code does not use.
+| | Claude Code | Codex |
+|---|---|---|
+| Install | `/plugin marketplace add aantenore/mpsf`, `/plugin install mpsf@aantenore` | transactional installer with plan, apply, validate, confirm and restore ([Codex install](hosts/codex.md#install)) |
+| Update | `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins` | the same installer transaction, then `codex plugin add` ([Codex update](hosts/codex.md#update)) |
 
-On Codex the local installer uses a reviewable transaction:
-
-```bash
-python3 scripts/install-personal-marketplace-v2.py check --locale it
-python3 scripts/install-personal-marketplace-v2.py plan --locale it --json
-python3 scripts/install-personal-marketplace-v2.py apply --locale it --plan-hash <plan_hash-from-plan> --json
-# Required: execute candidate_registration.command.argv with its exact
-# command.environment, then verification.argv with verification.environment.
-# Default target example only; never use it for a custom returned target:
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin add agentic-sdlc-codex-plugin@personal --json
-env HOME="$HOME" CODEX_HOME="$HOME/.codex" codex plugin list --json
-python3 scripts/install-personal-marketplace-v2.py validate --locale it --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/install-personal-marketplace-v2.py confirm --locale it --transaction-id <transaction_id-from-apply> --receipt-hash <receipt_hash-from-apply>
-python3 scripts/autoconfigure-token-efficiency.py apply --json
-```
-
-V2 is the canonical local installer. `check` and `plan` never write. With no
-command, it also creates a plan only. `apply` accepts one exact plan hash,
-recalculates it under a lock, stages and byte-verifies the package, and retains
-the prior plugin plus marketplace bytes. `validate` proves the installed state
-still matches the receipt. Refresh and inspect the official Codex copy before
-`confirm`: confirmation verifies that candidate list/cache before removing
-recovery data. The returned `restore` command instead restores the byte-exact
-previous local and Codex state. Unexpected data stops recovery without being
-overwritten. Use `--home /absolute/path` to inspect or manage another explicit
-destination. The two `env ... codex` lines above are only a default-target
-illustration. When `--home`, `--codex-home`, or `--codex-executable` selects a
-non-default target, do not execute those lines and do not reconstruct a bare
-`codex plugin add` command. Execute exclusively
-`technical_details.candidate_registration.command.argv` with its exact
-`environment`, followed by `candidate_registration.verification.argv` with its
-exact `environment`, before `validate`.
-
-V2 never changes global settings. After it is confirmed, the separate
-token-efficiency command verifies bundled Caveman and native-meter files, then
-configures an existing RTK binary through a private copy whose bytes match the
-verified executable. It does not download/upgrade RTK, configure CodeBurn, use
-the network, or authenticate. This step changes the current user's global Codex
-instructions for every project; it is intentionally outside V2's
-retained-backup boundary.
-See [Portable install](portable-install.md) for supported environments, trust
-boundaries, removal, and recovery.
+The installer's `--locale it` option prints its messages in Italian. Both hosts keep project policy pinned across updates: see [Configuration safety](configuration-safety.md). What else differs between hosts is in [Hosts](hosts/README.md).
 
 ## Closing a merged story in one step
 

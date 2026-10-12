@@ -2193,7 +2193,7 @@ The URL is stored per repository in a user-level file, `~/.config/agentic-sdlc/t
 
 The guard applies whenever `.sdlc/project.json` exists in the working tree, the index, or the committed base branch. It blocks base-branch merges and pushes that lack an authorization.
 
-To turn the rule off for a repository, commit `host_policy.guard.protect_base_branch: false` in `.sdlc/config.json` to the base branch: it takes effect only when it is on the base branch as the trusted remote reports it. Agent edits to `host_policy.guard` are denied. Full details: `docs/claude-code-install.md#base-branch-guard`.
+To turn the rule off for a repository, commit `host_policy.guard.protect_base_branch: false` in `.sdlc/config.json` to the base branch: it takes effect only when it is on the base branch as the trusted remote reports it. Agent edits to `host_policy.guard` are denied. Full details: `docs/hosts/claude-code.md#base-branch-guard`.
 
 ## Roles, coordinator, known errors, and shared knowledge
 
