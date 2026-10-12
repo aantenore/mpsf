@@ -137,8 +137,10 @@ test("the hook warns once at Stop, hands the warning to the next prompt, and rea
   const dir = project();
   spawnSync("git", ["init", "-q", dir]);
   // Machine-local settings: the shared .sdlc/config.json may not lower the limit or add patterns at Stop.
+  // The default patterns stay off: with a sub-second limit they would also select other test processes
+  // running in the plugin folder (for example a parallel test file) and stop them.
   fs.mkdirSync(path.join(dir, ".git", "agentic-sdlc"), { recursive: true });
-  fs.writeFileSync(path.join(dir, ".git", "agentic-sdlc", LOCAL_POLICY_FILE), JSON.stringify({ older_than_minutes: 0.01, include_patterns: [unique] }));
+  fs.writeFileSync(path.join(dir, ".git", "agentic-sdlc", LOCAL_POLICY_FILE), JSON.stringify({ older_than_minutes: 0.01, use_default_patterns: false, include_patterns: [unique] }));
   const marker = path.join(dir, unique);
   const hook = (event, env = {}) => spawnSync(process.execPath, [HOOK, event], {
     input: JSON.stringify({ cwd: dir }),

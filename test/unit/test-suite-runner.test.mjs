@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   DEFAULT_STRIPPED_ENV,
@@ -36,6 +36,8 @@ import {
   projectRelativePath,
   selectShardFiles,
   selectTierPlan,
+  smokeEventFile,
+  testEventFile,
 } from "../../scripts/run-test-suite.mjs";
 import { NODE_ENGINE_RANGE } from "../../lib/runtime-support.mjs";
 
@@ -673,6 +675,45 @@ test("a selected smoke test that does not run fails the tier run and is named", 
   assert.match(stderr, /Test tier fast selected 1 test\(s\) that did not run; update test\/test-tiers\.json:/u);
   assert.ok(stderr.includes(`  - test/d.e2e.mjs: ${ODD_NAME}`), stderr);
   assert.equal(stderr.includes("d one"), false);
+});
+
+test("smoke tests reported with a file URL or without a file still count as run", async () => {
+  let stderr = "";
+  const code = await main({
+    env: { [TEST_TIER_ENV]: "fast" },
+    stdout: { write() { return true; } },
+    stderr: { write(chunk) { stderr += chunk; return true; } },
+    findTestFiles: () => TIER_FILES,
+    loadTiers: () => parseTestTiers(tierManifest({ fast: FAST_TIER })),
+    runTests(options) {
+      if (options.testNamePatterns === undefined) {
+        return scriptedStream(options.files.map((file) => ({ type: "test:pass", data: { file, name: "whole", nesting: 0 } })));
+      }
+      // Node releases before 22 name an ES module test file by its file: URL.
+      return scriptedStream([
+        { type: "test:pass", data: { file: pathToFileURL(tierPath("test/d.e2e.mjs")).href, name: "d one", nesting: 0 } },
+        { type: "test:pass", data: { file: pathToFileURL(tierPath("test/d.e2e.mjs")).href, name: ODD_NAME, nesting: 0 } },
+        { type: "test:pass", data: { name: "heavy cheap", nesting: 0 } },
+      ]);
+    },
+    reporter: drainReporter,
+  });
+
+  assert.equal(code, 0, stderr);
+  assert.equal(stderr, "");
+});
+
+test("test event files resolve from paths and file URLs and fall back to the unique smoke name", () => {
+  const file = tierPath("test/d.e2e.mjs");
+  assert.equal(testEventFile(file), path.resolve(file));
+  assert.equal(testEventFile(pathToFileURL(file).href), path.resolve(file));
+  assert.equal(testEventFile(undefined), null);
+  assert.equal(testEventFile(""), null);
+  const smokeFiles = new Set([path.resolve(file)]);
+  const byName = new Map([["d one", path.resolve(file)]]);
+  assert.equal(smokeEventFile({ file: pathToFileURL(file).href, name: "other" }, smokeFiles, byName), path.resolve(file));
+  assert.equal(smokeEventFile({ name: "d one" }, smokeFiles, byName), path.resolve(file));
+  assert.equal(smokeEventFile({ name: "unknown" }, smokeFiles, byName), null);
 });
 
 test("a tier is rejected together with a shard, under CI, when unknown, or without its manifest", async () => {

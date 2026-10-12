@@ -27,6 +27,13 @@ const REPOSITORY = "aantenore/agentic-sdlc";
 // the push run it reads today shards nothing.
 const SHARDED_POLICY = Object.freeze({
   ...CI_GATE_POLICY,
+  // Every sharded platform needs a Node 24 cell here, Windows included, although the push run has none.
+  cells: Object.freeze([
+    ...CI_GATE_POLICY.cells,
+    ...SHARDED_PLATFORMS
+      .filter((platform) => !CI_GATE_POLICY.cells.some((cell) => cell.platform === platform && cell.node === "24"))
+      .map((platform) => Object.freeze({ platform, node: "24" })),
+  ]),
   executedStep: (platform) => (
     SHARDED_PLATFORMS.includes(platform) ? "Confirm every shard ran the test suite" : "Run the test suite"
   ),
@@ -157,7 +164,7 @@ test("the push run is judged on the fast job alone: one job per cell, no shard o
     assert.equal(CI_GATE_POLICY.executedStep(platform), "Run the test suite", platform);
   }
   const all = jobs();
-  assert.equal(all.length, 6);
+  assert.equal(all.length, 5);
   assert.deepEqual(unmetCells(all), []);
   assert.equal(evaluate([run()], new Map([[1, all]])).state, "passed");
 });
@@ -167,6 +174,7 @@ test("cells that only the scheduled full matrix produces are not required", () =
   const names = requiredCiJobNames();
   for (const extra of [
     "test (macos-latest, 18.20.3)",
+    "test (windows-latest, 24)",
     "test (windows-latest, 18.20.3)",
     "test (windows-latest, 21.6.0)",
     "test (macos-latest, 20.12.0)",
@@ -180,7 +188,7 @@ test("cells that only the scheduled full matrix produces are not required", () =
 
 test("a policy with sharded platforms accepts aggregators plus their shards and checks jobs", () => {
   const all = shardedJobs();
-  assert.equal(all.length, 6 + 2 * (CI_SHARD_TOTAL + 1));
+  assert.equal(all.length, SHARDED_POLICY.cells.length + 2 * (CI_SHARD_TOTAL + 1));
   assert.deepEqual(unmetCells(all, SHARDED_POLICY), []);
   assert.equal(evaluate([run()], new Map([[1, all]]), SHARDED_POLICY).state, "passed");
   // Cells of the same platform on another Node line do not interfere.
@@ -282,10 +290,10 @@ test("an unfinished run is pending", () => {
 
 
 test("a successful run missing a cell or holding a non-success cell fails", () => {
-  const withoutCell = jobs().filter((job) => job.name !== "test (windows-latest, 24)");
+  const withoutCell = jobs().filter((job) => job.name !== "test (macos-latest, 24)");
   const missing = evaluate([run()], new Map([[1, withoutCell]]));
   assert.equal(missing.state, "failed");
-  assert.match(missing.reason, /windows-latest, 24/u);
+  assert.match(missing.reason, /macos-latest, 24/u);
 
   for (const conclusion of ["failure", "cancelled", "skipped", null]) {
     const verdict = evaluate([run()], new Map([[1, jobs({

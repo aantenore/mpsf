@@ -299,6 +299,31 @@ function escapeRegExp(text) {
   return text.replace(/[\\^$.*+?()[\]{}|]/gu, "\\$&");
 }
 
+// The file of a test event as an absolute path. Node releases before 22 report
+// the file of an ES module test as a file: URL instead of a path.
+export function testEventFile(file) {
+  if (typeof file !== "string" || file.length === 0) return null;
+  if (file.startsWith("file:")) {
+    try {
+      return path.resolve(fileURLToPath(file));
+    } catch {
+      return null;
+    }
+  }
+  return path.resolve(file);
+}
+
+
+// The smoke file a top-level test event belongs to. When the event names no
+// smoke file (no file at all, or a form this runner does not recognize), the
+// tier-unique test name identifies it instead.
+export function smokeEventFile(data, smokeFiles, smokeFileByName) {
+  const file = testEventFile(data?.file);
+  if (file !== null && smokeFiles.has(file)) return file;
+  return smokeFileByName.get(data?.name) ?? null;
+}
+
+
 // CI providers set CI to "true", "1", "True", and similar; only empty, "0", and "false" mean "not CI".
 export function isContinuousIntegration(value) {
   return typeof value === "string" && value !== "" && !/^(?:0|false)$/iu.test(value);
@@ -404,6 +429,9 @@ export async function main({
     let source;
     const smokeKey = (file, name) => `${path.resolve(file)}\n${name}`;
     const selectedSmokeTests = new Set(tierPlan?.smoke.flatMap(({ file, names }) => names.map((name) => smokeKey(file, name))));
+    const smokeFiles = new Set(tierPlan?.smoke.map(({ file }) => path.resolve(file)));
+    // Smoke names are unique across a tier (selectTierPlan enforces it), so a name identifies its file.
+    const smokeFileByName = new Map(tierPlan?.smoke.flatMap(({ file, names }) => names.map((name) => [name, path.resolve(file)])));
     const ranSmokeTests = new Set();
     const skippedSmokeTests = new Set();
     const failedSmokeFiles = new Set();
@@ -425,8 +453,10 @@ export async function main({
         // test(), so a test defined by a helper module reports the helper's path and would count as missing.
         // test/unit/test-tiers.test.mjs enforces this for every name in the manifest.
         const record = (data) => {
-          if (data?.nesting !== 0 || typeof data.file !== "string") return;
-          const key = smokeKey(data.file, data.name);
+          if (data?.nesting !== 0) return;
+          const file = smokeEventFile(data, smokeFiles, smokeFileByName);
+          if (file === null) return;
+          const key = smokeKey(file, data.name);
           // A skipped or todo test passes without exercising anything, so it counts as missing, not as run.
           if (data.skip || data.todo) {
             if (selectedSmokeTests.has(key)) skippedSmokeTests.add(key);
@@ -439,8 +469,9 @@ export async function main({
           record(data);
           // A file that fails outside its selected tests (for example, it throws on import) reports the failure
           // under its own path; its selected tests did not run because of that failure, not a stale manifest.
-          if (data?.nesting === 0 && typeof data.file === "string" && !selectedSmokeTests.has(smokeKey(data.file, data.name))) {
-            failedSmokeFiles.add(path.resolve(data.file));
+          const file = data?.nesting === 0 ? testEventFile(data.file) : null;
+          if (file !== null && !selectedSmokeTests.has(smokeKey(file, data.name))) {
+            failedSmokeFiles.add(file);
           }
         });
         yield* smokeStream;

@@ -96,12 +96,10 @@ const EXPECTED_CHECKS = {
   pullRequest: [
     ...checkNames("ubuntu-latest", ["24", "18.20.3"]),
     ...checkNames("macos-latest", ["24"]),
-    ...checkNames("windows-latest", ["24"]),
   ].sort(),
   push: [
     ...checkNames("ubuntu-latest", FULL_NODES),
     ...checkNames("macos-latest", ["24"]),
-    ...checkNames("windows-latest", ["24"]),
   ].sort(),
   full: [
     ...checkNames("ubuntu-latest", FULL_NODES),
@@ -113,13 +111,12 @@ const EVENT_LABELS = { pullRequest: "pull request", push: "push", full: "full" }
 const REQUIRED_PULL_REQUEST_CHECKS = [
   "test (ubuntu-latest, 24)",
   "test (macos-latest, 24)",
-  "test (windows-latest, 24)",
 ];
 const CI_JOBS = ["fast", "test-full", "test-shard", "test-checks", "test-sharded"];
 const FULL_JOBS = ["test-full", "test-shard", "test-checks", "test-sharded"];
 const FAST_IF = "github.event_name == 'push' || github.event_name == 'pull_request'";
 const FULL_IF = "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'";
-const FAST_TIMEOUT_MINUTES = 8;
+const FAST_TIMEOUT_MINUTES = 6;
 const CONCURRENCY_BLOCK = "concurrency:\n  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}\n  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}\n";
 const CONCURRENCY_EXPRESSION = /AGENTIC_SDLC_TEST_CONCURRENCY: \$\{\{ matrix\.os == '([^']+)' && matrix\.node == '([^']+)' && '([^']+)' \|\| '([^']+)' \}\}/gu;
 const EVENT_MATRIX_EXPRESSION = /^      matrix: \$\{\{ fromJSON\(github\.event_name == 'pull_request' && '(\{[^']*\})' \|\| '(\{[^']*\})'\) \}\}$/mu;
@@ -681,8 +678,8 @@ test("pushes and pull requests run the fast job; schedule and manual dispatch ru
   for (const event of ["pullRequest", "push", "full"]) {
     assert.deepEqual(eventChecks(ciWorkflow, event), EXPECTED_CHECKS[event], event);
   }
-  assert.equal(EXPECTED_CHECKS.pullRequest.length, 4);
-  assert.equal(EXPECTED_CHECKS.push.length, 6);
+  assert.equal(EXPECTED_CHECKS.pullRequest.length, 3);
+  assert.equal(EXPECTED_CHECKS.push.length, 5);
   assert.equal(EXPECTED_CHECKS.full.length, 12);
   const jobs = jobBlocks(ciWorkflow);
   assert.equal(jobIf(jobs.get("fast")), FAST_IF);
@@ -696,7 +693,7 @@ test("pushes and pull requests run the fast job; schedule and manual dispatch ru
   assert.ok(ciWorkflow.includes(`\n${CONCURRENCY_BLOCK}`));
   // Every fast cell stays bounded; the full Linux job is Linux only.
   assert.match(jobs.get("fast"), new RegExp(`^    timeout-minutes: ${FAST_TIMEOUT_MINUTES}$`, "mu"));
-  assert.ok(FAST_TIMEOUT_MINUTES <= 8);
+  assert.ok(FAST_TIMEOUT_MINUTES <= 6);
   assert.deepEqual([...new Set(staticMatrix(jobs.get("test-full")).map((cell) => cell.os))], ["ubuntu-latest"]);
 });
 
@@ -749,7 +746,7 @@ test("macOS and Windows run the full suite as three shards per Node line, each c
 
 test("the release gate requires exactly the cells that the fast push run produces", () => {
   assert.deepEqual([...requiredCiJobNames()].sort(), eventChecks(ciWorkflow, "push"));
-  assert.equal(requiredCiJobNames().length, 6);
+  assert.equal(requiredCiJobNames().length, 5);
   assert.deepEqual(
     CI_GATE_POLICY.cells.map(({ platform, node }) => `${platform}|${node}`),
     [
@@ -758,7 +755,6 @@ test("the release gate requires exactly the cells that the fast push run produce
       "ubuntu-latest|21.6.0",
       "ubuntu-latest|24",
       "macos-latest|24",
-      "windows-latest|24",
     ],
   );
   assert.equal(CI_GATE_POLICY.workflowFile, "ci.yml");
@@ -847,7 +843,7 @@ test("CI guards reject weakened fast, full, shard, aggregator, and skip policies
     ["full suite on every push", replaceInJob(ciWorkflow, "test-full", `    if: ${FULL_IF}\n`, ""), "CI event split"],
     ["aggregator skipped when a shard fails", replaceInJob(ciWorkflow, "test-sharded", `    if: always() && (${FULL_IF})\n`, `    if: ${FULL_IF}\n`), "CI event split"],
     ["superseded runs not cancelled", ciWorkflow.replace("  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}\n", "  cancel-in-progress: false\n"), "CI run cancellation"],
-    ["required pull request cell dropped", replaceInJob(ciWorkflow, "fast", ',{"os":"windows-latest","node":24}]}\' ||', "]}' ||"), "CI pull request matrix"],
+    ["required pull request cell dropped", replaceInJob(ciWorkflow, "fast", ',{"os":"macos-latest","node":24}]}\' ||', "]}' ||"), "CI pull request matrix"],
     ["push cell dropped", replaceInJob(ciWorkflow, "fast", ',{"os":"ubuntu-latest","node":"21.6.0"}', ""), "CI push matrix"],
     ["schedule removed", ciWorkflow.replace(/  schedule:\n    - cron: "[^"]+"\n/u, ""), "CI triggers"],
     ["manual dispatch removed", ciWorkflow.replace("  workflow_dispatch:\n", ""), "CI triggers"],
