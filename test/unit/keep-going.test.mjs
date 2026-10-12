@@ -67,6 +67,19 @@ test("cap: the same set of items with changing text blocks at most maxBlocks tim
   assert.deepEqual(run(3), [true, true, true, false]);
 });
 
+test("cap: two sessions on the same clone share the count while the last block is recent", () => {
+  let state = {};
+  const blocks = [];
+  for (const [index, session] of ["s1", "s2", "s1", "s2", "s1", "s2"].entries()) {
+    const result = decideKeepGoing({ claims: [claim], previous: state, session, now: 1000 + index * 1000 });
+    blocks.push(result.block);
+    state = result.state;
+  }
+  assert.deepEqual(blocks, [true, true, false, false, false, false]);
+  // Once the window since the last block has passed, a new session is told again.
+  assert.equal(decideKeepGoing({ claims: [claim], previous: state, session: "s3", now: 2000 + IDENTICAL_BLOCKS_WINDOW_MS }).block, true);
+});
+
 test("max consecutive blocks: env, then host_policy.keep_going, then the default", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "keep-going-cap-"));
   try {
