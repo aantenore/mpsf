@@ -1,13 +1,13 @@
 # Claude Code installation
 
-MPSF 0.159.20 ships two host packagings from one source tree:
+MPSF 0.159.29 ships two host packagings from one source tree:
 
 | Host | Manifest | Command surface | Installer |
 |---|---|---|---|
 | Codex | `.codex-plugin/plugin.json` | skills + agent cards (`skills/*/agents/openai.yaml`) | `scripts/install-personal-marketplace-v2.py` |
 | Claude Code | `.claude-plugin/plugin.json` | skills + slash commands (`commands/*.md`) | `/plugin marketplace add` |
 
-Both read the same `skills/`, the same JSON schemas, the same templates, and the same Node.js CLI under `bin/`. There is no host-specific fork of the lifecycle logic: the CLI owns every gate, receipt, and record, and the host only supplies the conversation. When a command names no `--actor` or `--agent`, the CLI attributes the record to the host it detects from the environment (`claude-code` when `CLAUDECODE` is set, `codex` otherwise); set `AGENTIC_SDLC_AGENT_HOST` to `codex` or `claude-code` to choose explicitly.
+Both read the same `skills/`, the same JSON schemas, the same templates, and the same Node.js CLI under `bin/`. There is no host-specific fork of the lifecycle logic: the CLI owns every gate, receipt, and record, and the host only supplies the conversation. When a command names no `--actor` or `--agent`, the CLI attributes the record to the host it detects from the environment (`claude-code` when `CLAUDECODE` is set, `codex` otherwise); set `AGENTIC_SDLC_AGENT_HOST` to `codex` or `claude-code` to choose explicitly. Inside an agent session (`CLAUDECODE` or `CODEX_THREAD_ID` set) a record written without `--actor-type` is attributed to the agent even when `--actor` names a person; an explicit `--actor-type` is kept as given.
 
 ## Prerequisite
 
@@ -125,11 +125,17 @@ To switch the rule off for a repository on purpose, two things are needed, both 
 1. commit `"host_policy": { "guard": { "protect_base_branch": false } }` to the base branch (the default is `true`);
 2. record the remote once, from your own terminal: `mpsf guard trust-remote --root <repo> --url <url> --actor-type human --approval-source explicit-user`. The URL is stored in a user-level file under `~/.config/agentic-sdlc/` (`XDG_CONFIG_HOME` or `AGENTIC_SDLC_TRUSTED_REMOTES_FILE` can move it). The command is refused inside an agent session.
 
-The exemption is read from the base branch as the trusted remote reports it (`git ls-remote`, 5 seconds, `AGENTIC_SDLC_GUARD_REMOTE_TIMEOUT_MS`), never from local branches or the repository's git configuration. With no trusted URL, no origin, an unreachable remote, an `origin` URL that differs from the trusted one, or a rewriting `insteadOf`, the rule stays on.
+The exemption is read from the base branch as the trusted remote reports it (`git ls-remote`, 5 seconds per call, `AGENTIC_SDLC_GUARD_REMOTE_TIMEOUT_MS`, and 6 seconds for the whole check; when time runs out the rule stays on), never from local branches or the repository's git configuration. With no trusted URL, no origin, an unreachable remote, an `origin` URL that differs from the trusted one, or a rewriting `insteadOf`, the rule stays on.
 
 ## Hook output budget
 
 Hooks repeat nothing within a session, cap their lines (12 by default; the SessionStart instructions are limited by tokens only) and stay inside a token budget per event (700, 250, 200, 150 and 150 tokens for SessionStart, UserPromptSubmit, PostToolUse, PreToolUse and Stop; see [Context packs and compact output](token-efficiency.md#context-packs-and-compact-output)). `SessionStart`, the Stop hint and `story claim` point at `context pack` instead of listing records. Tune with `host_policy.context.hooks`.
+
+## Scripts and host settings
+
+The guard reads a script file that a shell command runs (`bash x.sh`, `sh < x.sh`, `source` or `.`, `./x.sh`, `cat x.sh | bash`, `node x.mjs`, `python3 x.py`, also nested in `bash -c` or `eval`) when git does not track it or it has uncommitted changes, and checks it as if its lines were typed in the command. Shell scripts get every guard rule; other scripts are refused when they change the session markers, run a person-only `mpsf` subcommand, write the protected records or refs, or push or merge. A script created and run in the same command is refused: write it in one call and run it in the next. Tracked, unchanged scripts are not read.
+
+The host settings files (`.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`, `.codex/config.toml`) are protected from the agent: a file-tool edit that changes their `env`, `hooks`, `enabledPlugins`, `disableAllHooks` or `shell_environment_policy` entries is refused, and so is any shell write to them, so the agent cannot set `AGENTIC_SDLC_*`, `MPSF_*` or the session markers there, or turn the hooks or plugins off. Other edits, such as permission rules, stay allowed. A person changes those entries by hand.
 
 ## Repositories outside the guard (opt-in)
 

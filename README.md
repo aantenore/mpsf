@@ -37,6 +37,15 @@ You talk to Codex in normal language. Codex turns that request into structured i
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.29** — README, install, messaging, how-it-works, skill and command docs cover the changes of 0.159.21-0.159.28.
+- **0.159.28** — the agent can no longer use the host settings files to set the plugin's variables or turn hooks and plugins off.
+- **0.159.27** — new computers get a unique id; `message setup` never replaces another computer's key; the roles tick gets a longer network limit; knowledge text from other computers is quoted as data.
+- **0.159.26** — keep-going's block cap is shared by sessions on one clone; prepared starts resolve in the background; the trusted-remote check fails closed within 6 s.
+- **0.159.25** — secret scan reads UTF-16 files, catches unquoted credentials and common token prefixes, and lists files it could not read.
+- **0.159.24** — the guard checks the script files a command runs; inside an agent session records default to the agent actor.
+- **0.159.23** — command reference covers roles, coordinator, known-error, knowledge and context budget; Observatory labels every request route.
+- **0.159.22** — unused exported helpers removed; no behavior change.
+- **0.159.21** — a copied signed GitHub comment reads as untrusted; signed comments count only from owners, members and collaborators.
 - **0.159.20** — release package check passes again: manifest sync is `npm run sync-version` instead of an npm `version` hook.
 - **0.159.19** — gates, claims and story writes verify every upstream receipt; fast views label unverified receipts as not re-checked.
 - **0.159.18** — the test suite is slimmer: redundant scenarios are merged, with the same behaviors still asserted.

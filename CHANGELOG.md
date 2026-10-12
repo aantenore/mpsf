@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.29
+
+- Documentation only: the guard's script-file and host-settings checks, agent-session actor inference, the new secret scan rules and `unscanned_paths`, the `pc-<hash>-<random>` computer id and key protection in `message setup`, `AGENTIC_SDLC_ROLES_TICK_TIMEOUT_SECONDS`, the trusted-remote 6 s budget and the shared keep-going cap are now described in the install, messaging, how-it-works, skill and command docs; version mentions say 0.159.29. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.28
 
 - Guard: the host settings files (`.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`, `.codex/config.toml`) can no longer be used by the agent to set the variables the hooks and CLI read (`AGENTIC_SDLC_*`, `MPSF_*`, the session markers) or to turn the hooks or plugins off: a file-tool edit that changes their `env`, `hooks`, `enabledPlugins`, `disableAllHooks` or `shell_environment_policy` entries is refused, and so is any shell write to them. Other edits, such as permission rules, stay allowed. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
