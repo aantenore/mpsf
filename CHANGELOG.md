@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.34
+
+- CI only: the fast push and pull request runs keep every cell within about five minutes (job timeout 6 minutes). Windows needs longer for the fast tier and now runs only in the nightly full suite, so the release gate requires five cells: `test (ubuntu-latest, 18.20.3|20.12.0|21.6.0|24)` and `test (macos-latest, 24)`. The test tier no longer reports every smoke test as missing on Node 18, 20 and 21, which name ES module test files by `file:` URL. The process-hygiene hook test no longer stops unrelated test processes. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.33
 
 - CI only: pushes and pull requests run `npm run test:fast` (plus the source check, runner canary, doctor and pack dry-run) once per cell, bounded by an 8-minute job timeout, and a newer push cancels the older run. The full suite (every Node line on Linux, macOS and Windows, with the enterprise benchmark) runs only on the nightly schedule and on manual dispatch and no longer blocks releases. The release gate now accepts a green fast `push` run on `main` for the tagged commit, with the same six cells (`test (ubuntu-latest, 18.20.3|20.12.0|21.6.0|24)`, `test (macos-latest, 24)`, `test (windows-latest, 24)`). The test runner still refuses a tier under CI unless `AGENTIC_SDLC_TEST_TIER_IN_CI=true` is also set; `npm test` is unchanged. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
