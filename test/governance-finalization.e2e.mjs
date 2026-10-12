@@ -17,6 +17,8 @@ import {
 import { runWithMutationGovernance } from "../lib/governance/mutation-guard.mjs";
 import { workflowFinalGateReceiptPath } from "../lib/lifecycle/workflow.mjs";
 import { currentHost, setHost } from "../lib/runtime/host.mjs";
+import { findGitCommonDir } from "../lib/runtime/run-registry.mjs";
+import { classifyCommand, lockFileFor } from "../lib/runtime/single-flight.mjs";
 
 const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(REPOSITORY_ROOT, "bin", "agentic-sdlc.mjs");
@@ -71,7 +73,7 @@ function run(args, project, options = {}) {
   });
 }
 
-// The single-flight guard turns a second start of the same story away at once; waiting lets both reach the inner boundary under test.
+// The single-flight guard turns a second start of the same story away at once; waiting queues the second start behind the first.
 const WAIT_FOR_SINGLE_FLIGHT = { AGENTIC_SDLC_WAIT_FOR_LOCK_SECONDS: "60" };
 
 function runConcurrently(args, project, envOverrides = {}) {
@@ -87,7 +89,7 @@ function runConcurrently(args, project, envOverrides = {}) {
     });
     let stdout = "";
     let stderr = "";
-    const timeout = setTimeout(() => child.kill("SIGKILL"), 30_000);
+    const timeout = setTimeout(() => child.kill("SIGKILL"), 60_000);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => { stdout += chunk; });
@@ -1724,8 +1726,22 @@ test("concurrent workflow and task starts serialize on the story task-start boun
   );
   const hookMarkerPath = path.join(hookRoot, "workflow-boundary-delay.marker");
   const hookPath = path.join(hookRoot, "delay-workflow-boundary.mjs");
+  // Both starts share the story single-flight lock, so whichever takes it
+  // first runs to completion. The workflow start waits until task start holds
+  // it (or has already written its receipt); otherwise a loaded host can let
+  // the workflow win, and the boundary wait below would then never end.
+  const taskSingleFlightLockPath = lockFileFor(
+    findGitCommonDir(project),
+    classifyCommand("task.start", { story: storyId }, project).key,
+  );
   fs.writeFileSync(hookPath, [
     'import fs from "node:fs";',
+    "const startDeadline = Date.now() + 30_000;",
+    "while (!fs.existsSync(process.env.AGENTIC_SDLC_TEST_TASK_SINGLE_FLIGHT_LOCK)",
+    "    && !fs.existsSync(process.env.AGENTIC_SDLC_TEST_TASK_START_RECEIPT)) {",
+    "  if (Date.now() >= startDeadline) throw new Error(\"task start never took the single-flight lock\");",
+    "  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);",
+    "}",
     "const originalOpenSync = fs.openSync;",
     "let delayed = false;",
     "fs.openSync = function delayedWorkflowBoundaryOpen(filePath, flags, ...rest) {",
@@ -1780,6 +1796,7 @@ test("concurrent workflow and task starts serialize on the story task-start boun
       NODE_OPTIONS: `--import=${pathToFileURL(hookPath).href}`,
       AGENTIC_SDLC_TEST_BOUNDARY_LOCK_PATH: boundaryLockPath,
       AGENTIC_SDLC_TEST_BOUNDARY_MARKER: hookMarkerPath,
+      AGENTIC_SDLC_TEST_TASK_SINGLE_FLIGHT_LOCK: taskSingleFlightLockPath,
       AGENTIC_SDLC_TEST_TASK_START_RECEIPT: path.join(
         project,
         ".sdlc/stories",
