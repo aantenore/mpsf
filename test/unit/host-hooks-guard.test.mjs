@@ -1162,3 +1162,20 @@ test("the hook reads only scripts that are not tracked and unchanged", () => {
     fs.rmSync(repo, { recursive: true, force: true });
   }
 });
+
+test("the host settings files keep their env, hooks and plugin entries out of the agent's reach", () => {
+  const verdict = (payload) => evaluatePreToolUse(payload)?.decision ?? "allow";
+  for (const command of ["echo '{}' > .claude/settings.json", "cp x.json ~/.claude/settings.json", "sed -i s/a/b/ .claude/settings.local.json",
+    "tee -a $HOME/.codex/config.toml < x", "python3 -c \"open('.claude/settings.json','w').write('{}')\""]) {
+    assert.equal(verdict(shell(command)), "deny", command);
+  }
+  assert.equal(verdict(shell("cat .claude/settings.json")), "allow");
+  const write = (file_path, content) => ({ tool_name: "Write", tool_input: { file_path, content } });
+  const edit = (file_path, old_string, new_string) => ({ tool_name: "Edit", tool_input: { file_path, old_string, new_string } });
+  assert.equal(verdict(write("/p/.claude/settings.json", '{ "env": { "AGENTIC_SDLC_ALLOW_UNGOVERNED_GIT": "1" } }')), "deny");
+  assert.equal(verdict(write("/p/.claude/settings.json", '{\n  "permissions": { "allow": ["Bash(npm test)"] }\n}')), "allow");
+  assert.equal(verdict(edit("/home/u/.claude/settings.json", '"allow": []', '"allow": [], "disableAllHooks": true')), "deny");
+  assert.equal(verdict(edit("/p/.claude/settings.local.json", '"allow": []', '"allow": ["Bash(ls)"]')), "allow");
+  assert.equal(verdict(edit("/home/u/.codex/config.toml", "", "[shell_environment_policy]\nset = { MPSF_KEEP_GOING = \"off\" }")), "deny");
+  assert.equal(verdict(codexPatch(".claude/settings.json")), "allow");
+});

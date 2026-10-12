@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.28
+
+- Guard: the host settings files (`.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`, `.codex/config.toml`) can no longer be used by the agent to set the variables the hooks and CLI read (`AGENTIC_SDLC_*`, `MPSF_*`, the session markers) or to turn the hooks or plugins off: a file-tool edit that changes their `env`, `hooks`, `enabledPlugins`, `disableAllHooks` or `shell_environment_policy` entries is refused, and so is any shell write to them. Other edits, such as permission rules, stay allowed. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.27
 
 - Computers that start using the plugin get a unique id (`pc-<hash>-<random>`), so two machines with the same default host name no longer share presence, channel and key; ids already stored are kept. `message setup` refuses to replace another computer's registered key and says how to resolve it.
