@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.31
+
+- Test suite only: the slowest end-to-end files build their expensive, path-independent fixtures once and copy them per test, and one duplicated certification fixture is merged into the scenario that already builds it. Every behavior is still asserted; the touched files run about 290 seconds faster in total. Change Observatory: no change. Compatibility: no change.
+
 ## 0.159.30
 
 - Documentation only: README, docs, skill references and templates no longer read as Codex-only. Generic "Codex" wording now says the agent (Codex or Claude Code), and the README install, update, uninstall and diagnose sections give the Claude Code commands too. Stale statements fixed: claim time to live is two hours by default (not 24), only `auto` coordinator duties run by themselves, `main-green` and `merge` work on GitHub, GitLab and Gitea/Forgejo, `git` is a valid `.sdlc/messaging.json` provider and the default for new channels, the messaging waits no longer include plugin update requests, the `sdlc-state` store and the `knowledge`, `known-errors`, `machines` and `compatibility` folders are described, the new-messages stderr prefix is `mpsf:`, and the adapters plan status matches what shipped. The README release section describes `npm run sync-version` for patch releases. Change Observatory: no change (its docs say `codex-generated` covers text from any agent). Compatibility: no record, ref or schema format changed.

@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.31** — the slowest test files build path-independent fixtures once and copy them per test; every behavior is still asserted.
 - **0.159.30** — docs no longer read as Codex-only and match the current claim, coordinator, forge, messaging and state-branch logic.
 - **0.159.29** — README, install, messaging, how-it-works, skill and command docs cover the changes of 0.159.21-0.159.28.
 - **0.159.28** — the agent can no longer use the host settings files to set the plugin's variables or turn hooks and plugins off.
