@@ -2,6 +2,13 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.27
+
+- Computers that start using the plugin get a unique id (`pc-<hash>-<random>`), so two machines with the same default host name no longer share presence, channel and key; ids already stored are kept. `message setup` refuses to replace another computer's registered key and says how to resolve it.
+- The roles tick allows 20 s for its fetch and push (`AGENTIC_SDLC_ROLES_TICK_TIMEOUT_SECONDS`, 1-300), and `coordinator free-claims` waits 15 minutes after a computer's presence ends before freeing its claims (`holder_presence_late`).
+- Known-error and knowledge text from other computers is schema-checked on read and shown quoted as data; only real `mpsf` commands are shown as commands. Distilled knowledge records are byte-identical on every computer; what each computer saw goes into a separate event.
+- Change Observatory: knowledge entries show the richest description recorded for them. Compatibility: older plugins read the new ids, records and events, and show a knowledge entry's short key-derived title until they update.
+
 ## 0.159.26
 
 - Hooks no longer loop or reach too far: two sessions on the same clone share the keep-going block cap, so they stop blocking each other; the Stop hook starts prepared stories in the background instead of running them inline; the trusted-remote base check fits a 6 s budget and keeps the push to the base blocked when it runs out of time; the stale-run cleanup only stops plugin commands of the current repository.
