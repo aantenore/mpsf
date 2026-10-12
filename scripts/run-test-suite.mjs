@@ -295,6 +295,23 @@ export function selectTierPlan(discovered, tierDefinition) {
   return { whole, smoke: selectedSmoke };
 }
 
+// One of `total` parallel slices of a tier plan. Whole files are split by expected cost like the
+// full suite; smoke files by their number of selected tests, since only those run. Every selected
+// file and smoke test lands in exactly one shard, so the shards together run the whole tier.
+export function selectTierShard(plan, { index, total }, fileWeight = defaultFileWeight) {
+  const whole = plan.whole.length > 0 ? partitionTestFiles(plan.whole, total, fileWeight)[index - 1] : [];
+  const smokeByFile = new Map(plan.smoke.map((entry) => [entry.file, entry]));
+  const smokeFiles = smokeByFile.size > 0
+    ? partitionTestFiles([...smokeByFile.keys()], total, (file) => smokeByFile.get(file).names.length)[index - 1]
+    : [];
+  if (whole.length === 0 && smokeFiles.length === 0) {
+    throw new Error(
+      `Test shard ${index}/${total} has no files; ${plan.whole.length + smokeByFile.size} tier files cannot fill ${total} shards.`,
+    );
+  }
+  return { whole, smoke: smokeFiles.map((file) => smokeByFile.get(file)) };
+}
+
 function escapeRegExp(text) {
   return text.replace(/[\\^$.*+?()[\]{}|]/gu, "\\$&");
 }
@@ -380,11 +397,6 @@ export async function main({
     // An explicit, non-empty file list keeps discovery stable across Node 18/20/24.
     const shard = parseTestShard(env[TEST_SHARD_ENV]);
     const tier = parseTestTier(env[TEST_TIER_ENV]);
-    if (tier !== null && shard !== null) {
-      throw new TypeError(
-        `${TEST_TIER_ENV} and ${TEST_SHARD_ENV} cannot be combined: a tier is a partial local run and a shard is a slice of the full suite.`,
-      );
-    }
     if (tier !== null && isContinuousIntegration(env.CI) && !isContinuousIntegration(env[TEST_TIER_IN_CI_ENV])) {
       throw new TypeError(
         `${TEST_TIER_ENV}=${tier} is a partial local run; CI always runs the full suite unless ${TEST_TIER_IN_CI_ENV}=true requests the tier explicitly.`,
@@ -407,10 +419,12 @@ export async function main({
         throw new TypeError(`Unknown test tier ${JSON.stringify(tier)}; ${projectRelativePath(TEST_TIERS_FILE)} does not define it.`);
       }
       tierPlan = selectTierPlan(discovered, tierDefinition);
+      if (shard !== null) tierPlan = selectTierShard(tierPlan, shard, fileWeight);
       files = [...tierPlan.whole, ...tierPlan.smoke.map(({ file }) => file)];
       const testCount = tierPlan.smoke.reduce((sum, { names }) => sum + names.length, 0);
+      const slice = shard === null ? "" : ` shard ${shard.index}/${shard.total}`;
       stdout.write(
-        `# test tier ${tier}: ${tierPlan.whole.length} whole files + ${tierPlan.smoke.length} files with ${testCount} selected tests (partial run, not release verification)\n`,
+        `# test tier ${tier}${slice}: ${tierPlan.whole.length} whole files + ${tierPlan.smoke.length} files with ${testCount} selected tests (partial run, not release verification)\n`,
       );
     }
     expectedFileCount = files.length;

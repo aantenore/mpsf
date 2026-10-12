@@ -5,17 +5,31 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { localSmokeSandboxCommand } from "../../lib/delivery/local-smoke-providers.mjs";
+import { localSmokeExecutionBoundary, localSmokeSandboxCommand } from "../../lib/delivery/local-smoke-providers.mjs";
 
-const skip = process.platform !== "win32" && "AppContainer exists only on Windows";
-
-function runSmoke(cwd, source) {
-  const entry = path.join(cwd, "smoke.cjs");
-  fs.writeFileSync(entry, source);
+function smokeEnvironment() {
   // process.env is case-insensitive on Windows; a plain copy is not.
   const env = { ...process.env };
   for (const key of ["SYSTEMROOT", "WINDIR", "TEMP", "TMP"]) env[key] = process.env[key];
   delete env.AGENTIC_SDLC_TEST_LOCAL_SMOKE_PROVIDER;
+  return env;
+}
+
+// A Windows host whose launcher probe fails (PowerShell not in FullLanguage mode, AppContainer
+// profiles unavailable, as on some hosted CI runners) has no provider: the product fails closed
+// there, which test/unit/local-smoke-providers.test.mjs covers, and no real container can run.
+function appContainerSkip() {
+  if (process.platform !== "win32") return "AppContainer exists only on Windows";
+  if (localSmokeExecutionBoundary({ env: smokeEnvironment() }).provider_available) return false;
+  return "the Windows AppContainer provider probe fails on this host, so no real container can run";
+}
+
+const skip = appContainerSkip();
+
+function runSmoke(cwd, source) {
+  const entry = path.join(cwd, "smoke.cjs");
+  fs.writeFileSync(entry, source);
+  const env = smokeEnvironment();
   const command = localSmokeSandboxCommand(cwd, [process.execPath, entry], { env });
   return spawnSync(command.executable, command.args, {
     cwd,

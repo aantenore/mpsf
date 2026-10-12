@@ -11,7 +11,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   assertRecordsCommitScope,
@@ -107,8 +107,8 @@ function advanceBase(first) {
 
 function autoPublish(project, env = {}) {
   const script = `
-    import { buildContext } from ${JSON.stringify(path.join(repoRoot, "lib/engine/common.mjs"))};
-    import { autoPublishStoryRecords } from ${JSON.stringify(path.join(repoRoot, "lib/engine/story-sync.mjs"))};
+    import { buildContext } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "lib/engine/common.mjs")).href)};
+    import { autoPublishStoryRecords } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "lib/engine/story-sync.mjs")).href)};
     const context = buildContext({ root: ${JSON.stringify(project)} });
     const result = await autoPublishStoryRecords(context, { storyId: ${JSON.stringify(STORY)}, event: "publish-records" });
     console.log(JSON.stringify(result));
@@ -226,8 +226,8 @@ test("publishing named record files refuses a path outside the records folder an
   write(second, "src/injected.txt", "x\n");
   const before = git(remote, ["rev-parse", "refs/heads/main"]);
   const script = `
-    import { buildContext } from ${JSON.stringify(path.join(repoRoot, "lib/engine/common.mjs"))};
-    import { publishRecordFilesToBase } from ${JSON.stringify(path.join(repoRoot, "lib/engine/story-sync.mjs"))};
+    import { buildContext } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "lib/engine/common.mjs")).href)};
+    import { publishRecordFilesToBase } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "lib/engine/story-sync.mjs")).href)};
     const context = buildContext({ root: ${JSON.stringify(second)} });
     try {
       publishRecordFilesToBase(context, { files: ["src/injected.txt"], message: "x", label: "Test publication" });

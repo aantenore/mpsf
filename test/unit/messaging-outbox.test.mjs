@@ -57,7 +57,8 @@ test("a 429 queues the message in a 0600 outbox file with the reason", async () 
   assert.equal(result.sent, false);
   assert.match(result.reason, /HTTP 429/u);
   const file = outboxPath(root);
-  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  // Windows reports synthesized mode bits and protects files through ACLs.
+  if (process.platform !== "win32") assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   const outbox = readOutbox(root);
   assert.equal(outbox.items.length, 1);
   assert.equal(outbox.items[0].message.replyTo, "q1");

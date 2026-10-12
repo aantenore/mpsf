@@ -52,7 +52,8 @@ test("dedupe across calls in the same session, not across sessions", () => {
     const stats = hookInjectionStats(dir, "s1");
     assert.equal(stats.post_tool_use.calls, 2);
     assert.ok(stats.post_tool_use.suppressed_lines >= 3);
-    assert.equal(fs.statSync(ledgerPath(dir, "s1")).mode & 0o777, 0o600);
+    // Windows reports synthesized mode bits and protects files through ACLs.
+    if (process.platform !== "win32") assert.equal(fs.statSync(ledgerPath(dir, "s1")).mode & 0o777, 0o600);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

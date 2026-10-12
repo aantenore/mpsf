@@ -33,6 +33,11 @@ function shell(command) {
   return { tool_name: "Bash", tool_input: { command } };
 }
 
+// A path as one shell word: Windows paths contain backslashes, which an unquoted shell word drops.
+function quoted(value) {
+  return `'${value}'`;
+}
+
 function codexPatch(...files) {
   return {
     tool_name: "apply_patch",
@@ -708,8 +713,8 @@ test("a repository listed in AGENTIC_SDLC_UNGOVERNED_REPOS is left out of the me
       assert.equal(evaluatePreToolUse(shell(command), options(free)), null, command);
       assert.equal(evaluatePreToolUse(shell(command), options(other))?.decision, "deny", command);
     }
-    assert.equal(evaluatePreToolUse(shell(`git -C ${free} push origin main`), options(other)), null);
-    assert.equal(evaluatePreToolUse(shell(`git -C ${other} push origin main`), options(free))?.decision, "deny");
+    assert.equal(evaluatePreToolUse(shell(`git -C ${quoted(free)} push origin main`), options(other)), null);
+    assert.equal(evaluatePreToolUse(shell(`git -C ${quoted(other)} push origin main`), options(free))?.decision, "deny");
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
   }
@@ -762,11 +767,11 @@ test("the base-branch guard applies only to Agentic SDLC projects, unless the tr
     const toMain = "git push origin main";
     // A repository that is not an Agentic SDLC project: no guard.
     assert.equal(evaluatePreToolUse(shell(toMain), options(plain)), null);
-    assert.equal(evaluatePreToolUse(shell(`git -C ${plain} push origin main`), options(governed)), null);
+    assert.equal(evaluatePreToolUse(shell(`git -C ${quoted(plain)} push origin main`), options(governed)), null);
     assert.equal(evaluatePreToolUse(shell(toMain), options(path.join(plain, "sub"))), null);
     // A governed project keeps the rule (default true), also when reached through git -C.
     assert.equal(evaluatePreToolUse(shell(toMain), options(governed))?.decision, "deny");
-    assert.equal(evaluatePreToolUse(shell(`git -C ${governed} push origin main`), options(plain))?.decision, "deny");
+    assert.equal(evaluatePreToolUse(shell(`git -C ${quoted(governed)} push origin main`), options(plain))?.decision, "deny");
     assert.equal(evaluatePreToolUse(shell("gh pr merge 12"), options(governed))?.decision, "deny");
     // The remote base with protect_base_branch = false lifts only the base-branch rule, never the story-push rule.
     assert.equal(evaluatePreToolUse(shell(toMain), options(releasing)), null);

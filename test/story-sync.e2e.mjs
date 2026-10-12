@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const bin = path.join(repoRoot, "bin", "agentic-sdlc.mjs");
@@ -139,8 +139,8 @@ test("story sync refuses a code conflict, names the files, and changes nothing",
 
 function autoPublish(project, env = {}) {
   const script = `
-    import { buildContext } from ${JSON.stringify(path.join(repoRoot, "lib/engine/common.mjs"))};
-    import { autoPublishStoryRecords } from ${JSON.stringify(path.join(repoRoot, "lib/engine/story-sync.mjs"))};
+    import { buildContext } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "lib/engine/common.mjs")).href)};
+    import { autoPublishStoryRecords } from ${JSON.stringify(pathToFileURL(path.join(repoRoot, "lib/engine/story-sync.mjs")).href)};
     const context = buildContext({ root: ${JSON.stringify(project)} });
     const result = await autoPublishStoryRecords(context, { storyId: ${JSON.stringify(STORY)}, event: "lifecycle-complete" });
     console.log(JSON.stringify(result));

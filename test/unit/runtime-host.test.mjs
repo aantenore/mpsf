@@ -166,7 +166,7 @@ test("every module reaches files, processes, the OS, randomness, and the clock t
   const offenders = [];
   for (const file of sourceModules()) {
     const source = realFs.readFileSync(file, "utf8");
-    const relative = path.relative(PLUGIN_ROOT, file);
+    const relative = path.relative(PLUGIN_ROOT, file).split(path.sep).join("/");
     const direct = source.match(/from\s+"node:(?:fs|fs\/promises|child_process|os|crypto)"/gu);
     if (direct) offenders.push(`${relative}: imports ${direct.join(", ")} directly`);
     const hostImport = source.match(/import\s*\{([^}]*)\}\s*from\s*"[^"]*runtime\/host\.mjs"/u);

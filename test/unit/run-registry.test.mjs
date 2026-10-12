@@ -146,9 +146,15 @@ test("watchdog stops a child blocked in synchronous work that ignores SIGTERM", 
   const watchdog = startWatchdog({ pid: blocked.pid, limitMinutes: 0.01, logFile, recordFile, pollMs: 100, killAfterMs: 500 });
   watchdog.ref();
   try {
-    assert.equal(await exited, "SIGKILL");
+    const signal = await exited;
     await new Promise((resolve) => (watchdog.exitCode === null ? watchdog.once("exit", resolve) : resolve()));
-    assert.match(fs.readFileSync(logFile, "utf8"), /SIGTERM[\s\S]*SIGKILL/u);
+    if (process.platform === "win32") {
+      // Windows has no catchable SIGTERM: the first signal already ends the process, reported without a signal name.
+      assert.match(fs.readFileSync(logFile, "utf8"), /SIGTERM/u);
+    } else {
+      assert.equal(signal, "SIGKILL");
+      assert.match(fs.readFileSync(logFile, "utf8"), /SIGTERM[\s\S]*SIGKILL/u);
+    }
     assert.equal(fs.existsSync(recordFile), false);
   } finally {
     blocked.kill("SIGKILL");

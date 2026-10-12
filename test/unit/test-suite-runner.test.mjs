@@ -36,6 +36,7 @@ import {
   projectRelativePath,
   selectShardFiles,
   selectTierPlan,
+  selectTierShard,
   smokeEventFile,
   testEventFile,
 } from "../../scripts/run-test-suite.mjs";
@@ -716,10 +717,47 @@ test("test event files resolve from paths and file URLs and fall back to the uni
   assert.equal(smokeEventFile({ name: "unknown" }, smokeFiles, byName), null);
 });
 
-test("a tier is rejected together with a shard, under CI, when unknown, or without its manifest", async () => {
+test("a tier shard runs one slice of the tier: every selected file and smoke test in exactly one shard", async () => {
+  const plan = selectTierPlan(TIER_FILES, fastTier());
+  const weight = (file) => (file.endsWith("a.test.mjs") ? 10 : 1);
+  const shards = [1, 2].map((index) => selectTierShard(plan, { index, total: 2 }, weight));
+  assert.deepEqual(shards.flatMap(({ whole }) => whole).sort(), [...plan.whole].sort());
+  assert.deepEqual(shards.flatMap(({ smoke }) => smoke).sort((l, r) => (l.file < r.file ? -1 : 1)), plan.smoke);
+  // The heaviest whole file and the smoke file with the most selected tests open the first shard.
+  assert.deepEqual(shards[0].whole, [tierPath("test/unit/a.test.mjs")]);
+  assert.deepEqual(shards[0].smoke, [{ file: tierPath("test/d.e2e.mjs"), names: ["d one", ODD_NAME] }]);
+  assert.deepEqual(selectTierShard(plan, { index: 2, total: 2 }, weight), shards[1], "deterministic");
+  assert.throws(() => selectTierShard({ whole: [], smoke: plan.smoke }, { index: 3, total: 3 }, weight), /Test shard 3\/3 has no files/u);
+
+  const calls = [];
+  let stdout = "";
+  let stderr = "";
+  const code = await main({
+    env: { [TEST_TIER_ENV]: "fast", [TEST_SHARD_ENV]: "2/2", CI: "true", [TEST_TIER_IN_CI_ENV]: "true" },
+    stdout: { write(chunk) { stdout += chunk; return true; } },
+    stderr: { write(chunk) { stderr += chunk; return true; } },
+    findTestFiles: () => TIER_FILES,
+    fileWeight: weight,
+    loadTiers: () => parseTestTiers(tierManifest({ fast: FAST_TIER })),
+    runTests(options) {
+      calls.push(options);
+      if (options.testNamePatterns === undefined) {
+        return scriptedStream(options.files.map((file) => ({ type: "test:pass", data: { file, name: "whole", nesting: 0 } })));
+      }
+      return scriptedStream([{ type: "test:pass", data: { file: tierPath("test/unit/heavy.test.mjs"), name: "heavy cheap", nesting: 0 } }]);
+    },
+    reporter: drainReporter,
+  });
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(calls[0].files, shards[1].whole);
+  assert.deepEqual(calls[1].files, [tierPath("test/unit/heavy.test.mjs")]);
+  assert.equal(calls[1].testNamePatterns.length, 1);
+  assert.match(stdout, /^# test tier fast shard 2\/2: 2 whole files \+ 1 files with 1 selected tests/u);
+});
+
+test("a tier is rejected under CI, when unknown, or without its manifest", async () => {
   const loadTiers = () => parseTestTiers(tierManifest({ fast: FAST_TIER }));
   const cases = [
-    [{ [TEST_TIER_ENV]: "fast", [TEST_SHARD_ENV]: "1/3" }, loadTiers, /AGENTIC_SDLC_TEST_TIER and AGENTIC_SDLC_TEST_SHARD cannot be combined/u],
     [{ [TEST_TIER_ENV]: "fast", CI: "true" }, loadTiers, /AGENTIC_SDLC_TEST_TIER=fast is a partial local run; CI always runs the full suite/u],
     [{ [TEST_TIER_ENV]: "slow" }, loadTiers, /Unknown test tier "slow"; test\/test-tiers\.json does not define it/u],
     [{ [TEST_TIER_ENV]: "Fast" }, loadTiers, /AGENTIC_SDLC_TEST_TIER must be "full" or a tier name/u],

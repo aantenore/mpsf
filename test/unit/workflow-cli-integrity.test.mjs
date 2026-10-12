@@ -15,7 +15,7 @@ const TEMPORARY_DIRECTORIES = new Set();
 
 after(() => {
   for (const directory of TEMPORARY_DIRECTORIES) {
-    fs.rmSync(directory, { recursive: true, force: true });
+    fs.rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }
 });
 

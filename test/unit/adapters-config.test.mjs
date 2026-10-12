@@ -64,7 +64,7 @@ test("the local provider needs no repository; its folder comes from the adapter 
   assert.equal(config.provider, "local");
   assert.equal(config.local_dir, path.join(root, "shared-channel"));
   const env = resolveMessagingConfig(root, { AGENTIC_SDLC_MESSAGING_LOCAL_DIR: "/tmp/elsewhere" });
-  assert.equal(env.local_dir, "/tmp/elsewhere");
+  assert.equal(env.local_dir, path.resolve("/tmp/elsewhere"));
 });
 
 test("send and read work end to end through the local provider", async () => {
