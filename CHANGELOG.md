@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.22
+
+- Internal cleanup: about 30 exported helpers, constants and aliases that nothing in the plugin, its tests or its docs referenced were removed. No change to CLI behavior or stored records. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.21
 
 - GitHub channel: a signed message copied into a new comment no longer reads as trusted. A signed comment counts only when its author is the repository's owner, a member or a collaborator, and only the first time in a read: a second comment carrying the same signed message is `[untrusted]`, so it cannot reopen answered questions or announce a version. Change Observatory: no change (it shows the trust it receives). Compatibility: message format unchanged; older plugins keep reading new messages as before. A teammate whose GitHub account is not a collaborator now sees their signed messages as untrusted on other computers: add them as collaborators.
