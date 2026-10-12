@@ -22,8 +22,8 @@ jobs:
   # Pushes and pull requests run the fast test tier (test/test-tiers.json) once
   # per cell, so every cell stays within about five minutes. This job carries the
   # required check names and is what the release gate reads on a push to main.
-  # Windows is covered by the nightly full suite only: its runner needs more
-  # than five minutes for the fast tier.
+  # Windows runs the same tier as three parallel shards in fast-shard below,
+  # because its runner needs more than five minutes for the whole fast tier.
   # When a change touches only documentation (see scripts/ci-change-scope.mjs)
   # every step after the scope detection is skipped: the job still reports
   # success so the required checks resolve, but the release gate does not count
@@ -268,3 +268,45 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MATRIX_OS: ${{ matrix.os }}
           MATRIX_NODE: ${{ matrix.node }}
+
+  # Windows runs the fast tier of pushes and pull requests as three parallel
+  # shards (the same deterministic split as the full suite), so each shard stays
+  # within about five minutes. It does not carry a release-gate check name; the
+  # shard-independent checks run on Windows in the nightly checks job.
+  fast-shard:
+    name: fast shard (${{ matrix.os }}, ${{ matrix.node }}, ${{ matrix.shard }})
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON('{"os":["windows-latest"],"node":[24],"shard":["1/3","2/3","3/3"]}') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - id: scope
+        name: Detect Markdown-only changes
+        run: node scripts/ci-change-scope.mjs
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_BEFORE_SHA: ${{ github.event.before }}
+      - id: python
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.13.14"
+          update-environment: false
+      - name: Run this shard of the fast tier
+        if: steps.scope.outputs.docs_only != 'true'
+        run: npm run test:fast
+        env:
+          PYTHON: ${{ steps.python.outputs.python-path }}
+          AGENTIC_SDLC_TEST_CONCURRENCY: "4"
+          AGENTIC_SDLC_TEST_TIER_IN_CI: "true"
+          AGENTIC_SDLC_TEST_SHARD: ${{ matrix.shard }}

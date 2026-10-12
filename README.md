@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.37** — Windows is back in push and pull-request CI, as three fast-tier shards of about five minutes each.
 - **0.159.36** — test only: the concurrent workflow/task start test waits for the boundary lock owner instead of a fixed head start.
 - **0.159.35** — Windows: path checks see through 8.3 short names (base worktree, record publishing, guard opt-outs, trusted remotes); the fast tier can be split into shards.
 - **0.159.34** — every fast CI cell stays within about five minutes (Windows moves to the nightly run); the fast tier works on Node 18, 20 and 21.
@@ -46,8 +47,6 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - **0.159.30** — docs no longer read as Codex-only and match the current claim, coordinator, forge, messaging and state-branch logic.
 - **0.159.29** — README, install, messaging, how-it-works, skill and command docs cover the changes of 0.159.21-0.159.28.
 - **0.159.28** — the agent can no longer use the host settings files to set the plugin's variables or turn hooks and plugins off.
-- **0.159.27** — new computers get a unique id; `message setup` never replaces another computer's key; the roles tick gets a longer network limit; knowledge text from other computers is quoted as data.
-- **0.159.26** — keep-going's block cap is shared by sessions on one clone; prepared starts resolve in the background; the trusted-remote check fails closed within 6 s.
 
 ## Documentation Map
 

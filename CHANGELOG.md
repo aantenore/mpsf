@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.37
+
+- CI only: pushes and pull requests run the fast tier on Windows (Node 24) again, as three parallel shards `fast shard (windows-latest, 24, <i>/3)` with the same 6-minute job bound, so the Windows fixes of 0.159.35 are checked on every change. These jobs are not part of the release gate, which still requires the five Linux and macOS cells. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.36
 
 - Test only: the concurrent workflow-start and task-start test no longer depends on a fixed 750 ms head start. The delayed workflow start now waits until the task start holds the story's task-start boundary lock or has written its receipt, so a slow process start under load cannot flip which side wins. The product already serializes both starts on that lock. Change Observatory: no change. Compatibility: no record, ref or schema format changed.

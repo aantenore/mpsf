@@ -112,7 +112,7 @@ const REQUIRED_PULL_REQUEST_CHECKS = [
   "test (ubuntu-latest, 24)",
   "test (macos-latest, 24)",
 ];
-const CI_JOBS = ["fast", "test-full", "test-shard", "test-checks", "test-sharded"];
+const CI_JOBS = ["fast", "test-full", "test-shard", "test-checks", "test-sharded", "fast-shard"];
 const FULL_JOBS = ["test-full", "test-shard", "test-checks", "test-sharded"];
 const FAST_IF = "github.event_name == 'push' || github.event_name == 'pull_request'";
 const FULL_IF = "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'";
@@ -259,9 +259,11 @@ function ciContractErrors(source) {
   const shard = jobs.get("test-shard") ?? "";
   const checks = jobs.get("test-checks") ?? "";
   const aggregator = jobs.get("test-sharded") ?? "";
+  const fastShard = jobs.get("fast-shard") ?? "";
 
   if ([...jobs.keys()].join(",") !== CI_JOBS.join(",")) errors.push("CI job boundary");
   if (!new RegExp(`^    timeout-minutes: ${FAST_TIMEOUT_MINUTES}$`, "mu").test(fast)
+    || !new RegExp(`^    timeout-minutes: ${FAST_TIMEOUT_MINUTES}$`, "mu").test(fastShard)
     || !/^    timeout-minutes: 35$/mu.test(full)
     || !/^    timeout-minutes: 35$/mu.test(shard)
     || !/^    timeout-minutes: 15$/mu.test(checks)
@@ -277,6 +279,7 @@ function ciContractErrors(source) {
   // Pushes and pull requests run only the fast job; the full suite runs only on
   // schedule and manual dispatch, so the two never share a run or a check name.
   if (jobIf(fast) !== FAST_IF
+    || jobIf(fastShard) !== FAST_IF
     || [full, shard, checks].some((block) => jobIf(block) !== FULL_IF)
     || jobIf(aggregator) !== `always() && (${FULL_IF})`
     || (source.match(/^    if:/gmu) ?? []).length !== CI_JOBS.length) {
@@ -320,8 +323,8 @@ function ciContractErrors(source) {
     ))) {
     errors.push("CI fast tier");
   }
-  if ((source.match(/test:fast/gu) ?? []).length !== 1
-    || (source.match(/AGENTIC_SDLC_TEST_TIER_IN_CI/gu) ?? []).length !== 1
+  if ((source.match(/test:fast/gu) ?? []).length !== 2
+    || (source.match(/AGENTIC_SDLC_TEST_TIER_IN_CI/gu) ?? []).length !== 2
     || /AGENTIC_SDLC_TEST_TIER:/u.test(source)) {
     errors.push("CI fast tier");
   }
@@ -342,7 +345,7 @@ function ciContractErrors(source) {
     || concurrency.serializedNode !== "18.20.3"
     || concurrency.serializedValue !== "1"
     || concurrency.defaultValue !== "2"
-    || (source.match(/AGENTIC_SDLC_TEST_CONCURRENCY:/gu) ?? []).length !== 3
+    || (source.match(/AGENTIC_SDLC_TEST_CONCURRENCY:/gu) ?? []).length !== 4
     || (fast.match(/AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/gmu) ?? []).length !== 1
     || (full.match(/AGENTIC_SDLC_TEST_CONCURRENCY: "4"$/gmu) ?? []).length !== 1) {
     errors.push("CI test concurrency policy");
@@ -363,6 +366,27 @@ function ciContractErrors(source) {
     || SHARD_INDEPENDENT_COMMANDS.some((command) => shard.includes(command))
     || /startsWith\(matrix\.shard/u.test(shard)) {
     errors.push("CI shards");
+  }
+
+  // Windows fast tier: the fast tier split into the same three shards, once per
+  // shard on Windows, under its own check names, without the shard-independent steps.
+  try {
+    const cells = staticMatrix(fastShard);
+    if (cells.map((cell) => `${cell.os}|${cell.node}|${cell.shard}`).sort().join("#")
+      !== SHARDS.map((index) => `windows-latest|24|${index}`).join("#")) {
+      errors.push("CI Windows fast shards");
+    }
+  } catch {
+    errors.push("CI Windows fast shards");
+  }
+  if (!/^    name: fast shard \(\$\{\{ matrix\.os \}\}, \$\{\{ matrix\.node \}\}, \$\{\{ matrix\.shard \}\}\)$/mu.test(fastShard)
+    || !/^    runs-on: \$\{\{ matrix\.os \}\}$/mu.test(fastShard)
+    || (fastShard.match(/run: npm run test:fast$/gmu) ?? []).length !== 1
+    || !/^\s+AGENTIC_SDLC_TEST_TIER_IN_CI: "true"$/mu.test(fastShard)
+    || !/^\s+AGENTIC_SDLC_TEST_SHARD: \$\{\{ matrix\.shard \}\}$/mu.test(fastShard)
+    || /npm test$|benchmark:enterprise/mu.test(fastShard)
+    || SHARD_INDEPENDENT_COMMANDS.some((command) => fastShard.includes(command))) {
+    errors.push("CI Windows fast shards");
   }
 
   // The checks job: every shard-independent step exactly once per OS and Node
@@ -401,6 +425,7 @@ function ciContractErrors(source) {
     [shard, 2],
     [checks, CHECKS_STEPS.length],
     [aggregator, 2],
+    [fastShard, 2],
   ];
   for (const [block, afterCount] of layouts) {
     const { leading, scope, after } = stepLayout(block);
@@ -437,10 +462,10 @@ function ciContractErrors(source) {
   const checkout = `actions/checkout@${ACTION_PINS.get("actions/checkout")}`;
   const setupNode = `actions/setup-node@${ACTION_PINS.get("actions/setup-node")}`;
   const setupPython = `actions/setup-python@${ACTION_PINS.get("actions/setup-python")}`;
-  if (actions.length !== 13
-    || counts.get(checkout) !== 5
-    || counts.get(setupNode) !== 5
-    || counts.get(setupPython) !== 3
+  if (actions.length !== 16
+    || counts.get(checkout) !== 6
+    || counts.get(setupNode) !== 6
+    || counts.get(setupPython) !== 4
     || actions.some((action) => {
       const separator = action.lastIndexOf("@");
       return separator < 1
@@ -448,8 +473,8 @@ function ciContractErrors(source) {
     })) {
     errors.push("CI immutable action pins");
   }
-  if ((source.match(/persist-credentials: false/gu) ?? []).length !== 5
-    || (source.match(/package-manager-cache: false/gu) ?? []).length !== 5) {
+  if ((source.match(/persist-credentials: false/gu) ?? []).length !== 6
+    || (source.match(/package-manager-cache: false/gu) ?? []).length !== 6) {
     errors.push("CI checkout and cache policy");
   }
   if ([fast, full, checks].some((block) => (
@@ -787,10 +812,10 @@ test("a documentation-only change skips steps, never jobs, and never counts as v
   assert.match(ciWorkflow, /CI_EVENT_NAME: \$\{\{ github\.event_name \}\}/u);
   // Tests read README.md and docs/, so ubuntu Node 24 never skips; nothing else opts out.
   for (const id of ["fast", "test-full"]) assert.ok(stepLayout(jobs.get(id)).scope.includes(ALWAYS_RUN_ENV), id);
-  for (const id of ["test-shard", "test-checks", "test-sharded"]) {
+  for (const id of ["test-shard", "test-checks", "test-sharded", "fast-shard"]) {
     assert.doesNotMatch(jobs.get(id), /CI_ALWAYS_RUN/u, id);
   }
-  for (const id of ["fast", "test-full", "test-shard", "test-checks"]) {
+  for (const id of ["fast", "test-full", "test-shard", "test-checks", "fast-shard"]) {
     assert.ok(stepLayout(jobs.get(id)).after.every(stepIsGated), id);
   }
 });
@@ -857,6 +882,8 @@ test("CI guards reject weakened fast, full, shard, aggregator, and skip policies
     ["ungated fast test step", replaceInJob(ciWorkflow, "fast", "        if: steps.scope.outputs.docs_only != 'true'\n        run: npm run test:fast\n", "        run: npm run test:fast\n"), "CI docs-only skip"],
     ["fail-open step", replaceInJob(ciWorkflow, "fast", "        run: npm run doctor\n", "        run: npm run doctor\n        continue-on-error: true\n"), "CI fail-open policy"],
     ["mutable action", ciWorkflow.replace("actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10", "actions/checkout@v4"), "CI immutable action pins"],
+    ["Windows fast shard dropped", replaceInJob(ciWorkflow, "fast-shard", '"shard":["1/3","2/3","3/3"]', '"shard":["1/3","2/3"]'), "CI Windows fast shards"],
+    ["Windows fast shard without its selector", replaceInJob(ciWorkflow, "fast-shard", "          AGENTIC_SDLC_TEST_SHARD: ${{ matrix.shard }}\n", ""), "CI Windows fast shards"],
     ["serialized shard concurrency changed", ciWorkflow.replace("&& '1' ||", "&& '2' ||"), "CI test concurrency policy"],
   ];
   for (const [name, source, expected] of fixtures) {
