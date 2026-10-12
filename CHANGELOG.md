@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.23
+
+- `references/commands.md` now documents the roles, coordinator, known-error, knowledge and context budget commands. Messaging texts say `mpsf` and describe every provider correctly. The `free-claims` and `settle-waits` duties are marked as available from 0.156.1, and the config schema describes `delegation_policy`. Change Observatory: usage metrics, SLO and the support bundle label the now, claims, dependencies, remote-stories and source-ref requests instead of `unknown`; live updates no longer start git processes per remote story every 8 seconds while the base branch has not moved; the docs list the Known errors and Knowledge views. Compatibility: no record or ref format changes; the schema only gains an optional section.
+
 ## 0.159.22
 
 - Internal cleanup: about 30 exported helpers, constants and aliases that nothing in the plugin, its tests or its docs referenced were removed. No change to CLI behavior or stored records. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
