@@ -18,6 +18,7 @@ import {
   readRuns,
   reapStaleRuns,
   reapUnregisteredProcesses,
+  processBelongsTo,
   removeRunRecord,
   selectStaleProcesses,
   selectStaleRuns,
@@ -204,6 +205,7 @@ test("unregistered stale processes that ignore SIGTERM get SIGKILL after re-chec
   const stopped = reapUnregisteredProcesses(null, {
     env: {},
     rows,
+    owns: () => true,
     alive: () => true,
     wait: () => {},
     killAfterMs: 0,
@@ -212,4 +214,41 @@ test("unregistered stale processes that ignore SIGTERM get SIGKILL after re-chec
   });
   assert.deepEqual(stopped, [301, 302]);
   assert.deepEqual(signals, ["301:SIGTERM", "302:SIGTERM", "301:SIGKILL"]);
+});
+
+test("the unregistered-run reaper stops only this repository's processes", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reap-scope-"));
+  try {
+    const mine = path.join(dir, "mine");
+    const other = path.join(dir, "other");
+    fs.mkdirSync(path.join(mine, ".git"), { recursive: true });
+    fs.mkdirSync(path.join(mine, "sub"), { recursive: true });
+    fs.mkdirSync(path.join(other, ".git"), { recursive: true });
+    // A linked worktree of mine shares its common dir.
+    const linked = path.join(dir, "linked");
+    fs.mkdirSync(path.join(mine, ".git", "worktrees", "linked"), { recursive: true });
+    fs.writeFileSync(path.join(mine, ".git", "worktrees", "linked", "commondir"), "../..\n");
+    fs.mkdirSync(linked);
+    fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${path.join(mine, ".git", "worktrees", "linked")}\n`);
+    const commonDir = path.join(mine, ".git");
+    const bin = "node /p/mpsf/0.1.0/bin/mpsf.mjs gate check";
+    const cwds = { 401: path.join(mine, "sub"), 402: other, 403: linked, 404: null };
+    const cwdOf = (pid) => cwds[pid] ?? null;
+    const rows = parsePsLines([
+      `  401    40:00 ${bin}`,
+      `  402    40:00 ${bin}`,
+      `  403    40:00 ${bin}`,
+      `  404    40:00 ${bin}`,
+      `  405    40:00 ${bin} --root ${other}`,
+      `  406    40:00 ${bin} --root ${mine}`,
+    ].join("\n"));
+    const owned = rows.filter((row) => processBelongsTo(row, commonDir, { cwdOf })).map((row) => row.pid);
+    assert.deepEqual(owned, [401, 403, 406]);
+    assert.equal(processBelongsTo(rows[0], null, { cwdOf }), false);
+    const signals = [];
+    reapUnregisteredProcesses(commonDir, { env: {}, rows, owns: (row) => processBelongsTo(row, commonDir, { cwdOf }), alive: () => false, wait: () => {}, kill: (pid, signal) => signals.push(`${pid}:${signal}`) });
+    assert.deepEqual(signals, ["401:SIGTERM", "403:SIGTERM", "406:SIGTERM"]);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
