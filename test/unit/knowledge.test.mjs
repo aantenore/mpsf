@@ -106,8 +106,8 @@ test("the context pack shows the entries touching the story, and nothing when no
   const context = { root, sdlcRoot: path.join(root, ".sdlc"), config: JSON.parse(fs.readFileSync(path.join(root, ".sdlc/config.json"), "utf8")) };
   const env = { AGENTIC_SDLC_SESSION_ID: "s1" };
   const pack = budgetedPack(context, { story: "ST-A-002", phase: "implementation", cache: false, env });
-  assert.match(pack.text, /## knowledge\ntrap KN-[0-9a-f]{12}: vitest cache in the diff/u);
-  assert.match(pack.text, /answer KN-[0-9a-f]{12}: Where does the export/u);
+  assert.match(pack.text, /## knowledge\ntrap KN-[0-9a-f]{12}: "vitest cache in the diff"/u);
+  assert.match(pack.text, /answer KN-[0-9a-f]{12}: "Where does the export/u);
   write(root, ".sdlc/stories/ST-B-001/story.json", { id: "ST-B-001", title: "Unrelated", status: "ready", phase: "implementation", acceptance_criteria: ["x"] });
   assert.equal(budgetedPack(context, { story: "ST-B-001", phase: "implementation", cache: false, env }).text.includes("## knowledge"), false);
 });
