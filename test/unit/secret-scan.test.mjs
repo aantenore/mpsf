@@ -6,6 +6,7 @@ import {
   REDACTION_PREFIX_LENGTH,
   SecretScanConfigurationError,
   compilePathGlob,
+  decodeScanContent,
   isPathExcluded,
   redactMatch,
   resolveRuleSet,
@@ -181,4 +182,39 @@ test("CSS custom property names and file paths are not credentials", () => {
   ]);
   assert.equal(result.outcome, "clean");
   assert.equal(scanFiles([file("src/a.js", 'secret = "abc/def+ghi/jkl=="')]).outcome, "findings");
+});
+
+test("unquoted dotenv and YAML credentials and well-known token prefixes are found", () => {
+  const positives = [
+    ["assigned_credential_unquoted", fixture("DB_PASS", "WORD=", "hunter2", "hunter")],
+    ["assigned_credential_unquoted", fixture("password: ", "change", "me123")],
+    ["well_known_token_prefix", fixture("key = sk", "_live_", "a".repeat(24))],
+    ["well_known_token_prefix", fixture("key=AI", "za", "B".repeat(35))],
+  ];
+  for (const [rule, content] of positives) {
+    assert.ok(ruleIds(scanFiles([file(".env", content)])).includes(rule), `${rule} did not match: ${content}`);
+  }
+  const negatives = [
+    "token: TokenType",
+    "password = newPassword",
+    "password: process.env.DB_PASSWORD_2",
+    "token: ${{ secrets.GH_TOKEN }}",
+    "PASSWORD=$DB_PASSWORD",
+    "secret: config/secret-file.txt",
+    "  token: someToken2,",
+  ];
+  for (const content of negatives) {
+    const result = scanFiles([file("src/app.yml", content)]);
+    assert.equal(result.outcome, "clean", `unexpected finding for: ${content} -> ${JSON.stringify(result.findings)}`);
+  }
+});
+
+test("UTF-16 text is decoded for scanning and other NUL content is reported as binary", () => {
+  const text = fixture("DB_PASS", "WORD=", "hunter2", "hunter\r\n");
+  const littleEndian = Buffer.from(text, "utf16le");
+  assert.equal(decodeScanContent(Buffer.concat([Buffer.from([0xff, 0xfe]), littleEndian])), text);
+  assert.equal(decodeScanContent(littleEndian), text);
+  assert.equal(decodeScanContent(Buffer.from(littleEndian).swap16()), text);
+  assert.equal(decodeScanContent(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x01, 0x02])), null);
+  assert.equal(scanFiles([file(".env", decodeScanContent(littleEndian))]).outcome, "findings");
 });

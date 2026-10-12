@@ -256,3 +256,26 @@ test("a scan from the remote base branch satisfies the gate once the branch cont
     fs.rmSync(remote, { force: true, recursive: true });
   }
 });
+
+test("a UTF-16 file is scanned and a binary file is reported as not scanned", () => {
+  const project = createProject({ commit: false });
+  try {
+    const story = readJson(storyPath(project));
+    writeJson(storyPath(project), { ...story, phase: "validation", status: "validation" });
+    const envPath = path.join(project, "config.env");
+    fs.writeFileSync(envPath, Buffer.from(`﻿AUTH=${PLANTED_TOKEN}\r\n`, "utf16le"));
+    const found = run(["secret", "scan", "--root", project, "--story", STORY_ID, "--json"]);
+    assert.equal(found.status, 1, found.stderr || found.stdout);
+    assert.ok(JSON.parse(found.stdout).secret_scan.findings.some((finding) => finding.path === "config.env"));
+
+    fs.rmSync(envPath);
+    fs.writeFileSync(path.join(project, "logo.bin"), Buffer.from([0x89, 0x50, 0x00, 0x00, 0x01, 0x02, 0x03]));
+    const clean = run(["secret", "scan", "--root", project, "--story", STORY_ID, "--json"]);
+    assert.equal(clean.status, 0, clean.stderr || clean.stdout);
+    assert.deepEqual(JSON.parse(clean.stdout).unscanned_paths, ["logo.bin"]);
+    const checked = JSON.parse(run(["gate", "check", "--root", project, "--story", STORY_ID, "--json"]).stdout);
+    assert.ok((checked.warnings || []).some((warning) => warning.includes("did not read") && warning.includes("logo.bin")));
+  } finally {
+    fs.rmSync(project, { force: true, recursive: true });
+  }
+});
