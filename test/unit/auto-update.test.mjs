@@ -121,3 +121,33 @@ test("the entry delegates to a newer version once, with arguments and the exit s
     fs.rmSync(c.base, { recursive: true, force: true });
   }
 });
+
+test("sync also brings the manifests, so the active folder declares the version of its code", () => {
+  const c = cache({ "0.1.0": { "package.json": JSON.stringify({ version: "0.1.0" }), "lib/x.mjs": "old" }, "0.2.0": { "package.json": JSON.stringify({ version: "0.2.0" }), "lib/x.mjs": "new" } });
+  try {
+    const result = syncInPlace(c.dir("0.1.0"));
+    assert.equal(result.synced, true);
+    assert.equal(result.manifests, 2);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(c.dir("0.1.0"), "package.json"), "utf8")).version, "0.2.0");
+    assert.equal(JSON.parse(fs.readFileSync(path.join(c.dir("0.1.0"), ".claude-plugin", "plugin.json"), "utf8")).version, "0.2.0");
+  } finally {
+    fs.rmSync(c.base, { recursive: true, force: true });
+  }
+});
+
+test("with a host install record only an installed version is forwarded to or synced from", () => {
+  const c = cache({ "0.1.0": {}, "0.2.0": {}, "0.3.0": {} });
+  const record = path.join(c.base, ".claude", "plugins", "installed_plugins.json");
+  try {
+    assert.equal(newerSibling(c.dir("0.1.0")).version, "0.3.0", "no record: the newest sibling");
+    fs.writeFileSync(record, JSON.stringify({ version: 2, plugins: { "agentic-sdlc@mkt": [{ scope: "user", installPath: c.dir("0.2.0"), version: "0.2.0" }] } }));
+    assert.equal(newerSibling(c.dir("0.1.0")).version, "0.2.0", "the pinned version, not the leftover 0.3.0");
+    assert.equal(newerSibling(c.dir("0.2.0")), null);
+    fs.writeFileSync(record, JSON.stringify({ version: 1, plugins: { "agentic-sdlc@mkt": { installPath: c.dir("0.3.0"), version: "0.3.0" } } }));
+    assert.equal(newerSibling(c.dir("0.1.0")).version, "0.3.0");
+    fs.writeFileSync(record, JSON.stringify({ version: 2, plugins: { "other@mkt": [{ version: "0.3.0" }] } }));
+    assert.equal(newerSibling(c.dir("0.1.0")), null, "not installed for the host: nothing runs");
+  } finally {
+    fs.rmSync(c.base, { recursive: true, force: true });
+  }
+});
