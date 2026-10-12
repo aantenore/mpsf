@@ -36,6 +36,12 @@ test("key is stable and digit-normalized", () => {
   assert.match(injectionKey("x"), /^[0-9a-f]{16}$/u);
 });
 
+test("key keeps record ids distinct while still masking counts", () => {
+  assert.notEqual(injectionKey("ST-12 blocked by ST-3"), injectionKey("ST-45 blocked by ST-7"));
+  assert.notEqual(injectionKey("REQ-CTX-1 waiting"), injectionKey("REQ-CTX-2 waiting"));
+  assert.equal(injectionKey("ST-12 waiting for 3 min"), injectionKey("ST-12 waiting for 14 min"));
+});
+
 test("dedupe across calls in the same session, not across sessions", () => {
   const dir = createFixtureDir();
   try {
