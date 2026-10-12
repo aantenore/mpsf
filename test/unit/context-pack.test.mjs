@@ -201,6 +201,15 @@ test("context get resolves refs and refuses paths outside the records", () => {
   }
 });
 
+test("context get refuses a record symlink that leads outside the project", () => {
+  const root = fixture();
+  const context = contextOf(root);
+  const outside = createFixtureDir("context-outside-");
+  fs.writeFileSync(path.join(outside, "credentials.json"), "{\"key\":\"outside\"}\n");
+  fs.symlinkSync(path.join(outside, "credentials.json"), path.join(root, ".sdlc", "requirements", "LINK.json"));
+  assert.throws(() => getContextRef(context, "rec:.sdlc/requirements/LINK.json"), /resolves outside/u);
+});
+
 test("symbols are names only, never bodies", () => {
   assert.deepEqual(extractSymbols("export default class Big {}\nexport async function go() { return 1; }\ndef run():\n  pass\n", 5), ["Big", "go", "run"]);
   assert.deepEqual(extractSymbols("export const a = 1;\nexport const b = 2;\nexport const c = 3;", 2), ["a", "b"]);
