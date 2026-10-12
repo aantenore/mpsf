@@ -200,6 +200,14 @@
     "observability": {
       "$ref": "#/$defs/observability_policy"
     },
+    "delegation_policy": {
+      "type": "object",
+      "properties": {
+        "expiry_warning_hours": { "type": "number", "exclusiveMinimum": 0 },
+        "max_validity_days": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": true
+    },
     "host_policy": {
       "type": "object",
       "properties": {

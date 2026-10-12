@@ -339,6 +339,34 @@ test("operational endpoints require bearer authentication for GET and HEAD", asy
   }
 });
 
+test("live data endpoints require bearer authentication and reject query parameters", async (t) => {
+  const fixture = await createServerFixture(t);
+  const running = await startObservatoryServer({
+    projectRoot: fixture.projectRoot,
+    assetRoot: fixture.assetRoot,
+  });
+  t.after(() => running.close());
+
+  for (const endpoint of [
+    "/api/v1/now",
+    "/api/v1/claims",
+    "/api/v1/dependencies",
+    "/api/v1/remote-stories",
+    "/api/v1/source-ref",
+  ]) {
+    const denied = await request(running, endpoint, { authenticated: false });
+    assert.equal(denied.statusCode, 401, endpoint);
+    assert.equal(denied.json.error.code, "access_denied", endpoint);
+
+    const allowed = await request(running, endpoint);
+    assert.equal(allowed.statusCode, 200, endpoint);
+
+    const invalid = await request(running, `${endpoint}?unexpected=1`);
+    assert.equal(invalid.statusCode, 400, endpoint);
+    assert.equal(invalid.json.error.code, "invalid_portfolio_request", endpoint);
+  }
+});
+
 test("returns or generates a safe correlation ID and uses the stable error envelope", async (t) => {
   const fixture = await createServerFixture(t);
   const running = await startObservatoryServer({

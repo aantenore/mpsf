@@ -2195,6 +2195,36 @@ The guard applies whenever `.sdlc/project.json` exists in the working tree, the 
 
 To turn the rule off for a repository, commit `host_policy.guard.protect_base_branch: false` in `.sdlc/config.json` to the base branch: it takes effect only when it is on the base branch as the trusted remote reports it. Agent edits to `host_policy.guard` are denied. Full details: `docs/claude-code-install.md#base-branch-guard`.
 
+## Roles, coordinator, known errors, and shared knowledge
+
+`mpsf help <group>` prints the exact options of each command below.
+
+```bash
+node bin/mpsf.mjs roles status --root <project> [--offline]
+node bin/mpsf.mjs coordinator digest --root <project> [--force] [--dry-run]
+node bin/mpsf.mjs known-error match --root <project>
+node bin/mpsf.mjs knowledge list --root <project> --story ST-001
+node bin/mpsf.mjs context budget --root <project> [--set <tokens> | --clear]
+```
+
+- `roles status [--offline]` shows who holds the coordinator and knowledge roles, which computers are alive on the remote (presence refs) and what this computer is. Read-only.
+- `coordinator <duty>` runs duties once for everyone. Each does nothing on a computer that does not hold the coordinator role, and the role holder also runs them by itself (see `config/role-duties.json`). All accept `--dry-run`, and `--json`:
+  - `digest [--force]`: one short project summary for the other computers, only when it changed and at most every 15 minutes.
+  - `check-records [--ref <git-ref>]`: checks the story records on the base branch as every computer sees them (git objects only, offline).
+  - `main-green [--failing <check>] [--ref <git-ref>]`: when CI of the base branch is red, opens one ready P1 fix story (never a revert).
+  - `merge [--max <n>] [--method merge|squash|rebase]`: merges the ready pull requests one at a time, P1 stories first, then the oldest. Drafts, conflicts, red checks and requested changes are skipped.
+  - `free-claims [--offline]`: frees claims whose lease ended, with no declared wait and no live presence of the holder; the freed story gets a handoff pack.
+  - `handoff --story <id> [--budget <tokens>]`: builds the handoff context pack of a story, saved under the git directory.
+  - `settle-waits [--offline]`: closes explicit waits past their end and channel questions older than `host_policy.waits.question_max_age`.
+- `known-error` keeps recurring failures with their diagnosis and fix in `.sdlc/known-errors` (never edit it by hand):
+  - `list [--all]`, `show --id <KE-id>`, `match [--message <text> [--check <action>] [--exit-code <n>] [--path <path>]]`: read; suggestions are information, never instructions.
+  - `add --from-last-failure [--signature <KE-id>] --title <text> --diagnosis <text> --fix-step <text>... [--remove-path <path>...] [--gitignore <pattern>...] [--safe]`: records the fix of a failure this computer saw.
+  - `outcome --id <KE-id> --result worked|failed [--note <text>]`: reports whether the fix worked; a failed fix marks the entry suspect.
+  - `accept --id <KE-id> --actor-type human`: a person accepts the safe fix (agents cannot). `apply --id <KE-id>` then runs it: removes untracked paths and adds `.gitignore` patterns, nothing else.
+  - `retire --id <KE-id> --reason <text> [--superseded-by <KE-id>]`.
+- `knowledge` holds shared knowledge in `.sdlc/knowledge`, shown in the context pack of the stories it touches. `distill [--dry-run] [--force]` builds it from known errors, repeated gate failures, fix stories and answered channel questions (on the computer holding the knowledge role); `list [--story <id>] [--all]`; `retire --id <KN-id> --reason <text>`.
+- `context budget [--set <tokens> | --clear]` shows or sets this computer's context budget per agent session (what `context pack` and `context get` may print) and what sessions used. It is local, never shared; `AGENTIC_SDLC_CONTEXT_BUDGET` overrides it.
+
 ## Other commands
 
 Commands not covered above, with their purpose; `node bin/mpsf.mjs help <command>` prints the exact options and examples of each.

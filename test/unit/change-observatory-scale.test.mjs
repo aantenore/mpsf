@@ -157,6 +157,29 @@ test("shared claims are read from local tracking refs only", () => {
   assert.ok(failed.error);
 });
 
+test("remote stories are cached by ref sha: unchanged refs start no further reads", () => {
+  const calls = [];
+  let sha = "a".repeat(40);
+  const run = (args) => {
+    calls.push(args[0]);
+    if (args[0] === "rev-parse") return { ok: true, stdout: `${sha}\n` };
+    if (args[0] === "ls-tree") return { ok: true, stdout: "ST-ONE\n" };
+    if (args[0] === "show") return { ok: true, stdout: JSON.stringify({ id: "ST-ONE", title: "One" }) };
+    return { ok: true, stdout: "2026-10-09T18:00:00+00:00\n" };
+  };
+  const options = { git: run, baseRef: { ref: "refs/remotes/origin/main", branch: "main" }, hasLocalStory: () => false };
+  const root = "/nowhere-cache";
+  assert.equal(readRemoteOnlyStories(root, options).stories.length, 1);
+  assert.deepEqual(calls, ["rev-parse", "ls-tree", "show", "log"]);
+  calls.length = 0;
+  assert.equal(readRemoteOnlyStories(root, options).stories[0].title, "One");
+  assert.deepEqual(calls, ["rev-parse"]);
+  calls.length = 0;
+  sha = "b".repeat(40);
+  readRemoteOnlyStories(root, options);
+  assert.deepEqual(calls, ["rev-parse", "ls-tree", "show", "log"]);
+});
+
 test("stories another computer pushed appear before this copy is updated", () => {
   const files = {
     ".sdlc/stories": "ST-LOCAL\nST-NEW\nST-BROKEN\n../escape\n",

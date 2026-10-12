@@ -211,7 +211,7 @@ records one by one.
 1. **Done (0.148.0):** `context pack`, `context get`, cache, redaction, phase and handoff
    packs, compact CLI output and the agent JSON profile (`--json-profile agent|full`), hook
    dedupe/caps, pointers in hooks, skill and `story` hints.
-2. Story commands (`story claim`, `task start`) print the pack hash and the
+2. **Done:** story commands (`story claim`, `task start`) print the pack hash and the
    `context pack` command as their next step; `next` and the Stop hook add the pack ref of
    the active claim.
 3. Pack refs become store-neutral (`rec:<kind>/<key>`) as the RecordStore port covers more

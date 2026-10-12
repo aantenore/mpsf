@@ -47,6 +47,8 @@ here), and the ref mode keeps a snapshot under `.git/agentic-sdlc/observatory/`.
    | Changes | What was actually changed, grouped by the intent behind it. |
    | Intent evidence | Optional, content-free notes about what an agent was asked to do. It is empty unless that recording is turned on, and an empty view is normal. |
    | Verification | The checks and gates that were run, and what they showed. |
+   | Known errors | Recurring failures with a recorded diagnosis and fix steps, how often each fix worked, and whether a safe fix was accepted. Empty when none was recorded. |
+   | Knowledge | Recurring traps, fixes and answers distilled for every computer, the ones shown in the context pack of the stories they touch. |
 
    The visual views only read the recorded history. A story's state comes from
    its recorded steps (in progress, blocked, needs a decision, started, parked,
@@ -283,10 +285,10 @@ served only in single-project mode.
 | `/api/v1/source?path=...` | Bearer token | Returns one allowed, bounded, presentation-redacted source record. |
 | `/api/v1/claims` | Bearer token | The shared claims as last read, the same ones `status` and the claim commands use (single-project mode). |
 | `/api/v1/dependencies` | Bearer token | Compact dependency edges between stories. |
-| `/api/v1/remote-stories` | Bearer token | Stories on the shared base branch that are missing locally. |
-| `/api/v1/source-ref` | Bearer token | Which ref or local working tree is shown, plus `liveSeconds` when live refresh is on. |
+| `/api/v1/remote-stories` | Bearer token | Stories on the shared base branch that are missing locally. Results are cached per remote base commit, so live polling re-reads git only when the branch moves. |
+| `/api/v1/source-ref` | Bearer token | Which ref or local working tree is shown, plus `liveSeconds` (default 8, set with `AGENTIC_SDLC_OBSERVE_LIVE_SECONDS`, minimum 2) when live refresh is on. |
 | `/api/v1/refresh[?fetch=0]` | Bearer token | Makes the record source catch up now. Without the parameter it fetches the remote; with `fetch=0` it re-syncs only from refs already present locally. Any other query returns `400`. |
-| `/api/v1/now` | Bearer token | Data for the Now panel. |
+| `/api/v1/now` | Bearer token | Data for the Now panel: active claims, latest status per computer, open questions and requests, free computers and waits. Single-project mode only. |
 | `/api/v1/portfolio` | Bearer token | In explicit portfolio mode, returns the bounded manifest-order summary without project paths or raw-source references. |
 | `/api/v1/portfolio/project?project=...` | Bearer token | Lazily returns one selected project view from the loaded manifest. |
 | `/api/v1/portfolio/source?project=...&path=...` | Bearer token | Returns one bounded source record scoped to the selected manifest project. |
@@ -346,7 +348,7 @@ details and the raw-evidence drawer.
 
 The sidebar shows four everyday views: Overview, Stories, Timeline, and Map.
 The record-level views (Story dossier, Contracts, Decisions, Changes, Intent
-evidence, and Verification) sit under **More details**, which stays open once
+evidence, Verification, Known errors, and Knowledge) sit under **More details**, which stays open once
 chosen.
 
 - **Now.** The Overview opens with who is doing what across computers: active

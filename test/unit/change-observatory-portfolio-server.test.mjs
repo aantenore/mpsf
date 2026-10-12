@@ -252,6 +252,33 @@ test("enforces auth, Host, read-only methods, and exact portfolio queries", asyn
   assert.equal(oldSingleProjectRoute.json.error.code, "api_not_found");
 });
 
+test("portfolio live data endpoints require authentication and exactly one project parameter", async (t) => {
+  const fixture = await createPortfolioFixture(t);
+  const running = await startObservatoryServer({
+    projectRoot: fixture.root,
+    portfolioManifest: "portfolio.json",
+    clock: () => new Date("2026-07-19T11:00:00Z"),
+  });
+  t.after(() => running.close());
+
+  for (const endpoint of [
+    "/api/v1/portfolio/claims",
+    "/api/v1/portfolio/dependencies",
+    "/api/v1/portfolio/remote-stories",
+  ]) {
+    const denied = await request(running, `${endpoint}?project=alpha`, { authenticated: false });
+    assert.equal(denied.statusCode, 401, endpoint);
+    assert.equal(denied.json.error.code, "access_denied", endpoint);
+
+    const missing = await request(running, endpoint);
+    assert.equal(missing.statusCode, 400, endpoint);
+    assert.equal(missing.json.error.code, "invalid_portfolio_request", endpoint);
+
+    const extra = await request(running, `${endpoint}?project=alpha&other=1`);
+    assert.equal(extra.statusCode, 400, endpoint);
+  }
+});
+
 async function createPortfolioFixture(t) {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "change-observatory-portfolio-server-"));
   const root = await fs.realpath(temporary);

@@ -218,7 +218,7 @@ Phase 1 ships the schema, validation and the pure resolver (`lib/coordination-ro
 - `gate check` fails closed when the store lacks a guarantee the certification level needs.
 - Contract suites: `test/helpers/messaging-contract.mjs`, `test/helpers/records-contract.mjs`; flows with messaging off: `test/messaging-off-flows.e2e.mjs`.
 
-### Phase 2: independence and roles
+### Phase 2: independence and roles (done)
 
 - Questions and freezes as explicit wait-registry records; derived waits from the channel become optional hints.
 - Neutral host identity module; messaging and store use it.
