@@ -799,6 +799,17 @@ test("the base-branch guard applies only to Agentic SDLC projects, unless the tr
 
     const toMainAttempt = { kind: "git push to main", direct: true, base: "main", dirs: [] };
     assert.equal(isGuardExempt(releasing, toMainAttempt), true);
+    // A verification that runs out of time exempts nothing: the push to the base stays guarded.
+    const slow = repo("slow", { ".sdlc/project.json": "{}", ".sdlc/config.json": off });
+    // Every clock read moves 4 s ahead: the ls-remote fits the budget, the fetch no longer does.
+    const { setHost } = await import("../../lib/runtime/host.mjs");
+    let clock = 0;
+    const restoreHost = setHost({ now: () => (clock += 4000) });
+    try {
+      assert.equal(isGuardExempt(slow, toMainAttempt), false);
+    } finally {
+      restoreHost();
+    }
     // 'origin' pointed at a fake remote that turns the rule off: the trusted URL no longer matches.
     repo("fake", { ".sdlc/project.json": "{}", ".sdlc/config.json": off }, { trust: false });
     const fakeRemote = path.join(base, "fake.git");
