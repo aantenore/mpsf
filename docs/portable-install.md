@@ -227,6 +227,8 @@ Treat the generated tree under `~/plugins` as installation output. Do not clone 
 
 ## Update
 
+On Claude Code: `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins`. The rest of this section is Codex.
+
 There is no dedicated update subcommand in the current Codex plugin CLI.
 Refresh the source checkout by your normal source-control process, review a
 fresh plan, apply that exact plan, and add the plugin again:
@@ -251,7 +253,9 @@ For a released build, change the semantic version. During local development at t
 
 ## Uninstall
 
-Remove the installed plugin and its Codex cache:
+On Claude Code: `/plugin uninstall mpsf@aantenore` (see [claude-code-install.md](claude-code-install.md#uninstall)).
+
+On Codex, remove the installed plugin and its Codex cache:
 
 ```bash
 codex plugin remove agentic-sdlc-codex-plugin@personal
@@ -277,7 +281,7 @@ That retained catalog entry allows a later reinstall. For permanent machine clea
 
 ## Doctor
 
-Run the plugin's non-destructive doctor from the source checkout. The npm script and direct CLI form execute the same checks:
+On Claude Code run `/mpsf:doctor`; it runs the same checks. On Codex, or from a checkout, run the plugin's non-destructive doctor from the source checkout. The npm script and direct CLI form execute the same checks:
 
 ```bash
 npm run doctor

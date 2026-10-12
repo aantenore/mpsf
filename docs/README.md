@@ -76,7 +76,8 @@ This page is the documentation map. Start with the goal that matches what you wa
 3. [Knowledge-base structure](kb-structure.md)
 4. [Configurable workflows](configurable-workflows.md)
 5. [Native Codex session meter](codex-session-metering.md)
-6. [CodeBurn adapter reference](codeburn-metering.md), only for legacy configurations
+6. [CodeBurn adapter reference](codeburn-metering.md), for legacy configurations and for metering under Claude Code
+7. [Claude Code installation](claude-code-install.md#what-does-not-apply-on-claude-code), what differs on Claude Code
 
 ### Maintainer changing the plugin
 

@@ -769,7 +769,7 @@ node bin/mpsf.mjs budget meter start \
 | `--proposal` | Bind the baseline to this exact proposal and effective budget |
 | `--adapter` | Select an allowlisted adapter; `codex-session` is default and `codeburn` must be explicitly enabled |
 | `--id` | Name the baseline; the default is `METER-<proposal>-<adapter-id>` (for example `METER-<proposal>-codeburn`), which `budget meter record` also uses when `--baseline` is omitted |
-| `--provider` | Filter CodeBurn’s local log source, for example `codex`; this is not a billing account ID |
+| `--provider` | Filter CodeBurn’s local log source, for example `codex`; under Claude Code use CodeBurn's Claude Code provider. This is not a billing account ID |
 | `--project` | Filter CodeBurn’s project aggregation; choose the narrowest stable project name |
 | `--from` | Inclusive start date in `YYYY-MM-DD` form |
 | `--to` | Inclusive end date; keep a stable full window for multi-day work |

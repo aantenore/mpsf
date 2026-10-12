@@ -652,7 +652,13 @@ share the correlation ID or a support bundle instead, and stop the process with
 
 ## Install or update locally
 
-The local installer uses a reviewable transaction:
+On Claude Code install and update through the marketplace:
+`/plugin marketplace add aantenore/mpsf`, `/plugin install mpsf@aantenore`, and
+later `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`
+followed by `/reload-plugins` (see [Claude Code installation](claude-code-install.md)).
+The rest of this section is the Codex installer, which Claude Code does not use.
+
+On Codex the local installer uses a reviewable transaction:
 
 ```bash
 python3 scripts/install-personal-marketplace-v2.py check --locale it

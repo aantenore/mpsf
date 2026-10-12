@@ -142,7 +142,7 @@ Earlier releases in those lines contain an upstream native shutdown livelock.
 /mpsf:doctor
 ```
 
-Then use a starter command — `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local`, `/mpsf:observe` — or just describe the outcome in plain language. Full guide: [Claude Code Installation](docs/claude-code-install.md).
+Then use a starter command — `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local`, `/mpsf:observe` — or just describe the outcome in plain language. The hooks are enabled with the plugin, and the Codex-only steps below (transactional installer, token-efficiency autoconfiguration) are not needed. Full guide: [Claude Code Installation](docs/claude-code-install.md).
 
 ### Codex
 
@@ -614,7 +614,7 @@ Records can also live in plain files instead of git (`"records": { "provider": "
 
 With several computers, one can be named coordinator: it merges pull requests one at a time, publishes records, frees abandoned claims, settles expired waits and keeps the base branch green (stories are not assigned: every computer claims its own), while the others develop up to the pull request. Configure it under `host_policy.roles.coordinator` (`hosts`, `lease_minutes`, `fallback`: `everyone`, `next_host` or `hold`, and optionally `reserved_actions`). With that section, a reserved action (by default merging a pull request and refreshing the baseline) is refused on a computer that does not hold the coordinator lease; without it, roles are assigned automatically among the computers alive on the remote and nothing is refused. Details in [Adapters and roles](docs/adapters-and-roles.md#coordinator-role).
 
-## Native Codex Metering Versus Exact Metering
+## Native Codex Metering Versus Exact Metering (and Claude Code)
 
 The bundled `codex-session` adapter reads only the exact task's local
 `token_count` events. It is direct and authentication-free, but not
@@ -637,7 +637,9 @@ flowchart TD
 
 After proposal approval, capture the exact task baseline **before** `apply`.
 `CODEX_THREAD_ID` is supplied by the Codex host; outside the host, pass
-`--thread-id` explicitly:
+`--thread-id` explicitly. On Claude Code there is no Codex session to read, so the native meter does not start (`budget meter start` says so and lists the options). Either enable the `codeburn` adapter with CodeBurn's Claude Code log provider (`budget_policy.metering_adapters.codeburn.enabled` and `.provider`, then `--adapter codeburn`), or record usage by hand with `mpsf budget usage record --proposal <id> --input-tokens <n> --output-tokens <n>`. Both are estimated, like the Codex meter: they drive soft limits and warnings, not hard limits. The budget model itself is the same on both hosts.
+
+On Codex:
 
 ```bash
 node bin/mpsf.mjs budget meter start \
@@ -692,6 +694,8 @@ node bin/mpsf.mjs optimization status --root /path/to/project --proposal ASSESSM
 node bin/mpsf.mjs optimization run --root /path/to/project --proposal ASSESSMENT-001 --command-json '["npm","test"]'
 node bin/mpsf.mjs optimization capture --root /path/to/project --proposal ASSESSMENT-001 --phase manual --json
 ```
+
+On Claude Code the gateway, the cost gate and the Caveman skill work the same. Only `scripts/autoconfigure-token-efficiency.py` is Codex-specific (it writes RTK guidance into the global Codex instructions); on Claude Code nothing needs configuring, and the plugin never edits Claude Code's global settings or installs RTK's own hooks.
 
 Use `optimization run --exact` when unfiltered, complete output is required.
 It bypasses RTK but never widens the allowlist or disables the anti-helper

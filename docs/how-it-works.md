@@ -639,6 +639,8 @@ Collection reads no prompt bodies, page, web API, or authenticated service. See
 [Native Codex Session Metering](codex-session-metering.md) and
 [Limits and Metering](limits-and-metering.md).
 
+On Claude Code there is no Codex session to read, so the native meter does not start (`budget meter start` says so and lists the options). Either enable the `codeburn` adapter with CodeBurn's Claude Code log provider (`budget_policy.metering_adapters.codeburn.enabled` and `.provider`, then `--adapter codeburn`), or record usage by hand with `mpsf budget usage record --proposal <id> --input-tokens <n> --output-tokens <n>`. Both are estimated, like the Codex meter: they drive soft limits and warnings, not hard limits. The budget model itself is the same on both hosts.
+
 RTK is a separate context-optimization gateway, not another usage meter. Inspect
 its provider and project-cumulative counters, route a supported noisy command,
 or capture a manual diagnostic with:

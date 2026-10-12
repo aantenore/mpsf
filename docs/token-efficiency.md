@@ -273,6 +273,9 @@ after RTK and Caveman have affected context. That naturally reflects actual
 reductions in soft-limit consumption. The plugin never subtracts RTK
 `estimated_tokens_avoided` or assigns a synthetic Caveman percentage, preventing
 double counting. See [Native Codex session metering](codex-session-metering.md).
+On Claude Code there is no Codex session meter: usage comes from the `codeburn`
+adapter (Claude Code log provider) or from `budget usage record`, and the same
+rule holds: savings show up only in the next measured total.
 
 At completion, valid observation references may be included in the release
 manifest and an optional `context_optimization` gate check. That check proves
