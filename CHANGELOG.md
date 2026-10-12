@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.25
+
+- Secret scan reads UTF-16 files (for example a `.env` saved by Windows tools) and catches unquoted `KEY=value` / `password: value` credentials and well-known token prefixes (Stripe live, Google API, GitHub, GitLab, npm, Anthropic, OpenAI). Binary or oversized files it cannot read are listed by `secret scan` (`unscanned_paths`) and warned about by the validation gate instead of counting as clean. The new rules change the rule set hash, so the next delivery check scans again.
+- `context get rec:` refuses `.sdlc` symlinks that lead outside the project, and the hook dedupe no longer hides a new wait on a different story (lines with a record id may show once more per session after the update).
+- Change Observatory: no change needed (it reads the same secret scan records). Compatibility: secret scan records keep the `secret-scan:v1` format; older plugins read them as before.
+
 ## 0.159.24
 
 - Guard: a script file that a shell command runs (`bash x.sh`, `sh < x.sh`, `source`/`.`, `./x.sh`, `cat x.sh | bash`, `node x.mjs`, `python3 x.py`, nested in `bash -c` or `eval`) is read and checked as if its lines were typed in the command, when it is not tracked by git or has uncommitted changes. Shell scripts get every guard rule; other scripts are refused when they change the session markers, run a person-only mpsf subcommand, write the protected records or refs, or push or merge. A script created and run in the same command is refused (write it in one call, run it in the next); tracked, unchanged scripts are not read. Actor inference: inside an agent session (`CLAUDECODE`, `CODEX_THREAD_ID`) a record without `--actor-type` is attributed to the agent even when `--actor` names a person; an explicit `--actor-type` is unchanged. Change Observatory: no change. Compatibility: no record, ref or schema format changed; older plugins keep their own guard.
