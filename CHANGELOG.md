@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.30
+
+- Documentation only: README, docs, skill references and templates no longer read as Codex-only. Generic "Codex" wording now says the agent (Codex or Claude Code), and the README install, update, uninstall and diagnose sections give the Claude Code commands too. Stale statements fixed: claim time to live is two hours by default (not 24), only `auto` coordinator duties run by themselves, `main-green` and `merge` work on GitHub, GitLab and Gitea/Forgejo, `git` is a valid `.sdlc/messaging.json` provider and the default for new channels, the messaging waits no longer include plugin update requests, the `sdlc-state` store and the `knowledge`, `known-errors`, `machines` and `compatibility` folders are described, the new-messages stderr prefix is `mpsf:`, and the adapters plan status matches what shipped. The README release section describes `npm run sync-version` for patch releases. Change Observatory: no change (its docs say `codex-generated` covers text from any agent). Compatibility: no record, ref or schema format changed.
+
 ## 0.159.29
 
 - Documentation only: the guard's script-file and host-settings checks, agent-session actor inference, the new secret scan rules and `unscanned_paths`, the `pc-<hash>-<random>` computer id and key protection in `message setup`, `AGENTIC_SDLC_ROLES_TICK_TIMEOUT_SECONDS`, the trusted-remote 6 s budget and the shared keep-going cap are now described in the install, messaging, how-it-works, skill and command docs; version mentions say 0.159.29. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
