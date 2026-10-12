@@ -2,6 +2,12 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.26
+
+- Hooks no longer loop or reach too far: two sessions on the same clone share the keep-going block cap, so they stop blocking each other; the Stop hook starts prepared stories in the background instead of running them inline; the trusted-remote base check fits a 6 s budget and keeps the push to the base blocked when it runs out of time; the stale-run cleanup only stops plugin commands of the current repository.
+- With auto-update on, the active folder also gets the new `package.json` and plugin manifests, and self-forward runs only a version the host lists as installed (when that list is readable).
+- Change Observatory: no change. Compatibility: the keep-going state gains an optional `blockedAt` field that older versions ignore; no record or ref format changes.
+
 ## 0.159.25
 
 - Secret scan reads UTF-16 files (for example a `.env` saved by Windows tools) and catches unquoted `KEY=value` / `password: value` credentials and well-known token prefixes (Stripe live, Google API, GitHub, GitLab, npm, Anthropic, OpenAI). Binary or oversized files it cannot read are listed by `secret scan` (`unscanned_paths`) and warned about by the validation gate instead of counting as clean. The new rules change the rule set hash, so the next delivery check scans again.
