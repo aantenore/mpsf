@@ -82,11 +82,20 @@ function gitIdentityEnv(identity) {
   };
 }
 
-function fakeGitHubEnv(project, values) {
+// The fake gh executable is a read-only copy of node, so one copy serves every call.
+let fakeGhBin;
+function fakeGitHubBin() {
+  if (fakeGhBin) return fakeGhBin;
   const fakeBin = tmpDirectory("gh");
   const executable = path.join(fakeBin, process.platform === "win32" ? "gh.exe" : "gh");
   fs.copyFileSync(fs.realpathSync.native(process.execPath), executable, fs.constants.COPYFILE_FICLONE);
   if (process.platform !== "win32") fs.chmodSync(executable, 0o755);
+  fakeGhBin = fakeBin;
+  return fakeBin;
+}
+
+function fakeGitHubEnv(project, values) {
+  const fakeBin = fakeGitHubBin();
   const requireOption = /\s/u.test(providerCommandShim)
     ? `--require=${JSON.stringify(providerCommandShim)}`
     : `--require=${providerCommandShim}`;
@@ -141,8 +150,7 @@ function codeReviewAnswer(decision) {
   ];
 }
 
-function preparePullRequestDelivery({ codeReview = "required", projectRequires = null, untilPropose = false, commitIdentity = null } = {}) {
-  const project = tmpDirectory("project");
+function buildDeliveryPrefix(project, projectRequires) {
   mustRun(["init", "--root", project, "--project-name", "Review Gate E2E", "--force"]);
   keepClaimsOnThisComputer(project);
   if (projectRequires !== null) setProjectReviewPolicy(project, projectRequires);
@@ -189,6 +197,27 @@ function preparePullRequestDelivery({ codeReview = "required", projectRequires =
     "--tool", "node",
   ]);
   mustRunJson(["contract", "approve", "--root", project, "--id", "CONTRACT-REVIEW", ...humanApproval("Approve the contract")]);
+}
+
+// The default-policy prefix is built once and never mutated; each delivery starts from its own copy.
+let deliveryPrefixBase;
+function preparePullRequestDelivery({ codeReview = "required", projectRequires = null, untilPropose = false, commitIdentity = null } = {}) {
+  const project = tmpDirectory("project");
+  if (projectRequires === null) {
+    if (!deliveryPrefixBase) {
+      try {
+        const base = tmpDirectory("prefix");
+        buildDeliveryPrefix(base, null);
+        deliveryPrefixBase = { base };
+      } catch (error) {
+        deliveryPrefixBase = { error };
+      }
+    }
+    if (deliveryPrefixBase.error) throw deliveryPrefixBase.error;
+    fs.cpSync(deliveryPrefixBase.base, project, { recursive: true });
+  } else {
+    buildDeliveryPrefix(project, projectRequires);
+  }
   if (untilPropose) return project;
   mustRunJson([
     "autonomy", "delivery", "propose", "--root", project,

@@ -191,11 +191,20 @@ function commitPaths(project, paths, message) {
  * Environment that makes `gh` answer from AUTONOMY_FAKE_GH_* values.
  * `story` supplies the PR url and head branch; `values` the remote state.
  */
-function fakeGitHubEnv(project, story, values) {
+// The fake gh executable is a read-only copy of node, so one copy serves every call.
+let fakeGhBin;
+function fakeGitHubBin() {
+  if (fakeGhBin) return fakeGhBin;
   const fakeBin = temporaryDirectory("gh");
   const executable = path.join(fakeBin, process.platform === "win32" ? "gh.exe" : "gh");
   fs.copyFileSync(fs.realpathSync.native(process.execPath), executable, fs.constants.COPYFILE_FICLONE);
   if (process.platform !== "win32") fs.chmodSync(executable, 0o755);
+  fakeGhBin = fakeBin;
+  return fakeBin;
+}
+
+function fakeGitHubEnv(project, story, values) {
+  const fakeBin = fakeGitHubBin();
   const requireOption = /\s/u.test(PROVIDER_COMMAND_SHIM)
     ? `--require=${JSON.stringify(PROVIDER_COMMAND_SHIM)}`
     : `--require=${PROVIDER_COMMAND_SHIM}`;

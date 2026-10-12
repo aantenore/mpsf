@@ -5095,7 +5095,7 @@ function storyCertificationView(project, storyId) {
   };
 }
 
-test("a certification superseded by a later valid certification stays completed as history", {
+test("a certification superseded by a later valid certification stays completed as history and its verdict is voided when a covered file changes after the successors validate", {
   skip: hostSupportsLocalSmokeSandbox()
     ? false
     : "requires a supported local smoke sandbox for terminal local release evidence",
@@ -5177,6 +5177,45 @@ test("a certification superseded by a later valid certification stays completed 
     "--actor", "codex",
     "--actor-type", "agent",
   ], project, /already has a terminal lifecycle receipt/u);
+
+  // The successors validate against the snapshot; the covered file then
+  // changes to content that matches neither certification, right before the
+  // old story's final evaluation reads its own receipt again.
+  const context = buildContext({ root: project });
+  const { instance } = readWorkflowInstance(context, first.workflowInstanceId);
+  // Library calls need the project boundary the CLI establishes per command.
+  const historyOf = () => runWithMutationGovernance(
+    { mode: "disabled", root: project },
+    () => historicalWorkflowFinalReceipt(context, first.storyId, instance),
+  );
+  const coveredSharedPath = path.join(project, "docs", "shared.md");
+  const coveredSharedBytes = fs.readFileSync(coveredSharedPath);
+  assert.equal(historyOf()?.historical, true);
+  const receiptPath = workflowFinalGateReceiptPath(context, first.storyId);
+  const host = currentHost();
+  let receiptOpens = 0;
+  let mutated = false;
+  const restore = setHost({
+    fs: {
+      ...host.fs,
+      openSync: (target, ...args) => {
+        if (target === receiptPath && ++receiptOpens === 2) {
+          fs.writeFileSync(coveredSharedPath, "# Shared behaviour\n\nThird version.\n");
+          mutated = true;
+        }
+        return host.fs.openSync(target, ...args);
+      },
+    },
+  });
+  try {
+    assert.equal(historyOf(), null);
+  } finally {
+    restore();
+  }
+  assert.equal(mutated, true);
+  assert.notDeepEqual(fs.readFileSync(coveredSharedPath), coveredSharedBytes);
+  fs.writeFileSync(coveredSharedPath, coveredSharedBytes);
+  assert.equal(historyOf()?.historical, true);
 
   // Partially covered: a certified path outside the later story's scope
   // changed without any later certification. In reopen mode the receipt is
@@ -5348,71 +5387,6 @@ test("files a nested .gitignore names never make a certification stale", {
   assert.equal(view.story.lifecycle_source, "workflow_final_receipt_stale");
   const changed = view.story.certification.changed.map((entry) => entry.path);
   assert.deepEqual(changed, ["apps/web/layout.tsx"]);
-});
-
-test("a historical verdict is voided when a covered file changes after the successors validate", {
-  skip: hostSupportsLocalSmokeSandbox()
-    ? false
-    : "requires a supported local smoke sandbox for terminal local release evidence",
-}, () => {
-  const project = temporaryProject("certification-history-recheck");
-  const first = certifyLocalReleaseStory(project, {
-    suffix: "RECHK-A",
-    allowedWritePaths: ["docs", "src"],
-    evidenceDir: "docs",
-    files: {
-      "docs/shared.md": "# Shared behaviour\n\nFirst version.\n",
-      "src/feature.mjs": "export const feature = 1;\n",
-    },
-    releaseProof: "first release\n",
-  });
-  certifyLocalReleaseStory(project, {
-    suffix: "RECHK-B",
-    allowedWritePaths: ["docs", "notes"],
-    evidenceDir: "notes",
-    files: { "docs/shared.md": "# Shared behaviour\n\nSecond version.\n" },
-    releaseProof: "second release\n",
-    existingProject: true,
-  });
-  const context = buildContext({ root: project });
-  const { instance } = readWorkflowInstance(context, first.workflowInstanceId);
-  // Library calls need the project boundary the CLI establishes per command.
-  const historyOf = () => runWithMutationGovernance(
-    { mode: "disabled", root: project },
-    () => historicalWorkflowFinalReceipt(context, first.storyId, instance),
-  );
-  const sharedPath = path.join(project, "docs", "shared.md");
-  const sharedBytes = fs.readFileSync(sharedPath);
-  assert.equal(historyOf()?.historical, true);
-
-  // The successors validate against the snapshot; the covered file then
-  // changes to content that matches neither certification, right before the
-  // old story's final evaluation reads its own receipt again.
-  const receiptPath = workflowFinalGateReceiptPath(context, first.storyId);
-  const host = currentHost();
-  let receiptOpens = 0;
-  let mutated = false;
-  const restore = setHost({
-    fs: {
-      ...host.fs,
-      openSync: (target, ...args) => {
-        if (target === receiptPath && ++receiptOpens === 2) {
-          fs.writeFileSync(sharedPath, "# Shared behaviour\n\nThird version.\n");
-          mutated = true;
-        }
-        return host.fs.openSync(target, ...args);
-      },
-    },
-  });
-  try {
-    assert.equal(historyOf(), null);
-  } finally {
-    restore();
-  }
-  assert.equal(mutated, true);
-  assert.notDeepEqual(fs.readFileSync(sharedPath), sharedBytes);
-  fs.writeFileSync(sharedPath, sharedBytes);
-  assert.equal(historyOf()?.historical, true);
 });
 
 function legacySuccessorContractArgs(project, fixture, index) {

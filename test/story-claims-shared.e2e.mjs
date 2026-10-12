@@ -158,15 +158,28 @@ function initializeRepository(project) {
   git(project, ["config", "commit.gpgSign", "false"]);
 }
 
+const PREPARED_PROJECTS = new Map();
+
+/** The initialized repository with its stories ready to claim, built once per story set and copied per test. */
+function preparedProject(storyIds) {
+  const key = storyIds.join(",");
+  if (!PREPARED_PROJECTS.has(key)) {
+    const prepared = temporaryDirectory("prepared");
+    mustRun(["init", "--root", prepared, "--project-name", "Shared claims"], prepared);
+    initializeRepository(prepared);
+    prepareStories(prepared, storyIds);
+    PREPARED_PROJECTS.set(key, prepared);
+  }
+  return PREPARED_PROJECTS.get(key);
+}
+
 /**
  * One project shared by two computers: published to a bare repository that
  * stands in for the team's remote, and cloned into a second working copy.
  */
 function sharedProject(label, storyIds = ["ST-1"], { before = null } = {}) {
   const first = temporaryDirectory(`${label}-first`);
-  mustRun(["init", "--root", first, "--project-name", "Shared claims"], first);
-  initializeRepository(first);
-  prepareStories(first, storyIds);
+  fs.cpSync(preparedProject(storyIds), first, { recursive: true });
   if (before) before(first);
   git(first, ["add", "-A"]);
   git(first, ["commit", "--quiet", "-m", "test: approved specs and breakdown"]);

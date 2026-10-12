@@ -131,8 +131,18 @@ function implementationIntent(storyId) {
   });
 }
 
+let baseProject = null;
+
 /** A project with approved routine requirements and an output format, before any delivery. */
 function initializeProject(label) {
+  // The base project is built once; each caller gets its own copy.
+  baseProject ??= buildBaseProject("base");
+  const project = temporaryProject(label);
+  fs.cpSync(baseProject, project, { recursive: true });
+  return project;
+}
+
+function buildBaseProject(label) {
   const project = temporaryProject(label);
   mustRun(["init", "--root", project, "--project-name", "Delivery metrics"], project);
   git(project, ["init"]);

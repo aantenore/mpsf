@@ -205,6 +205,18 @@ const STORY_B = Object.freeze({
  * story B's branch checked out, still at the common start.
  */
 function storyAMergedWhileBInProgress({ baseline = false } = {}) {
+  // The built project holds no absolute path, so each variant is built once and copied per scenario.
+  const key = baseline ? "baseline" : "plain";
+  if (!fixtureTemplates.has(key)) fixtureTemplates.set(key, buildStoryAMergedWhileBInProgress({ baseline }));
+  const template = fixtureTemplates.get(key);
+  const project = tmpDirectory("project");
+  fs.cpSync(template.project, project, { recursive: true, verbatimSymlinks: true });
+  return { ...template, project };
+}
+
+const fixtureTemplates = new Map();
+
+function buildStoryAMergedWhileBInProgress({ baseline }) {
   const project = tmpDirectory("project");
   mustRun(["init", "--root", project, "--project-name", "Parallel Stories E2E", "--force"]);
   applyConfig(project, (config) => {

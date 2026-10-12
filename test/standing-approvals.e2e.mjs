@@ -155,8 +155,18 @@ const DAY = 24 * 60 * 60 * 1000;
 // One routine requirement per delivery keeps each story's output independent.
 const REQUIREMENTS = ["REQ-TOIL", "REQ-TOIL-2", "REQ-TOIL-3"];
 
+let baseProject = null;
+
 /** A project with one approved requirement and output format, before any delivery. */
 function initializeProject(label) {
+  // The base project is built once; each caller gets its own copy.
+  baseProject ??= buildBaseProject("base");
+  const project = temporaryProject(label);
+  fs.cpSync(baseProject, project, { recursive: true });
+  return project;
+}
+
+function buildBaseProject(label) {
   const project = temporaryProject(label);
   mustRun(["init", "--root", project, "--project-name", "Standing approvals"], project);
   git(project, ["init"]);
