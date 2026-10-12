@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.42** — test only: the real Windows AppContainer smoke tests run on hosts that deny the container the drive root.
 - **0.159.41** — Windows: a local release's sandboxed smoke test starts again (it always ended with exit 125).
 - **0.159.40** — Windows: the base-branch guard can read the trusted remote again, and the local-release sandbox launcher runs `icacls`.
 - **0.159.39** — test only: two tests no longer assume one drive or one spelling of a local remote path on Windows.
@@ -46,7 +47,6 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - **0.159.35** — Windows: path checks see through 8.3 short names (base worktree, record publishing, guard opt-outs, trusted remotes); the fast tier can be split into shards.
 - **0.159.34** — every fast CI cell stays within about five minutes (Windows moves to the nightly run); the fast tier works on Node 18, 20 and 21.
 - **0.159.33** — push and pull-request CI runs the fast test tier in a few minutes per cell; the full suite runs nightly and on demand and no longer blocks releases.
-- **0.159.32** — host pages in `docs/hosts/` (Claude Code, Codex, what differs); every Codex-only section has its Claude Code counterpart.
 
 ## Documentation Map
 

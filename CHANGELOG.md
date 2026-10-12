@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.159.42
+
+- Test only: the real AppContainer smoke tests start Node with `--preserve-symlinks-main`, because GitHub's Windows runners deny AppContainers read access to `C:\` and Node reads every ancestor folder of its entry point (`EPERM: lstat 'C:\'`). On such a host a Node smoke test of a local release needs the same flag. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.159.41
 
 - Windows: the AppContainer launcher of a local release gives the smoke process `LOCALAPPDATA` and `USERPROFILE`, without which Windows refused to start a process in the container (CreateProcess error 203), so every sandboxed smoke run ended with exit 125. A failing Windows call in the launcher now names the Windows error and its code. Windows CI runs the real AppContainer smoke tests on every push and pull request. Change Observatory: no change. Compatibility: no record, ref or schema format changed; the launcher script hash is bound into a local-release authorization, as with any launcher change.

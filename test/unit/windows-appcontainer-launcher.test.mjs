@@ -30,7 +30,9 @@ function runSmoke(cwd, source) {
   const entry = path.join(cwd, "smoke.cjs");
   fs.writeFileSync(entry, source);
   const env = smokeEnvironment();
-  const command = localSmokeSandboxCommand(cwd, [process.execPath, entry], { env });
+  // Node resolves the real path of its entry point by reading every ancestor folder, and some hosts
+  // (GitHub's Windows runners) deny AppContainers read access to the drive root.
+  const command = localSmokeSandboxCommand(cwd, [process.execPath, "--preserve-symlinks-main", entry], { env });
   return spawnSync(command.executable, command.args, {
     cwd,
     encoding: "utf8",
