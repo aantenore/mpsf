@@ -1,6 +1,6 @@
 # MPSF on Claude Code
 
-How to install, update and use MPSF 0.159.32 from Claude Code. What Claude Code and Codex share, and where they differ, is in [hosts](README.md); the Codex packaging is in [codex.md](codex.md).
+How to install, update and use MPSF 0.159.33 from Claude Code. What Claude Code and Codex share, and where they differ, is in [hosts](README.md); the Codex packaging is in [codex.md](codex.md).
 
 ## Prerequisite
 

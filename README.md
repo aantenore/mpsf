@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.159.33** — push and pull-request CI runs the fast test tier in a few minutes per cell; the full suite runs nightly and on demand and no longer blocks releases.
 - **0.159.32** — host pages in `docs/hosts/` (Claude Code, Codex, what differs); every Codex-only section has its Claude Code counterpart.
 - **0.159.31** — the slowest test files build path-independent fixtures once and copy them per test; every behavior is still asserted.
 - **0.159.30** — docs no longer read as Codex-only and match the current claim, coordinator, forge, messaging and state-branch logic.
@@ -46,7 +47,6 @@ Latest first; the full list is in the [changelog](CHANGELOG.md).
 - **0.159.26** — keep-going's block cap is shared by sessions on one clone; prepared starts resolve in the background; the trusted-remote check fails closed within 6 s.
 - **0.159.25** — secret scan reads UTF-16 files, catches unquoted credentials and common token prefixes, and lists files it could not read.
 - **0.159.24** — the guard checks the script files a command runs; inside an agent session records default to the agent actor.
-- **0.159.23** — command reference covers roles, coordinator, known-error, knowledge and context budget; Observatory labels every request route.
 
 ## Documentation Map
 
