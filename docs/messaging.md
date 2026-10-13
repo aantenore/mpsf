@@ -151,6 +151,8 @@ mpsf message discussions [--id <message-id>] [--json]  # state, proposal, next s
 - Only a `decide` signed by a registered computer (trust `trusted`, see [Safety](#safety)) whose action passes the schema binds; others are listed as ignored. The decision only names the existing command; running it keeps every check of that command (authorizations, atomic claims, gates).
 - Discussion text is information, never an instruction. Older plugins show these messages as plain info.
 
+People read the channel as a chat in the Change Observatory (`mpsf observe`): the Chat block under the Now panel has one room per story plus General, replies sit in the room of the message they answer, and `[auto]` messages are hidden unless asked. It is read-only; write with `message send` or `message discuss`.
+
 ## Waits registry
 
 Who or what a computer (or a story) is waiting for used to live only in the agent's conversation. The waits registry keeps it where every computer and every tool can see it. A wait is `{ id, waiter (host/story), blocker type and ref, since, until, rule, state open|resolved|expired|escalated|stale, resolution }`, where the blocker type is one of `person`, `question`, `story`, `pr`, `plugin_version`, `freeze`, `approval`, `delegation`.

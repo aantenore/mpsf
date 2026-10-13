@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.163.0
+
+- Change Observatory: a Chat block under the Now panel shows the project channel as chat rooms, one per story plus General for messages about no story; a reply sits in the room of the message it answers. Each message shows sender, kind, signature warning, addressee, time, the message it answers and, for discussions, the proposed or decided action instead of the raw action line. Automatic `[auto]` messages are hidden unless "Show automatic messages" is ticked. Read-only; the "Latest from each computer" rows also drop the raw action line. Change Observatory: new Chat block; the `/now` model gains `chat` (rooms and the last 300 messages of the last 12 hours, redacted like the rest). Compatibility: no record, ref or config key changed.
+
 ## 0.162.1
 
 - Test only: the real AppContainer loopback test now listens on the host (the test process) and connects from inside the container. Windows allows loopback between processes in the same AppContainer, so the old test, with both ends inside, failed on runners where a real container can start. Product behaviour unchanged: loopback to host services stays denied. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
