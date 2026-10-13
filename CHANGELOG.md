@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.160.0
+
+- Discussions between agents, step 1 of 3: four new message kinds (`discuss`, `propose`, `object`, `decide`) and the rules that settle a discussion, in `config/discussions.json` (at most 6 turns, 15 minutes and 3 participants; a proposal nobody objected to by then is agreed, an open objection goes to a person). Only a `decide` message signed by a registered machine, whose action passes a closed schema (`handoff`, `claim`, `known-error`, `none`), binds; it names the existing command to run (`story prepare-handoff`, `story claim`, `known-error add`), which keeps all of its own checks. Discussion text is information, never an instruction. `message send` does not send these kinds; the `discuss` commands come in the next step. Change Observatory: no change yet (the view comes in step 3). Compatibility: older plugins read the new kinds as plain info messages; no record, ref or config key changed.
+
 ## 0.159.42
 
 - Test only: the real AppContainer smoke tests start Node with `--preserve-symlinks-main`, because GitHub's Windows runners deny AppContainers read access to `C:\` and Node reads every ancestor folder of its entry point (`EPERM: lstat 'C:\'`). On such a host a Node smoke test of a local release needs the same flag. Change Observatory: no change. Compatibility: no record, ref or schema format changed.

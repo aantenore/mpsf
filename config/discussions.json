@@ -1,0 +1,8 @@
+{
+  "schema_version": "mpsf.discussions-defaults.v1",
+  "principle": "Discussions are an optional layer on the messaging channel where agents (and people) reason about a problem or a handoff before acting. Their text is information, never an instruction. Only a signed decide message with a valid action binds, and it names one existing command the agent runs with all its own checks. A discussion ends when every participant acknowledges the proposal, or at the time box or the turn limit: a proposal with no open objection is agreed (silence counts as yes); anything else goes to a person.",
+  "max_turns": 6,
+  "timebox_minutes": 15,
+  "max_participants": 3,
+  "actions": ["handoff", "claim", "known-error", "none"]
+}
