@@ -1,5 +1,6 @@
 import { node } from "./dom.js";
 import { getLocale } from "./i18n.js";
+import { renderChat } from "./chat-panel.js";
 
 // "Now" panel: who is doing what across computers. Self-contained: it reads
 // its own endpoint, refreshes itself and stays hidden when there is nothing
@@ -252,6 +253,8 @@ export function renderNowPanel(container, view) {
   if (sessions.length) children.push(section("Context used by agent sessions", sessions.map(contextItem)));
   const details = node("details", { className: "now-details", attrs: { open: wasOpen ? "" : null } }, children);
   container.append(details);
+  const chat = renderChat(view.chat);
+  if (chat) container.append(chat);
   container.hidden = false;
 }
 

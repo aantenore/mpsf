@@ -11,7 +11,7 @@ import { rolesTick } from "../../lib/engine/role-leases.mjs";
 import { renderNowPanel } from "../../ui/change-observatory/now-panel.js";
 import { setLocale } from "../../ui/change-observatory/i18n.js";
 import { createChangeObservatoryBrowser } from "../helpers/change-observatory-browser-dom.mjs";
-import { buildNowModel, coordinationRows, createMessagingSnapshot, readNowView } from "../../lib/change-observatory/now-panel.mjs";
+import { buildNowModel, chatModel, coordinationRows, createMessagingSnapshot, readNowView } from "../../lib/change-observatory/now-panel.mjs";
 
 const NOW = Date.parse("2026-10-10T12:00:00Z");
 const at = (minutesAgo) => new Date(NOW - minutesAgo * 60_000).toISOString();
@@ -232,4 +232,41 @@ test("discussions show their state, proposal or decision and the command a decis
   assert.match(text, /Who takes ST-3\? \(ST-3\)decisa/u);
   assert.match(text, /da eseguire: mpsf story claim --id ST-3 --agent pc-b/u);
   assert.match(text, /decisioni non firmate ignorate: 1/u);
+});
+
+test("the chat puts each message in its story room, replies in the room of their parent, and shows it", (t_) => {
+  const messages = [
+    { id: "c1", from: "pc-a", kind: "info", text: "[auto] stato: ST-2 in fase build", time: at(30) },
+    { id: "c2", from: "pc-b", kind: "question", story: "ST-3", text: "Chi prende ST-3?", time: at(20) },
+    { id: "c3", from: "pc-a", kind: "answer", reply_to: "c2", text: "io", time: at(10) },
+    { id: "c4", from: "pc-c", kind: "info", text: "ciao a tutti", time: at(5), trust: "unverified" },
+    { id: "c5", from: "pc-a", kind: "propose", reply_to: "c2", text: "Proposal\nmpsf-action: {\"action\":\"claim\",\"story\":\"ST-3\",\"agent\":\"pc-a\"}", time: at(4) },
+  ];
+  const chat = chatModel(messages);
+  assert.deepEqual(chat.messages.map((item) => [item.id, item.room, item.auto]), [["c1", "general", true], ["c2", "ST-3", false], ["c3", "ST-3", false], ["c4", "general", false], ["c5", "ST-3", false]]);
+  assert.deepEqual(chat.rooms.map((room) => [room.id, room.count, room.people]), [["general", 2, 1], ["ST-3", 3, 3]]);
+  assert.deepEqual(chatModel(null), { rooms: [], messages: [] });
+  assert.deepEqual(buildNowModel({ messages, messaging: "on", nowMs: NOW }).chat.rooms.length, 2);
+  withBrowser(t_);
+  setLocale("it");
+  const container = document.createElement("section");
+  renderNowPanel(container, buildNowModel({ messages, messaging: "on", nowMs: NOW }));
+  const room = (name) => [...container.querySelectorAll(".chat-room")].find((button) => button.textContent.startsWith(name));
+  room("ST-3").dispatchEvent({ type: "click" });
+  const text = container.textContent;
+  assert.match(text, /Messaggi tra computer e agenti/u);
+  assert.match(text, /Generale \(1\)/u);
+  assert.match(text, /ST-3 \(3\)/u);
+  assert.match(text, /risposta a pc-b: Chi prende ST-3\?/u);
+  assert.match(text, /azione: claim ST-3 → pc-a/u);
+  assert.doesNotMatch(text, /mpsf-action/u);
+  room("Generale").dispatchEvent({ type: "click" });
+  const chatText = () => container.querySelector(".chat-details").textContent;
+  assert.match(chatText(), /ciao a tutti/u);
+  assert.match(chatText(), /chiave non registrata/u);
+  assert.doesNotMatch(chatText(), /in fase build/u);
+  const toggle = container.querySelector(".chat-details").querySelector("input");
+  toggle.checked = true;
+  toggle.dispatchEvent({ type: "change" });
+  assert.match(chatText(), /\[auto\] stato: ST-2 in fase build/u);
 });
