@@ -158,6 +158,8 @@ import {
 } from "../lib/context-optimization.mjs";
 import { runObserveCommand } from "../lib/change-observatory/cli.mjs";
 import {
+  messageDiscuss,
+  messageDiscussions,
   messageIdentity,
   messageListen,
   messageOutbox,
@@ -1333,6 +1335,8 @@ function buildCliRuntimeHandlerRegistry() {
     "message.outbox": bootstrap(({ options }) => messageOutbox(options)),
     "message.identity": bootstrap(({ options }) => messageIdentity(options)),
     "message.who": bootstrap(({ options }) => messageWho(options)),
+    "message.discuss": bootstrap(({ options }) => messageDiscuss(options)),
+    "message.discussions": bootstrap(({ options }) => messageDiscussions(options)),
     "message.read": bootstrap(({ options }) => messageRead(options)),
     "message.listen": bootstrap(({ options }) => messageListen(options)),
     watch: bootstrap(async ({ options }) => (await import("../lib/host-hooks/watch.mjs")).watchCommand(options)),

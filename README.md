@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.161.0** — discussions between agents, step 2: `message discuss` and `message discussions`.
 - **0.160.0** — discussions between agents, step 1: new message kinds and the rules that settle a discussion; only a signed decision with a valid action binds.
 - **0.159.42** — test only: the real Windows AppContainer smoke tests run on hosts that deny the container the drive root.
 - **0.159.41** — Windows: a local release's sandboxed smoke test starts again (it always ended with exit 125).

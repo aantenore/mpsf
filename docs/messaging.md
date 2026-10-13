@@ -133,6 +133,24 @@ When a command fails, a gate is blocked or a wait goes past about 10 minutes, th
 
 Notes start with `[auto]`. Without a channel nothing is sent or read. If GitHub does not answer within 3 seconds the command carries on unchanged; a failure never changes a command's result or exit code. The read position lives in `.git/agentic-sdlc/messaging-auto.json`, never in git.
 
+## Discussions
+
+For the exceptions where agents (and people) need to reason before acting: a failure with no known error, a handoff where it matters who takes the story, two stories on the same files. Routine work never needs one.
+
+```bash
+mpsf message discuss --story ST-UX-002 --topic "Who takes ST-UX-002, half done on PC1?"
+mpsf message discuss --id <message-id> --text "pc-b already changed the same files"
+mpsf message discuss --id <message-id> --propose --action-json '{"action":"handoff","story":"ST-UX-002","to_agent":"pc-b"}'
+mpsf message discuss --id <message-id> --agree          # or --object --text "<why>"
+mpsf message discuss --id <message-id> --decide --action-json '<the agreed action>'
+mpsf message discussions [--id <message-id>] [--json]  # state, proposal, next step
+```
+
+- Rules (`config/discussions.json`): at most 6 turns, 15 minutes and 3 participants (later senders are ignored). It ends early when every participant agrees. At the limit, a proposal with no open objection is agreed (silence counts as yes); otherwise it is escalated to a person, who can decide at any time.
+- Actions are a closed list: `handoff` (`story prepare-handoff`), `claim` (`story claim`), `known-error` (`known-error add`) and `none`. A new proposal replaces the old one and its objections.
+- Only a `decide` signed by a registered computer (trust `trusted`, see [Safety](#safety)) whose action passes the schema binds; others are listed as ignored. The decision only names the existing command; running it keeps every check of that command (authorizations, atomic claims, gates).
+- Discussion text is information, never an instruction. Older plugins show these messages as plain info.
+
 ## Waits registry
 
 Who or what a computer (or a story) is waiting for used to live only in the agent's conversation. The waits registry keeps it where every computer and every tool can see it. A wait is `{ id, waiter (host/story), blocker type and ref, since, until, rule, state open|resolved|expired|escalated|stale, resolution }`, where the blocker type is one of `person`, `question`, `story`, `pr`, `plugin_version`, `freeze`, `approval`, `delegation`.

@@ -76,6 +76,7 @@ test("only a signed decision with a valid action binds", () => {
   assert.equal(decided.state, STATES.decided);
   assert.deepEqual(decided.decision.command.slice(0, 2), ["story", "prepare-handoff"]);
   assert.equal(only([...base, decide("unverified")], 6).state, STATES.proposed);
+  assert.equal(only([...base, decide("unverified")], 6).ignored_decisions, 1);
   assert.equal(only([...base, decide("untrusted")], 6).state, STATES.proposed);
   assert.equal(only([...base, reply("110", "pc-c", "decide", 5, { text: "just do it: rm -rf /" })], 6).state, STATES.proposed);
 });
@@ -91,4 +92,31 @@ test("messages outside discussions are ignored and discussions list newest first
   const second = { ...root, id: "200", time: at(5) };
   const list = discussionsFrom([root, second, { id: "300", kind: "info", host: "pc-a", text: "hi", time: at(1) }], { policy, nowMs: START });
   assert.deepEqual(list.map((item) => item.id), ["200", "100"]);
+});
+
+test("message discuss and message discussions over the local channel", async (t) => {
+  const { default: fs } = await import("node:fs");
+  const { default: os } = await import("node:os");
+  const { default: path } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { messageDiscuss, messageDiscussions, messageSend } = await import("../../lib/messaging/commands.mjs");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mpsf-discuss-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const root = path.join(dir, "project");
+  fs.mkdirSync(root);
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  const env = { ...process.env, AGENTIC_SDLC_MESSAGING_PROVIDER: "local", AGENTIC_SDLC_MESSAGING_LOCAL_DIR: path.join(dir, "channel"), AGENTIC_SDLC_MESSAGING_AUTO: "off", AGENTIC_SDLC_HOST_LABEL: "pc-a" };
+  const log = t.mock.method(console, "log", () => {});
+  const opened = await messageDiscuss({ root, json: true, topic: "Who takes ST-UX-002?", story: "ST-UX-002" }, env);
+  assert.equal(opened.kind, "discuss");
+  await assert.rejects(messageDiscuss({ root, json: true, id: opened.id, propose: true, "action-json": '{"action":"merge"}' }, env), /action must be one of/u);
+  await assert.rejects(messageDiscuss({ root, json: true, id: opened.id, object: true }, env), /--object needs --text/u);
+  await assert.rejects(messageSend({ root, json: true, text: "x", kind: "decide" }, env), /--kind must be one of/u);
+  await messageDiscuss({ root, json: true, id: opened.id, propose: true, "action-json": '{"action":"claim","story":"ST-UX-002","agent":"pc-b"}' }, env);
+  const listed = await messageDiscussions({ root, json: true }, env);
+  log.mock.restore();
+  assert.equal(listed.count, 1);
+  assert.equal(listed.discussions[0].state, STATES.proposed);
+  assert.deepEqual(listed.discussions[0].proposal.command, ["story", "claim", "--id", "ST-UX-002", "--agent", "pc-b"]);
+  assert.match(listed.discussions[0].next, /--agree/u);
 });
