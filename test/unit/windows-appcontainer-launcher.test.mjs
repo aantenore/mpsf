@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -68,16 +69,29 @@ test("writes into the release are denied", { skip }, () => withRelease((cwd) => 
   assert.equal(fs.existsSync(path.join(cwd, "x.txt")), false);
 }));
 
-test("outbound and loopback connections are denied", { skip }, () => withRelease((cwd) => {
-  const result = runSmoke(cwd, [
-    "const net = require('net');",
-    "const server = net.createServer().listen(0, '127.0.0.1', () => {",
-    "  const socket = net.connect(server.address().port, '127.0.0.1');",
-    "  socket.on('connect', () => process.exit(0));",
-    "  socket.on('error', () => process.exit(3));",
-    "});",
-    "server.on('error', () => process.exit(4));",
-    "setTimeout(() => process.exit(5), 10000);",
-  ].join("\n"));
-  assert.notEqual(result.status, 0, result.stderr);
-}));
+// Windows allows loopback inside one AppContainer (a listener and a client in the same container
+// can talk), so the boundary that matters is the host: the listener runs in this test process,
+// outside the container. The kernel completes the handshake from the listen backlog even while
+// spawnSync blocks the event loop, so a reachable port would make the smoke exit 0.
+test("loopback connections to the host are denied", { skip }, async () => {
+  const server = net.createServer((socket) => socket.destroy());
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  try {
+    const { port } = server.address();
+    withRelease((cwd) => {
+      const result = runSmoke(cwd, [
+        "const net = require('net');",
+        `const socket = net.connect(${port}, '127.0.0.1');`,
+        "socket.on('connect', () => process.exit(0));",
+        "socket.on('error', () => process.exit(3));",
+        "setTimeout(() => process.exit(5), 10000);",
+      ].join("\n"));
+      assert.notEqual(result.status, 0, result.stderr);
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
