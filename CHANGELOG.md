@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.162.1
+
+- Test only: the real AppContainer loopback test now listens on the host (the test process) and connects from inside the container. Windows allows loopback between processes in the same AppContainer, so the old test, with both ends inside, failed on runners where a real container can start. Product behaviour unchanged: loopback to host services stays denied. Change Observatory: no change. Compatibility: no record, ref or schema format changed.
+
 ## 0.162.0
 
 - Discussions between agents, step 3 of 3: the Change Observatory "Now" panel has a Discussions section (latest 10 in the messages it reads) with each discussion's topic, story, state (open, proposed, agreed, decided, escalated), participants, turns, deadline, proposal or decision, the command a decision names and how many unsigned decisions were ignored. Change Observatory: new section in the Now panel; the `/now` model gains `discussions`. Compatibility: no record, ref or config key changed; older Observatory pages ignore the new field.

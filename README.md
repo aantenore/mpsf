@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.162.1** — test fix: the Windows AppContainer loopback test listens on the host.
 - **0.162.0** — discussions between agents, step 3: the Change Observatory shows them in the Now panel.
 - **0.161.0** — discussions between agents, step 2: `message discuss` and `message discussions`.
 - **0.160.0** — discussions between agents, step 1: new message kinds and the rules that settle a discussion; only a signed decision with a valid action binds.

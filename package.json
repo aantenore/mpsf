@@ -1,6 +1,6 @@
 {
   "name": "mpsf",
-  "version": "0.162.0",
+  "version": "0.162.1",
   "description": "MPSF (My Personal Software Factory): contract-driven delivery, verified assessments, and visual project lineage for Codex and Claude Code.",
   "type": "module",
   "bin": {
