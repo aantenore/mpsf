@@ -205,7 +205,7 @@ function wellFormedCoordination(view) {
   return { computers, roles };
 }
 
-export function renderNowPanel(container, view) {
+export function renderNowPanel(container, view, { send = null, onSent = null } = {}) {
   const wasOpen = container.querySelector("details")?.open ?? true;
   container.replaceChildren();
   if (!view) {
@@ -253,7 +253,7 @@ export function renderNowPanel(container, view) {
   if (sessions.length) children.push(section("Context used by agent sessions", sessions.map(contextItem)));
   const details = node("details", { className: "now-details", attrs: { open: wasOpen ? "" : null } }, children);
   container.append(details);
-  const chat = renderChat(view.chat);
+  const chat = renderChat(view.chat, { send, onSent });
   if (chat) container.append(chat);
   container.hidden = false;
 }
@@ -281,7 +281,10 @@ export function mountNowPanel({ api, anchor }) {
       const key = JSON.stringify({ ...view, generatedAt: null });
       if (key === lastKey) return;
       lastKey = key;
-      renderNowPanel(container, view);
+      renderNowPanel(container, view, {
+        send: typeof api.sendChat === "function" && view.messaging === "on" ? (message) => api.sendChat(message) : null,
+        onSent: () => setTimeout(refresh, 1500),
+      });
     } catch {
       container.hidden = true;
     }

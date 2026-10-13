@@ -270,3 +270,41 @@ test("the chat puts each message in its story room, replies in the room of their
   toggle.dispatchEvent({ type: "change" });
   assert.match(chatText(), /\[auto\] stato: ST-2 in fase build/u);
 });
+
+test("the chat composer replies, agrees and objects through the given sender", async (t_) => {
+  const messages = [
+    { id: "q1", from: "pc-b", kind: "discuss", story: "ST-7", text: "Chi prende ST-7?", time: at(20), trust: "trusted" },
+    { id: "q2", from: "pc-b", kind: "propose", story: "ST-7", reply_to: "q1", text: "Proposal\nmpsf-action: {\"action\":\"none\"}", time: at(10), trust: "trusted" },
+  ];
+  const sent = [];
+  withBrowser(t_);
+  setLocale("en");
+  const container = document.createElement("section");
+  const render = () => renderNowPanel(container, buildNowModel({ messages, messaging: "on", nowMs: NOW }), { send: async (message) => { sent.push(message); return { sent: true }; } });
+  render();
+  const find = (text, root = container) => root.querySelectorAll("button").find((button) => button.textContent === text);
+  const room = container.querySelectorAll(".chat-room").find((button) => button.textContent.startsWith("ST-7"));
+  room.dispatchEvent({ type: "click" });
+  find("Agree").dispatchEvent({ type: "click" });
+  find("Agree", container.querySelector(".chat-composer")).dispatchEvent({ type: "click" });
+  await new Promise((resolve) => setImmediate(resolve));
+  find("Object").dispatchEvent({ type: "click" });
+  const area = container.querySelector("textarea");
+  area.value = "too risky";
+  area.dispatchEvent({ type: "input" });
+  find("Send").dispatchEvent({ type: "click" });
+  await new Promise((resolve) => setImmediate(resolve));
+  find("Reply").dispatchEvent({ type: "click" });
+  container.querySelector("textarea").value = "ok then";
+  container.querySelector("textarea").dispatchEvent({ type: "input" });
+  find("Send").dispatchEvent({ type: "click" });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(sent, [
+    { text: "", kind: "ack", story: "ST-7", replyTo: "q1" },
+    { text: "too risky", kind: "object", story: "ST-7", replyTo: "q1" },
+    { text: "ok then", kind: "info", story: "ST-7", replyTo: "q1" },
+  ]);
+  const readOnly = document.createElement("section");
+  renderNowPanel(readOnly, buildNowModel({ messages, messaging: "on", nowMs: NOW }));
+  assert.equal(readOnly.querySelector("textarea"), null);
+});

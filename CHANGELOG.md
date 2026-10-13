@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.164.0
+
+- Change Observatory: the Chat block can write. Type in a room to post there (a story room sets the story), use Reply on any message (inside a discussion the reply joins the discussion), and Agree or Object on discussion messages. The local Observatory server sends the message as this computer, signed and queued like `message send`; the draft survives the panel refresh. Security: `/api/v1/chat/send` is the only route that accepts a write (`POST`, bearer token, `application/json`, at most 8 KB, same `Origin` when one is sent, single-project mode); every other route still answers `405` to anything but `GET` and `HEAD`. Change Observatory: Chat block gains the composer and the reply/agree/object buttons. Compatibility: no record, ref or config key changed; messages look the same as those sent from the CLI.
+
 ## 0.163.0
 
 - Change Observatory: a Chat block under the Now panel shows the project channel as chat rooms, one per story plus General for messages about no story; a reply sits in the room of the message it answers. Each message shows sender, kind, signature warning, addressee, time, the message it answers and, for discussions, the proposed or decided action instead of the raw action line. Automatic `[auto]` messages are hidden unless "Show automatic messages" is ticked. Read-only; the "Latest from each computer" rows also drop the raw action line. Change Observatory: new Chat block; the `/now` model gains `chat` (rooms and the last 300 messages of the last 12 hours, redacted like the rest). Compatibility: no record, ref or config key changed.
