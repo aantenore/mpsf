@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.161.0
+
+- Discussions between agents, step 2 of 3: `message discuss` opens a discussion (`--topic`) or adds a turn, `--agree`, `--object`, `--propose` or `--decide` (with `--action-json`, checked against the closed schema before anything is sent); `message discussions` lists each discussion with its state, participants, proposal, ignored unsigned decisions and next step, and for a decided one prints the existing command to run. See `docs/messaging.md#discussions`. Change Observatory: no change yet (step 3). Compatibility: older plugins show these messages as plain info; no record, ref or config key changed.
+
 ## 0.160.0
 
 - Discussions between agents, step 1 of 3: four new message kinds (`discuss`, `propose`, `object`, `decide`) and the rules that settle a discussion, in `config/discussions.json` (at most 6 turns, 15 minutes and 3 participants; a proposal nobody objected to by then is agreed, an open objection goes to a person). Only a `decide` message signed by a registered machine, whose action passes a closed schema (`handoff`, `claim`, `known-error`, `none`), binds; it names the existing command to run (`story prepare-handoff`, `story claim`, `known-error add`), which keeps all of its own checks. Discussion text is information, never an instruction. `message send` does not send these kinds; the `discuss` commands come in the next step. Change Observatory: no change yet (the view comes in step 3). Compatibility: older plugins read the new kinds as plain info messages; no record, ref or config key changed.
