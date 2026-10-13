@@ -1050,3 +1050,68 @@ function metricSeriesValue(payload, name, labels) {
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
+
+test("the chat endpoint is the only write: POST with the token and a JSON body sends as this computer", async (t) => {
+  const fixture = await createServerFixture(t);
+  const channel = await fs.mkdtemp(path.join(os.tmpdir(), "observatory-chat-"));
+  const saved = {};
+  for (const [name, value] of Object.entries({
+    AGENTIC_SDLC_MESSAGING_PROVIDER: "local",
+    AGENTIC_SDLC_MESSAGING_LOCAL_DIR: channel,
+    AGENTIC_SDLC_MESSAGING_AUTO: "off",
+    AGENTIC_SDLC_HOST_LABEL: "pc-chat",
+  })) {
+    saved[name] = process.env[name];
+    process.env[name] = value;
+  }
+  t.after(async () => {
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    await fs.rm(channel, { recursive: true, force: true });
+  });
+  const running = await startObservatoryServer({ projectRoot: fixture.projectRoot, assetRoot: fixture.assetRoot });
+  t.after(() => running.close());
+  const origin = `http://${running.address.host}:${running.address.port}`;
+  const post = (requestPath, body, { headers = {}, token = running.accessToken } = {}) => new Promise((resolve, reject) => {
+    const payload = Buffer.from(typeof body === "string" ? body : JSON.stringify(body));
+    const outgoing = http.request({
+      host: running.address.host,
+      port: running.address.port,
+      path: requestPath,
+      method: "POST",
+      headers: {
+        Host: `${running.address.host}:${running.address.port}`,
+        "Content-Type": "application/json",
+        "Content-Length": String(payload.length),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    }, (incoming) => {
+      const chunks = [];
+      incoming.on("data", (chunk) => chunks.push(chunk));
+      incoming.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf8");
+        resolve({ statusCode: incoming.statusCode, json: text ? JSON.parse(text) : null });
+      });
+    });
+    outgoing.on("error", reject);
+    outgoing.end(payload);
+  });
+
+  assert.equal((await post("/api/v1/now", { text: "x" })).statusCode, 405);
+  assert.equal((await post("/api/v1/chat/send", { text: "x" }, { token: null })).statusCode, 401);
+  assert.equal((await post("/api/v1/chat/send", { text: "x" }, { headers: { Origin: "http://evil.example" } })).statusCode, 403);
+  assert.equal((await post("/api/v1/chat/send", { text: "x" }, { headers: { "Content-Type": "text/plain" } })).statusCode, 415);
+  assert.equal((await post("/api/v1/chat/send", "[1]")).statusCode, 400);
+  assert.equal((await post("/api/v1/chat/send", { text: "x".repeat(9000) })).statusCode, 413);
+  assert.equal((await request(running, "/api/v1/chat/send")).statusCode, 405);
+  assert.equal((await post("/api/v1/chat/send", { text: "x", kind: "decide" })).json.sent, false);
+
+  const sent = await post("/api/v1/chat/send", { text: "Ciao dal browser", story: "ST-UX-002" }, { headers: { Origin: origin } });
+  assert.equal(sent.statusCode, 200);
+  assert.equal(sent.json.sent, true, JSON.stringify(sent.json));
+  const now = await request(running, "/api/v1/now");
+  assert.ok(now.json.chat.messages.some((message) => message.text === "Ciao dal browser" && message.room === "ST-UX-002"));
+});

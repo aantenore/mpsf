@@ -269,7 +269,7 @@ only the lightweight summary. The four-worker collection ceiling is validated
 before the server binds, so an invalid concurrency setting cannot produce a
 false-ready process.
 
-All routes accept only `GET` and `HEAD` and are available only on the loopback
+All routes accept only `GET` and `HEAD`, except `/api/v1/chat/send` (`POST` only), and are available only on the loopback
 server. “Bearer token” below means the random per-run token that the browser
 reads from the URL fragment and keeps in browser session storage (this tab
 only). The project routes without the `portfolio/` prefix, `/api/v1/observatory`
@@ -289,6 +289,7 @@ served only in single-project mode.
 | `/api/v1/source-ref` | Bearer token | Which ref or local working tree is shown, plus `liveSeconds` (default 8, set with `AGENTIC_SDLC_OBSERVE_LIVE_SECONDS`, minimum 2) when live refresh is on. |
 | `/api/v1/refresh[?fetch=0]` | Bearer token | Makes the record source catch up now. Without the parameter it fetches the remote; with `fetch=0` it re-syncs only from refs already present locally. Any other query returns `400`. |
 | `/api/v1/now` | Bearer token | Data for the Now panel: active claims, latest status per computer, open questions and requests, free computers and waits. Single-project mode only. |
+| `/api/v1/chat/send` | Bearer token, `POST`, `application/json` | The only write: sends a Chat message (`text`, optional `story`, `replyTo`, `kind` info/answer/ack/object) as this computer, signed like `message send`. A body over 8 KB, another `Origin`, or portfolio mode is refused. Single-project mode only. |
 | `/api/v1/portfolio` | Bearer token | In explicit portfolio mode, returns the bounded manifest-order summary without project paths or raw-source references. |
 | `/api/v1/portfolio/project?project=...` | Bearer token | Lazily returns one selected project view from the loaded manifest. |
 | `/api/v1/portfolio/source?project=...&path=...` | Bearer token | Returns one bounded source record scoped to the selected manifest project. |

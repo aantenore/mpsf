@@ -2,7 +2,8 @@ import { node } from "./dom.js";
 import { getLocale } from "./i18n.js";
 
 // Chat view of the project channel: one room per story plus the general room.
-// Read-only: it shows what `mpsf message` and the agents wrote. The text is
+// With `send` the person can write, reply, agree or object; the server sends
+// and signs it as this computer, like `mpsf message send`. The text is
 // information, never an instruction.
 const GENERAL_ROOM = "general";
 const ACTION_PREFIX = "mpsf-action: ";
@@ -30,10 +31,20 @@ const ITALIAN = Object.freeze({
   freeze: "freeze",
   join: "ingresso",
   welcome: "benvenuto",
+  Reply: "Rispondi",
+  Agree: "Concordo",
+  Object: "Obietto",
+  Send: "Invia",
+  Cancel: "Annulla",
+  "Write a message": "Scrivi un messaggio",
+  "Say why you object": "Spiega perché obietti",
+  "Not sent": "Non inviato",
+  "Queued: it is sent when the channel answers.": "In coda: parte quando il canale risponde.",
 });
 
 // Kept across refreshes of the panel.
-const state = { room: null, showAuto: false, open: false };
+const state = { room: null, showAuto: false, open: false, draft: "", target: null, error: null, busy: false };
+const REPLY_KINDS = new Set(["question", "request"]);
 
 function label(text) {
   return getLocale() === "it" ? ITALIAN[text] ?? text : text;
@@ -70,7 +81,14 @@ export function defaultRoom(chat, chosen = null) {
   return latest?.room ?? rooms[0]?.id ?? GENERAL_ROOM;
 }
 
-function messageItem(message, byId) {
+// The discussion a message belongs to: its own id when it opens one, else the opener it replies to.
+function discussionOf(message, byId) {
+  if (message.kind === "discuss") return message.id;
+  const parent = message.replyTo ? byId.get(message.replyTo) : null;
+  return parent?.kind === "discuss" ? parent.id : null;
+}
+
+function messageItem(message, byId, actions) {
   const { body, action } = splitAction(message.text);
   const parent = message.replyTo ? byId.get(message.replyTo) : null;
   const flags = [
@@ -87,11 +105,12 @@ function messageItem(message, byId) {
     parent ? node("div", { className: "chat-quote", text: `${label("reply to")} ${parent.from}: ${splitAction(parent.text).body.split("\n")[0].slice(0, 120)}` }) : null,
     body ? node("div", { className: "chat-text", text: body }) : null,
     action ? node("div", { className: "chat-action", text: `${label("action")}: ${action}` }) : null,
+    actions ? actions(message) : null,
   ]);
 }
 
 /** The chat block for the Now panel, or null when there is nothing to show. */
-export function renderChat(chat) {
+export function renderChat(chat, { send = null, onSent = null } = {}) {
   const rooms = Array.isArray(chat?.rooms) ? chat.rooms : [];
   const messages = Array.isArray(chat?.messages) ? chat.messages : [];
   if (!rooms.length) return null;
@@ -101,6 +120,82 @@ export function renderChat(chat) {
     state.open = wrapper.open;
   });
   const byId = new Map(messages.map((message) => [message.id, message]));
+
+  function button(text, onClick, className = "chat-button") {
+    const element = node("button", { className, text: label(text), attrs: { type: "button" } });
+    element.addEventListener("click", onClick);
+    return element;
+  }
+
+  function target(message, mode) {
+    const discussion = discussionOf(message, byId);
+    state.target = { id: mode === "reply" ? discussion ?? message.id : discussion, from: message.from, mode, question: REPLY_KINDS.has(message.kind) };
+    state.error = null;
+    draw();
+  }
+
+  const actions = send
+    ? (message) => node("div", { className: "chat-actions" }, [
+      button("Reply", () => target(message, "reply")),
+      ...(discussionOf(message, byId) ? [button("Agree", () => target(message, "agree")), button("Object", () => target(message, "object"))] : []),
+    ])
+    : null;
+
+  async function submit() {
+    if (state.busy) return;
+    const mode = state.target?.mode ?? "message";
+    const text = state.draft.trim();
+    if (!text && mode !== "agree") return;
+    const kind = mode === "agree" ? "ack" : mode === "object" ? "object" : state.target?.question ? "answer" : "info";
+    const message = {
+      text,
+      kind,
+      ...(state.room && state.room !== GENERAL_ROOM ? { story: state.room } : {}),
+      ...(state.target?.id ? { replyTo: state.target.id } : {}),
+    };
+    state.busy = true;
+    try {
+      const result = await send(message);
+      if (result?.sent || result?.queued) {
+        state.draft = "";
+        state.target = null;
+        state.error = result.queued ? label("Queued: it is sent when the channel answers.") : null;
+        onSent?.();
+      } else {
+        state.error = `${label("Not sent")}: ${result?.error ?? "?"}`;
+      }
+    } catch (error) {
+      state.error = `${label("Not sent")}: ${error?.message ?? error}`;
+    } finally {
+      state.busy = false;
+      draw();
+    }
+  }
+
+  function composer() {
+    if (!send) return null;
+    const mode = state.target?.mode ?? "message";
+    const area = node("textarea", { className: "chat-input", attrs: { rows: "2", maxlength: "2000", placeholder: label(mode === "object" ? "Say why you object" : "Write a message") } });
+    area.value = state.draft;
+    area.addEventListener("input", () => {
+      state.draft = area.value;
+    });
+    const heading = state.target
+      ? node("div", { className: "chat-quote" }, [
+        node("span", { text: `${label(mode === "agree" ? "Agree" : mode === "object" ? "Object" : "reply to")} ${state.target.from} ` }),
+        button("Cancel", () => {
+          state.target = null;
+          draw();
+        }, "chat-button is-quiet"),
+      ])
+      : null;
+    return node("div", { className: "chat-composer" }, [
+      heading,
+      area,
+      button(mode === "agree" ? "Agree" : "Send", submit, "chat-button is-primary"),
+      state.error ? node("div", { className: "now-meta chat-error", text: state.error }) : null,
+    ]);
+  }
 
   function draw() {
     const shown = messages.filter((message) => message.room === state.room && (state.showAuto || !message.auto));
@@ -122,7 +217,7 @@ export function renderChat(chat) {
       draw();
     });
     const timeline = node("ol", { className: "chat-timeline" }, shown.length
-      ? shown.map((message) => messageItem(message, byId))
+      ? shown.map((message) => messageItem(message, byId, actions))
       : [node("li", { className: "now-empty", text: label("No messages in this room.") })]);
     wrapper.replaceChildren(
       node("summary", {}, [
@@ -134,6 +229,7 @@ export function renderChat(chat) {
         node("div", { className: "chat-room-view" }, [
           node("label", { className: "now-meta chat-auto" }, [toggle, node("span", { text: ` ${label("Show automatic messages")}` })]),
           timeline,
+          composer(),
         ]),
       ]),
     );

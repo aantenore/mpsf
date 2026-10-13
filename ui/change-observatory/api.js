@@ -210,6 +210,17 @@ export class ObservatoryApi {
     return parseJsonResponse(response, "now");
   }
 
+  // Sends a chat message as this computer (single-project mode only).
+  async sendChat(message, { signal } = {}) {
+    const response = await this.#request("/api/v1/chat/send", {
+      method: "POST",
+      signal,
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(message),
+    });
+    return parseJsonResponse(response, "chat send");
+  }
+
   // Stories on the remote base branch that this computer has not pulled.
   // Optional: an older server answers 404 and nothing is added.
   async loadRemoteStories(portfolioProjectId = null, { signal } = {}) {
