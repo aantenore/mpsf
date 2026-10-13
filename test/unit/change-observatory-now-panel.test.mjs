@@ -207,3 +207,29 @@ test("the panel shows one row per computer and who holds each role, in Italian w
   assert.match(english.textContent, /alive/u);
   assert.match(english.textContent, /coordinator:pc-a until \d/u);
 });
+
+test("discussions show their state, proposal or decision and the command a decision names", (t_) => {
+  const action = (value) => `Proposal\nmpsf-action: ${JSON.stringify(value)}`;
+  const claim = { action: "claim", story: "ST-3", agent: "pc-b" };
+  const messages = [
+    { id: "d1", from: "pc-a", host: "pc-a", kind: "discuss", story: "ST-3", text: "Who takes ST-3?", time: at(30), trust: "trusted" },
+    { id: "d2", from: "pc-a", host: "pc-a", kind: "propose", reply_to: "d1", text: action(claim), time: at(29), trust: "trusted" },
+    { id: "d3", from: "pc-b", host: "pc-b", kind: "decide", reply_to: "d1", text: action(claim), time: at(28), trust: "trusted" },
+    { id: "e1", from: "pc-c", host: "pc-c", kind: "discuss", text: "Flaky gate on ST-4", time: at(5), trust: "trusted" },
+    { id: "e2", from: "pc-c", host: "pc-c", kind: "decide", reply_to: "e1", text: action({ action: "none" }), time: at(4), trust: "unverified" },
+  ];
+  const model = buildNowModel({ messages, messaging: "on", nowMs: NOW });
+  assert.deepEqual(model.discussions.map((item) => [item.id, item.state]), [["e1", "open"], ["d1", "decided"]]);
+  assert.deepEqual(model.discussions[1].command, ["story", "claim", "--id", "ST-3", "--agent", "pc-b"]);
+  assert.equal(model.discussions[0].ignoredDecisions, 1);
+  assert.deepEqual(buildNowModel({ nowMs: NOW }).discussions, []);
+  withBrowser(t_);
+  setLocale("it");
+  const container = document.createElement("section");
+  renderNowPanel(container, model);
+  const text = container.textContent;
+  assert.match(text, /Discussioni/u);
+  assert.match(text, /Who takes ST-3\? \(ST-3\)decisa/u);
+  assert.match(text, /da eseguire: mpsf story claim --id ST-3 --agent pc-b/u);
+  assert.match(text, /decisioni non firmate ignorate: 1/u);
+});

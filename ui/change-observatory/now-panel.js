@@ -59,6 +59,16 @@ const ITALIAN = Object.freeze({
   knowledge: "conoscenza",
   until: "fino alle",
   "nobody: everyone works on their own": "nessuno: ognuno fa da sé",
+  Discussions: "Discussioni",
+  proposed: "proposta",
+  agreed: "concordata",
+  decided: "decisa",
+  turns: "turni",
+  proposal: "proposta",
+  decision: "decisione",
+  objections: "obiezioni",
+  run: "da eseguire",
+  "unsigned decisions ignored": "decisioni non firmate ignorate",
 });
 
 const SOURCE_KIND = Object.freeze({ base: "base", branch: "branch", claim: "claim" });
@@ -135,6 +145,26 @@ function openItem(message) {
   ]);
 }
 
+function actionText(action) {
+  if (!action || typeof action !== "object") return "";
+  const target = action.to_agent ?? action.agent ?? action.signature ?? "";
+  return [action.action, action.story, target ? `→ ${target}` : ""].filter(Boolean).join(" ");
+}
+
+function discussionItem(item) {
+  const parts = [`${(item.participants ?? []).join(", ")}`, `${item.turns} ${label("turns")}`];
+  if (item.decision) parts.push(`${label("decision")}: ${actionText(item.decision)}`);
+  else if (item.proposal) parts.push(`${label("proposal")}: ${actionText(item.proposal)}${item.objections ? ` · ${label("objections")} ${item.objections}` : ""}`);
+  if (Array.isArray(item.command)) parts.push(`${label("run")}: mpsf ${item.command.join(" ")}`);
+  if (item.ignoredDecisions) parts.push(`${label("unsigned decisions ignored")}: ${item.ignoredDecisions}`);
+  if (!item.decision && item.deadline) parts.push(`${label("deadline")} ${new Date(item.deadline).toLocaleTimeString()}`);
+  return node("li", { className: "now-item" }, [
+    node("strong", { text: item.story ? `${item.topic} (${item.story})` : item.topic }),
+    node("span", { className: "now-flag", text: label(item.state) }),
+    node("span", { className: "now-meta", text: parts.join(" · ") }),
+  ]);
+}
+
 function waitItem(item) {
   const deadline = item.until ? ` · ${label("deadline")} ${new Date(item.until).toLocaleString()}` : "";
   return node("li", { className: "now-item" }, [
@@ -199,6 +229,8 @@ export function renderNowPanel(container, view) {
   if (view.messaging === "unavailable") children.push(node("p", { className: "now-note", text: label("Messages could not be read right now.") }));
   const waits = Array.isArray(view.waits) ? view.waits : [];
   if (waits.length) children.push(section("Who waits for whom", waits.map(waitItem)));
+  const discussions = Array.isArray(view.discussions) ? view.discussions : [];
+  if (discussions.length) children.push(section("Discussions", discussions.map(discussionItem)));
   if (open.length) children.push(section("Open questions and requests", open.map(openItem)));
   if (free.length) {
     children.push(section("Free computers", free.map((entry) => node("li", { className: "now-item" }, [
