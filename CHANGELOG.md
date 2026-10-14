@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.164.2
+
+- Discussions: inside an agent session, `message discuss --decide` records only the agreed proposal of an agreed discussion, unchanged. An open, contested or escalated discussion is decided by a person in their own terminal; the agent is refused, and the check fails closed when the channel cannot be read. This closes the gap where an agent could skip an open objection by deciding on its own. Change Observatory: no change (the Chat cannot send a decision). Compatibility: no record, ref or config key changed.
+
 ## 0.164.1
 
 - Discussions: the outcome at the time box or turn limit is final; a late objection or extra turns no longer turn an agreed discussion into an escalated one. A `decide` is outside the turn, time and participant limits, so a person can decide from any registered computer, also one that is not among the three participants. Change Observatory: the Now panel's discussions (topic, proposal, decision, command) now get the same redaction as messages. Compatibility: no record, ref or config key changed; older plugins may still count late turns.
