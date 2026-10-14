@@ -37,6 +37,7 @@ You talk to the agent (Codex or Claude Code) in normal language. The agent turns
 
 Latest first; the full list is in the [changelog](CHANGELOG.md).
 
+- **0.164.1** — discussions: a settled outcome stays settled; a person can decide from any computer; the Observatory redacts discussions.
 - **0.164.0** — Change Observatory: write in the Chat, reply, agree or object to a discussion.
 - **0.163.0** — Change Observatory: chat view of the project channel, one room per story plus General.
 - **0.162.1** — test fix: the Windows AppContainer loopback test listens on the host.

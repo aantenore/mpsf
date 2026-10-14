@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.164.1
+
+- Discussions: the outcome at the time box or turn limit is final; a late objection or extra turns no longer turn an agreed discussion into an escalated one. A `decide` is outside the turn, time and participant limits, so a person can decide from any registered computer, also one that is not among the three participants. Change Observatory: the Now panel's discussions (topic, proposal, decision, command) now get the same redaction as messages. Compatibility: no record, ref or config key changed; older plugins may still count late turns.
+
 ## 0.164.0
 
 - Change Observatory: the Chat block can write. Type in a room to post there (a story room sets the story), use Reply on any message (inside a discussion the reply joins the discussion), and Agree or Object on discussion messages. The local Observatory server sends the message as this computer, signed and queued like `message send`; the draft survives the panel refresh. Security: `/api/v1/chat/send` is the only route that accepts a write (`POST`, bearer token, `application/json`, at most 8 KB, same `Origin` when one is sent, single-project mode); every other route still answers `405` to anything but `GET` and `HEAD`. Change Observatory: Chat block gains the composer and the reply/agree/object buttons. Compatibility: no record, ref or config key changed; messages look the same as those sent from the CLI.
