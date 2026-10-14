@@ -139,3 +139,30 @@ test("message discuss and message discussions over the local channel", async (t)
   assert.deepEqual(listed.discussions[0].proposal.command, ["story", "claim", "--id", "ST-UX-002", "--agent", "pc-b"]);
   assert.match(listed.discussions[0].next, /--agree/u);
 });
+
+test("an agent decides only the agreed proposal; a person decides at any time", async (t) => {
+  const { default: fs } = await import("node:fs");
+  const { default: os } = await import("node:os");
+  const { default: path } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { messageDiscuss } = await import("../../lib/messaging/commands.mjs");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mpsf-decide-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const root = path.join(dir, "project");
+  fs.mkdirSync(root);
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  const person = { ...process.env, AGENTIC_SDLC_MESSAGING_PROVIDER: "local", AGENTIC_SDLC_MESSAGING_LOCAL_DIR: path.join(dir, "channel"), AGENTIC_SDLC_MESSAGING_AUTO: "off", AGENTIC_SDLC_HOST_LABEL: "pc-a" };
+  for (const name of ["CLAUDECODE", "CODEX_AGENT_NAME", "CODEX_THREAD_ID", "AGENTIC_SDLC_AGENT_HOST"]) delete person[name];
+  const agent = { ...person, CLAUDECODE: "1" };
+  const other = { ...agent, AGENTIC_SDLC_HOST_LABEL: "pc-b" };
+  const claim = '{"action":"claim","story":"ST-UX-002","agent":"pc-b"}';
+  t.mock.method(console, "log", () => {});
+  const opened = await messageDiscuss({ root, json: true, topic: "Who takes ST-UX-002?" }, agent);
+  await messageDiscuss({ root, json: true, id: opened.id, propose: true, "action-json": claim }, agent);
+  await assert.rejects(messageDiscuss({ root, json: true, id: opened.id, decide: true, "action-json": claim }, agent), /this one: proposed/u);
+  await messageDiscuss({ root, json: true, id: opened.id, agree: true }, other);
+  await assert.rejects(messageDiscuss({ root, json: true, id: opened.id, decide: true, "action-json": '{"action":"none"}' }, agent), /agreed proposal/u);
+  assert.equal((await messageDiscuss({ root, json: true, id: opened.id, decide: true, "action-json": claim }, agent)).kind, "decide");
+  const second = await messageDiscuss({ root, json: true, topic: "Another" }, agent);
+  assert.equal((await messageDiscuss({ root, json: true, id: second.id, decide: true, "action-json": '{"action":"none"}' }, person)).kind, "decide");
+});
