@@ -6,7 +6,7 @@ You do not need to create record IDs, write JSON, choose CLI commands, or unders
 
 ## Try It In Five Minutes
 
-Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git. The local-only trial in step 4 also needs the smoke-test sandbox. It is built into macOS; on Linux, install bubblewrap at `/usr/bin/bwrap`. On Windows, run the CLI inside WSL2 (see [Windows](windows.md)) or use a pull-request delivery instead.
+Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git. The local-only trial in step 4 also needs the smoke-test sandbox. It is built into macOS; on Linux, install bubblewrap at `/usr/bin/bwrap`. On Windows 10 1809 or later it is built in too (a per-run AppContainer, no admin rights); WSL2 is only the fallback when PowerShell is locked down (see [Windows](windows.md)).
 
 **1. Install the plugin.**
 

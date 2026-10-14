@@ -85,7 +85,7 @@ mpsf watch --timeout 30m                    # background alarm: exits at the fir
 mpsf message outbox [--flush | --drop <id>] # messages waiting to be sent
 mpsf message identity [--name "Antonio · PC3"] # who this computer is in the channel
 mpsf message who [--since 7d]               # who is in the channel
-mpsf message send --kind freeze --until 30m --text "Release in progress"  # no merge/push on main until then
+mpsf message send --kind freeze --until 30m --text "Release in progress"  # no merge/push on main until then (off by default: freezes_enabled)
 mpsf wait list [--all] [--json]             # who waits for what (see "Waits registry")
 ```
 
