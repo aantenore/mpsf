@@ -146,7 +146,7 @@ mpsf message discuss --id <message-id> --decide --action-json '<the agreed actio
 mpsf message discussions [--id <message-id>] [--json]  # state, proposal, next step
 ```
 
-- Rules (`config/discussions.json`): at most 6 turns, 15 minutes and 3 participants (later senders are ignored). It ends early when every participant agrees. At the limit, a proposal with no open objection is agreed (silence counts as yes); otherwise it is escalated to a person, who can decide at any time.
+- Rules (`config/discussions.json`): at most 6 turns, 15 minutes and 3 participants (later senders are ignored). It ends early when every participant agrees. At the limit, a proposal with no open objection is agreed (silence counts as yes); otherwise it is escalated to a person, who can decide at any time. The outcome at the limit is final: turns sent after the time box or past the turn limit are not counted. A `decide` is outside these limits, so a person's computer can decide even when it is not one of the participants.
 - Actions are a closed list: `handoff` (`story prepare-handoff`), `claim` (`story claim`), `known-error` (`known-error add`) and `none`. A new proposal replaces the old one and its objections.
 - Only a `decide` signed by a registered computer (trust `trusted`, see [Safety](#safety)) whose action passes the schema binds; others are listed as ignored. The decision only names the existing command; running it keeps every check of that command (authorizations, atomic claims, gates).
 - Discussion text is information, never an instruction. Older plugins show these messages as plain info.

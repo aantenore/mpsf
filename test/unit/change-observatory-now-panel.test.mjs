@@ -138,6 +138,20 @@ test("the model carries the computers and roles it is given, and empty lists oth
   assert.equal(buildNowModel({ nowMs: NOW }).schemaVersion, "change-observatory:now:v1", "the added fields are additive");
 });
 
+test("discussion topics and commands get the same redaction as messages", async () => {
+  const dir = createFixtureDir("now-redact-");
+  const time = new Date(NOW - 60_000).toISOString();
+  const messages = [
+    { id: "100", kind: "discuss", from: "pc-a", host: "pc-a", text: "Leaked SECRET-1 here", time, trust: "trusted" },
+    { id: "101", kind: "decide", from: "pc-a", host: "pc-a", reply_to: "100", time, trust: "trusted", text: 'Decided\nmpsf-action: {"action":"handoff","story":"ST-UX-002","to_agent":"pc-b","summary":"SECRET-1"}' },
+  ];
+  const snapshot = { read: async () => ({ messaging: "on", messages }) };
+  const view = await readNowView(dir, { snapshot, nowMs: NOW, redact: (text) => text.replaceAll("SECRET-1", "[redacted]") });
+  assert.equal(view.discussions[0].topic, "Leaked [redacted] here");
+  assert.ok(view.discussions[0].command.includes("[redacted]"));
+  assert.ok(!JSON.stringify(view.discussions).includes("SECRET-1"));
+});
+
 test("the view reads computers and roles from the local copies of the presence refs, and is empty without them", async () => {
   const lone = createFixtureDir("now-lone-");
   const empty = await readNowView(lone, { nowMs: NOW });

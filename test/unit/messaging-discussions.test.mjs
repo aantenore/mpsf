@@ -69,6 +69,25 @@ test("the turn limit closes it like the time box", () => {
   assert.equal(only([root, ...turns, propose("106", "pc-a", 6)], 7).state, STATES.agreed);
 });
 
+test("turns after the time box or the turn limit never reopen the outcome", () => {
+  const agreedBySilence = [root, reply("101", "pc-b", "info", 1), propose("102", "pc-a", 2)];
+  assert.equal(only([...agreedBySilence, reply("103", "pc-b", "object", 20)], 21).state, STATES.agreed);
+  const turns = [1, 2, 3, 4, 5].map((minute) => reply(String(100 + minute), minute % 2 ? "pc-b" : "pc-a", "info", minute));
+  const closed = only([root, ...turns, propose("106", "pc-a", 6), reply("107", "pc-b", "object", 7)], 8);
+  assert.equal(closed.state, STATES.agreed);
+  assert.equal(closed.turns, 6);
+});
+
+test("a person decides at any time, also from a computer outside the participants", () => {
+  const full = [root, propose("101", "pc-a", 1), reply("102", "pc-b", "object", 2), reply("103", "pc-c", "info", 3)];
+  const escalated = only(full, 16);
+  assert.equal(escalated.state, STATES.escalated);
+  const decided = only([...full, reply("110", "pc-person", "decide", 30, { text: encodeAction("Decided", handoff) })], 31);
+  assert.equal(decided.state, STATES.decided);
+  assert.equal(decided.decision.by, "pc-person");
+  assert.equal(decided.turns, 3);
+});
+
 test("only a signed decision with a valid action binds", () => {
   const decide = (trust, action = handoff) => reply("110", "pc-c", "decide", 5, { trust, text: encodeAction("Decided", action) });
   const base = [root, propose("101", "pc-a", 1), reply("102", "pc-b", "object", 2)];
