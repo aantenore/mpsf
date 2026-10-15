@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.164.3
+
+- Release: ships the 0.164.2 changes with a fully tested CI run (all gate cells, Windows included). No behaviour change. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 0.164.2
 
 - Discussions: inside an agent session, `message discuss --decide` records only the agreed proposal of an agreed discussion, unchanged. An open, contested or escalated discussion is decided by a person in their own terminal; the agent is refused, and the check fails closed when the channel cannot be read. This closes the gap where an agent could skip an open objection by deciding on its own. Change Observatory: no change (the Chat cannot send a decision). Compatibility: no record, ref or config key changed.
