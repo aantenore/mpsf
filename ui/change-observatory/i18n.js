@@ -184,7 +184,7 @@ const ITALIAN = Object.freeze({
   "No change records were found.": "Non sono state trovate modifiche registrate.",
   "Verification evidence": "Prove di verifica",
   "Known errors": "Errori noti",
-  Knowledge: "Knowledge",
+  Knowledge: "Conoscenza",
   "Recurring traps, fixes and answers distilled for every computer, shown in the context pack of the stories they touch": "Trappole ricorrenti, fix e risposte distillate per tutti i computer, mostrate nel context pack delle storie che toccano",
   "No shared knowledge was distilled yet.": "Non è stata ancora distillata knowledge condivisa.",
   trap: "trappola",
@@ -1122,6 +1122,9 @@ function projectedStatus(item, fallbackStatus = null) {
   if (["active", "in_effect"].includes(status)) return t("In effect");
   if (["approved", "accepted"].includes(status)) return t("Approved");
   if (status === "merged_externally") return t("Merged outside the plugin");
+  // A check says whether it passed, not just that it ran.
+  if (["passed", "succeeded"].includes(status)) return t("Passed");
+  if (["failed", "failure", "error"].includes(status)) return t("Failed");
   if (["complete", "completed", "done", "passed", "verified", "succeeded", "merged", "ready_for_review", "released"].includes(status)) {
     return t("Completed");
   }

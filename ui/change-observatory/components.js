@@ -1016,11 +1016,9 @@ function verificationPanel(model, state, options = {}) {
   const list = node("div", { className: "record-list", attrs: { role: "list" } });
   const visibleItems = pagedItems(model.verification, options);
   for (const item of visibleItems) {
-    const display = displayTextForItem(item);
     list.append(
       node("div", { className: "verification-row", attrs: { role: "listitem" } }, [
         recordRow(item, state.selectedId),
-        statusText(display.status),
       ]),
     );
   }

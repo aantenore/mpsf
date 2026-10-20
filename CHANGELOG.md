@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.19
+
+- Change Observatory: a check reads Passed or Failed (coloured) instead of Completed or Needs attention, and the Verification list no longer repeats each status in a second column. Now panel: a story in progress says when it started ("started 1 h ago", in Italian "iniziata 1 h fa" instead of "da 1 h fa"), question and request labels are translated, and its section titles are proper level-2 headings. In the story dossier the phase headers wrap inside their column instead of overlapping (Italian "Implementazione"). The Italian menu says Conoscenza. Compatibility: no record, ref or config key changed.
+
 ## 1.0.18
 
 - `/mpsf:doctor`: when every check passes, the agent now gives the plugin folder and the next step (in a new folder, how to initialize the project) instead of only saying that all checks passed. Change Observatory: no change. Compatibility: no record, ref or config key changed.

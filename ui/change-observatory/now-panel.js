@@ -19,6 +19,11 @@ const ITALIAN = Object.freeze({
   "Nobody is working on a story right now.": "Nessuno sta lavorando a una storia in questo momento.",
   phase: "fase",
   since: "da",
+  started: "iniziata",
+  question: "domanda",
+  request: "richiesta",
+  answer: "risposta",
+  offer: "offerta",
   branch: "branch",
   reserved: "riservata",
   parked: "parcheggiata",
@@ -97,7 +102,7 @@ export function relativeTime(value, nowMs = Date.now()) {
 
 function section(title, items) {
   return node("section", { className: "now-section" }, [
-    node("h3", { text: label(title) }),
+    node("h2", { text: label(title) }),
     node("ul", { className: "now-list" }, items),
   ]);
 }
@@ -110,7 +115,7 @@ function workItem(item) {
     const detail = [source, when].filter(Boolean).join(", ");
     parts.push(`${label("phase")} ${item.phase}${detail ? ` (${detail})` : ""}`);
   }
-  if (item.since) parts.push(`${label("since")} ${relativeTime(item.since)}`);
+  if (item.since) parts.push(`${label("started")} ${relativeTime(item.since)}`);
   if (item.branch) parts.push(`${label("branch")} ${item.branch}`);
   const flag = item.state !== "claimed" ? item.state : item.health && item.health !== "active" ? item.health : null;
   const issues = Array.isArray(item.issues) ? item.issues : [];
@@ -149,7 +154,7 @@ function senderItem(sender) {
 function openItem(message) {
   return node("li", { className: "now-item" }, [
     node("strong", { text: message.from }),
-    node("span", { className: "now-flag", text: message.kind }),
+    node("span", { className: "now-flag", text: label(message.kind) }),
     trustFlag(message),
     node("span", { className: "now-meta", text: `${message.text} · ${label("waiting on")} ${message.waitingOn.join(", ")} · ${relativeTime(message.time)}` }),
   ]);
@@ -180,7 +185,7 @@ function waitItem(item) {
   return node("li", { className: "now-item" }, [
     node("strong", { text: item.waiter }),
     node("span", { className: "now-flag", text: label(item.state) }),
-    node("span", { className: "now-meta", text: `${item.type} ${item.ref} · ${label("since")} ${relativeTime(item.since)}${deadline}` }),
+    node("span", { className: "now-meta", text: `${item.type} ${item.ref} · ${relativeTime(item.since)}${deadline}` }),
   ]);
 }
 
