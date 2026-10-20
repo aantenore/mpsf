@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.18
+
+- `/mpsf:doctor`: when every check passes, the agent now gives the plugin folder and the next step (in a new folder, how to initialize the project) instead of only saying that all checks passed. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.17
 
 - Guard: an edit of `.claude/settings.json` that switches the `mpsf@…` or `agentic-sdlc@…` plugin entry off is refused like other changes to the host settings the guard depends on. Outside strict main-thread mode the PreToolUse hook no longer runs `git worktree list` on every tool call, which kept it closer to its time limit on slow disks. Change Observatory: no change. Compatibility: no record, ref or config key changed.

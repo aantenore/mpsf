@@ -16,4 +16,5 @@ Rules for this command:
 
 - Pass the project path as `--root` when one is given. Without `--root`, doctor checks the installation plus the project in the current working directory: its effective configuration, and its knowledge base and output registry when `.sdlc/` exists. A broken or drifted `.sdlc/` there fails the check, so omitting `--root` is not an installation-only check.
 - A failed check exits non-zero. Report only the failing checks and the concrete fix, not the full pass list.
+- When every check passes, say so in one line, then give the `Plugin folder` and the next step that doctor prints (in a folder without `.sdlc/` that is how to initialize the project).
 - The Node runtime requirement is 18.20.3-18.x, 20.12.0-20.x, or 21.6.0+. Earlier releases in those lines contain an upstream native shutdown livelock.
