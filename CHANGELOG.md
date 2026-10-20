@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.28
+
+- Change Observatory: chart axis labels keep a readable size at any width and panel headings no longer grow tall on phones; Decisions hide routine bookkeeping steps (work started, result attached, agreement linked) behind Show routine steps; portfolio cards give each record kind a fair share of the bounded read, stop counting finished workflows as in progress and old failed reports as blocked.
+
 ## 1.0.27
 
 - Change Observatory, portfolio view: project cards no longer show Changed 0 and Checks 0, which the quick project read never counted; they show requests, decisions, stories in progress and blocked stories, with `12+` or `–` when a large project was read only in part. Previews list only records with a title, so "Recorded evidence / No summary was recorded" no longer fills the card, and requirement lifecycle events are no longer counted as requests. Compatibility: no record, ref or config key changed; an older server without the in-progress and blocked counts shows the card without them.

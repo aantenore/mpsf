@@ -55,7 +55,7 @@ here), and the ref mode keeps a snapshot under `.git/agentic-sdlc/observatory/`.
    | Map | When `.sdlc/dependencies/graph.json` exists, the map opens on the **project plan**: every story in waves from left to right, with a line from each story to the work it unlocks. Selecting a story lights up its whole chain. The plan fits the page width; **+** and **−** zoom, **Reset** fits it again. **One story in detail** shows the lineage of one story from the request to the checks; related records are drawn for the selected box only. |
    | Story dossier | Each piece of work step by step, from the request to verification, plus the phase-by-phase lineage matrix. Old `#timeline` links open this view. |
    | Contracts | The agreed boundaries and how they changed over time. |
-   | Decisions | Choices that were made, with the reasons and the alternatives that were rejected. |
+   | Decisions | Choices that were made, with the reasons and the alternatives that were rejected. Routine bookkeeping steps (work started, result attached, agreement linked) stay in the timeline and appear here only after **Show routine steps**. |
    | Changes | What was actually changed, grouped by the intent behind it. |
    | Intent evidence | Optional, content-free notes about what an agent was asked to do. It is empty unless that recording is turned on, and an empty view is normal. |
    | Verification | The checks and gates that were run, and what they showed. |
@@ -189,7 +189,10 @@ Each project card shows the requests and decisions it found, the stories in
 progress and the blocked ones, plus the titles of up to three recent requests.
 The cards come from a quick, bounded read of each project: when a large project
 is read only in part, a count shows as `12+` (at least 12) or `–` (not reached),
-and the card asks for a review. Open the project for the full picture.
+and the card asks for a review. Each kind of record gets a fair share of that
+read, so hundreds of requests do not hide the stories and workflows. A finished
+workflow does not count as in progress, and an old failed report does not count
+as blocked. Open the project for the full picture.
 
 For CI or a quick terminal check, use the one-shot read-only command instead:
 

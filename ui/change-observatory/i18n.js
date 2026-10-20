@@ -361,6 +361,8 @@ const ITALIAN = Object.freeze({
   "Week of": "Settimana del",
   "No dated activity was recorded yet.": "Non è ancora stata registrata alcuna attività con data.",
   "Activity over time": "Attività nel tempo",
+  "Show routine steps": "Mostra i passaggi di routine",
+  "Hide routine steps": "Nascondi i passaggi di routine",
   "No result recorded": "Esito non registrato",
   "Now": "Ora",
   "No story is in progress right now": "Nessuna storia è in corso in questo momento",

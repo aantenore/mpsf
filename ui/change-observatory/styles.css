@@ -2469,6 +2469,10 @@ svg {
     flex-direction: column;
   }
 
+  .dossier-panel > .section-heading > div:first-child {
+    flex-basis: auto;
+  }
+
   .dossier-panel > .section-heading .section-heading-actions,
   .dossier-panel > .section-heading .compact-select {
     width: 100%;
@@ -2504,6 +2508,10 @@ svg {
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .section-heading > div:first-child {
+    flex-basis: auto;
   }
 
   .section-heading-actions {
@@ -2990,11 +2998,44 @@ button.kpi-tile:hover {
   stroke-width: 1;
 }
 
-.chart-axis {
-  fill: var(--ink-muted);
-  stroke: none;
-  font-size: 12px;
+.chart-plot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
 }
+
+.chart-y-axis {
+  position: relative;
+  min-width: 3ch;
+  padding-right: 6px;
+}
+
+.chart-x-axis {
+  position: relative;
+  grid-column: 2;
+  height: 20px;
+}
+
+.chart-axis-label {
+  position: absolute;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chart-y-axis .chart-axis-label {
+  right: 6px;
+  transform: translateY(-50%);
+}
+
+.chart-x-axis .chart-axis-label {
+  top: 6px;
+  transform: translateX(-50%);
+}
+
+.chart-x-axis .chart-axis-label.is-start { transform: none; }
+.chart-x-axis .chart-axis-label.is-end { transform: translateX(-100%); }
 
 .chart-bar {
   cursor: pointer;

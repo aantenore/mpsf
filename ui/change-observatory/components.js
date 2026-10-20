@@ -948,8 +948,44 @@ function showMoreFooter(shown, total) {
   ]);
 }
 
+// Bookkeeping steps the workflow records as decisions; they stay in the timeline
+// and appear here only on request, so the choices people made stand out.
+const ROUTINE_DECISION_ACTIONS = new Set([
+  "output.link",
+  "contract.story-link",
+  "task.start.confirm",
+  "story.base.acknowledge",
+  "workflow.backfilled",
+]);
+
+export function isRoutineDecision(item) {
+  const action = String(item?.action ?? "");
+  return ROUTINE_DECISION_ACTIONS.has(action) || action.startsWith("delegation.use.");
+}
+
+function decisionsPanel(model, state, paging) {
+  const showRoutine = state.explore?.routineDecisions === true;
+  const routine = model.decisions.filter(isRoutineDecision).length;
+  const items = showRoutine ? model.decisions : model.decisions.filter((item) => !isRoutineDecision(item));
+  const toggle = routine
+    ? node("button", {
+      className: "text-button",
+      text: showRoutine ? t("Hide routine steps") : `${t("Show routine steps")} (${routine})`,
+      attrs: { type: "button", "aria-pressed": String(showRoutine) },
+      dataset: { action: "toggle-routine-decisions" },
+    })
+    : null;
+  return recordsPanel(
+    "Decisions",
+    "Recorded rationale and alternatives across delivery",
+    items,
+    state,
+    { ...paging, actions: toggle ? [toggle] : [] },
+  );
+}
+
 function recordsPanel(title, description, items, state, options = {}) {
-  const panel = node("section", { className: "section-panel" }, [sectionHeading(title, description)]);
+  const panel = node("section", { className: "section-panel" }, [sectionHeading(title, description, options.actions)]);
   if (!items.length) {
     panel.append(emptyInline(options.emptyMessage ?? `Nothing was recorded under ${title.toLowerCase()}.`));
     return panel;
@@ -1249,13 +1285,7 @@ export function renderPrimary(container, model, state) {
       );
       break;
     case "decisions":
-      content = recordsPanel(
-        "Decisions",
-        "Recorded rationale and alternatives across delivery",
-        model.decisions,
-        state,
-        paging,
-      );
+      content = decisionsPanel(model, state, paging);
       break;
     case "changes":
       content = changesPanel(model, state, paging);

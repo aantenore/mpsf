@@ -66,6 +66,8 @@ export function defaultExploreState() {
     planFocus: null,
     // null fits the project plan to the page width; a number is a zoom chosen by the reader.
     mapZoom: null,
+    // Decisions hide routine bookkeeping steps until the reader asks for them.
+    routineDecisions: false,
     pages: 1,
   };
 }
@@ -340,7 +342,8 @@ export function activityChart(events, { range = null, compact = false } = {}) {
   if (!buckets.length) return emptyMessage("No dated activity was recorded yet.");
   const width = 720;
   const height = compact ? 170 : 200;
-  const pad = { top: 12, right: 8, bottom: 26, left: 32 };
+  // Axis labels live in HTML beside the scaled SVG so they keep a readable size at any width.
+  const pad = { top: 12, right: 8, bottom: 2, left: 4 };
   const plotWidth = width - pad.left - pad.right;
   const plotHeight = height - pad.top - pad.bottom;
   const max = niceMax(Math.max(...buckets.map((bucket) => bucket.total), 1));
@@ -354,12 +357,12 @@ export function activityChart(events, { range = null, compact = false } = {}) {
     "aria-label": `${t("Activity over time")}: ${countText(total, "event", "events")}`,
     preserveAspectRatio: "none",
   });
+  const yAxis = node("div", { className: "chart-y-axis", attrs: { "aria-hidden": "true" } });
+  const xAxis = node("div", { className: "chart-x-axis", attrs: { "aria-hidden": "true" } });
   for (const fraction of [0, 0.5, 1]) {
     const y = pad.top + plotHeight * (1 - fraction);
-    svg.append(
-      svgNode("line", { className: "chart-grid", x1: pad.left, x2: width - pad.right, y1: y, y2: y }),
-      svgNode("text", { className: "chart-axis", x: pad.left - 6, y: y + 4, "text-anchor": "end", text: Math.round(max * fraction) }),
-    );
+    svg.append(svgNode("line", { className: "chart-grid", x1: pad.left, x2: width - pad.right, y1: y, y2: y }));
+    yAxis.append(axisLabel(Math.round(max * fraction), "top", (y / height) * 100));
   }
   const labelEvery = Math.ceil(buckets.length / (compact ? 4 : 6));
   buckets.forEach((bucket, index) => {
@@ -404,18 +407,27 @@ export function activityChart(events, { range = null, compact = false } = {}) {
     }
     svg.append(group);
     if (index % labelEvery === 0 || index === buckets.length - 1) {
-      svg.append(svgNode("text", {
-        className: "chart-axis",
-        x: pad.left + slot * index + slot / 2,
-        y: height - 8,
-        "text-anchor": "middle",
-        text: unit === "hour"
+      xAxis.append(axisLabel(
+        unit === "hour"
           ? formatDay(bucket.start, { hour: "2-digit", minute: "2-digit" })
           : formatDay(bucket.start, { day: "numeric", month: "short" }),
-      }));
+        "left",
+        ((pad.left + slot * index + slot / 2) / width) * 100,
+      ));
     }
   });
-  return node("figure", { className: "chart-figure" }, [svg, kindLegend()]);
+  return node("figure", { className: "chart-figure" }, [
+    node("div", { className: "chart-plot" }, [yAxis, svg, xAxis]),
+    kindLegend(),
+  ]);
+}
+
+function axisLabel(text, side, percent) {
+  const edge = side === "left" && percent > 90 ? " is-end" : side === "left" && percent < 10 ? " is-start" : "";
+  const label = node("span", { className: `chart-axis-label${edge}`, text: String(text) });
+  // CSSOM writes stay within a style-src 'self' policy, unlike style attributes.
+  if (label.style) label.style[side] = `${percent.toFixed(2)}%`;
+  return label;
 }
 
 function kindLegend(counts = null) {

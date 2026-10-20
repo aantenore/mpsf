@@ -4,6 +4,7 @@ import {
   phaseSelectionId,
   phaseSelectionItem,
   hasMissingKnowledgeBase,
+  isRoutineDecision,
   renderDiagnostics,
   renderFatalError,
   renderInspector,
@@ -789,7 +790,10 @@ const VIEW_COLLECTIONS = Object.freeze({
 });
 
 function followViewSelection(view) {
-  const items = state.model?.[VIEW_COLLECTIONS[view]];
+  let items = state.model?.[VIEW_COLLECTIONS[view]];
+  if (view === "decisions" && Array.isArray(items) && !state.explore?.routineDecisions) {
+    items = items.filter((item) => !isRoutineDecision(item));
+  }
   if (!Array.isArray(items) || !items.length || items.includes(state.selectedItem)) return;
   const id = recordSelectionKey(items[0]);
   if (!id || !state.records.has(id)) return;
@@ -1068,6 +1072,11 @@ function handleExploreAction(element) {
       break;
     case "timeline-more":
       explore.pages += 1;
+      render();
+      break;
+    case "toggle-routine-decisions":
+      explore.routineDecisions = !explore.routineDecisions;
+      explore.pages = 1;
       render();
       break;
     case "plan-all":
