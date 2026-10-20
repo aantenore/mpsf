@@ -64,7 +64,8 @@ export function defaultExploreState() {
     mapStoryId: null,
     mapMode: null,
     planFocus: null,
-    mapZoom: 1,
+    // null fits the project plan to the page width; a number is a zoom chosen by the reader.
+    mapZoom: null,
     pages: 1,
   };
 }
@@ -606,6 +607,8 @@ function storyNextText(story, storiesById) {
   if (story.livePhase) {
     return `${t("Now")}: ${t(story.livePhase.charAt(0).toUpperCase() + story.livePhase.slice(1))}`;
   }
+  const stuck = story.phases.find((phase) => phase.status === "blocked");
+  if (stuck) return `${t("Blocked at")}: ${t(stuck.phase.charAt(0).toUpperCase() + stuck.phase.slice(1))}`;
   const next = story.phases.find((phase) => phase.status !== "complete");
   if (story.state === "delivered" || !next) return t("All steps done");
   return `${t("Next step")}: ${t(next.phase.charAt(0).toUpperCase() + next.phase.slice(1))}`;
@@ -1115,10 +1118,12 @@ function mapModeSwitch(mode) {
   })));
 }
 
+const PLAN_FIT_MIN_SCALE = 0.6;
+
 function zoomControls(zoom) {
   return node("div", { className: "zoom-controls", attrs: { role: "group", "aria-label": t("Zoom") } }, [
     node("button", { className: "icon-text-button", text: "−", attrs: { type: "button", "aria-label": t("Zoom out") }, dataset: { action: "map-zoom", zoom: "out" } }),
-    node("span", { className: "zoom-value", text: `${Math.round(zoom * 100)}%` }),
+    node("span", { className: "zoom-value", text: zoom === null ? t("Fit") : `${Math.round(zoom * 100)}%` }),
     node("button", { className: "icon-text-button", text: "+", attrs: { type: "button", "aria-label": t("Zoom in") }, dataset: { action: "map-zoom", zoom: "in" } }),
     node("button", { className: "text-button", text: "Reset", i18n: true, attrs: { type: "button" }, dataset: { action: "map-zoom", zoom: "reset" } }),
   ]);
@@ -1246,15 +1251,21 @@ function planView(state, insight) {
     }));
   }
 
-  const zoom = Math.min(2.5, Math.max(0.5, exploreState.mapZoom || 1));
+  const fit = exploreState.mapZoom === null || exploreState.mapZoom === undefined;
+  const zoom = fit ? 1 : Math.min(2.5, Math.max(0.5, exploreState.mapZoom));
   const svg = svgNode("svg", {
-    className: "lineage-map plan-map",
+    className: `lineage-map plan-map${fit ? " is-fit" : ""}`,
     viewBox: `0 0 ${width} ${height}`,
     width: Math.round(width * zoom),
     height: Math.round(height * zoom),
     role: "group",
     "aria-label": t("Project plan"),
   }, [lines, headers, nodes]);
+  if (fit && svg.style) {
+    // Shrink a wide plan to the page, never below a readable size and never above its own size.
+    svg.style.minWidth = `${Math.round(width * PLAN_FIT_MIN_SCALE)}px`;
+    svg.style.maxWidth = `${width}px`;
+  }
 
   const focused = focus ? insight.storiesById.get(focus) : null;
   const focusBar = focused
@@ -1276,7 +1287,7 @@ function planView(state, insight) {
     : node("p", { className: "plan-hint", text: "Select a story to light up what it needs and what it unlocks.", i18n: true });
 
   return node("div", { className: "view-stack" }, [
-    node("div", { className: "explore-toolbar" }, [mapModeSwitch("plan"), zoomControls(zoom)]),
+    node("div", { className: "explore-toolbar" }, [mapModeSwitch("plan"), zoomControls(fit ? null : zoom)]),
     panel(
       "Project plan",
       "Read it left to right: each story starts when the ones before it are delivered.",

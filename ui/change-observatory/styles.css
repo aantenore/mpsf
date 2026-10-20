@@ -3248,6 +3248,11 @@ button.kpi-tile:hover {
   min-height: 38px;
 }
 
+/* A select keeps its label readable; on a narrow screen it moves under the search box. */
+.explore-toolbar > select {
+  flex: 0 0 auto;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -3555,6 +3560,11 @@ button.kpi-tile:hover {
 .lineage-map {
   display: block;
   min-width: 100%;
+}
+
+.lineage-map.is-fit {
+  width: 100%;
+  height: auto;
 }
 
 .map-column-label {

@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.21
+
+- Change Observatory: the project plan map fits the page width by default (never below 60% or above its natural size), so a plan with several waves is visible without scrolling; + and − zoom as before and Reset fits it again. A blocked story says "Blocked at: <step>" instead of "Next step". On a phone the sort and story selects move under the search box instead of being squeezed to an empty box. Screenshots in `docs/images/` updated. Compatibility: no record, ref or config key changed.
+
 ## 1.0.20
 
 - Docs: the README answers the four questions newcomers ask first (do I need the CLI, can the agent get around it, what it costs a session, what happens when I stop using it), with links to the details. Change Observatory: no change. Compatibility: no record, ref or config key changed.

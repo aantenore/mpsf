@@ -51,9 +51,6 @@ try {
   await page.close();
 
   page = await open("map");
-  await page.click('[data-action="map-zoom"][data-zoom="out"]');
-  await page.click('[data-action="map-zoom"][data-zoom="out"]');
-  await page.waitForTimeout(200);
   await page.screenshot({ path: `${out}/observatory-map.png` });
   await page.close();
 

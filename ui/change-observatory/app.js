@@ -1078,8 +1078,8 @@ function handleExploreAction(element) {
     case "map-zoom": {
       const steps = { in: 1.25, out: 0.8 };
       explore.mapZoom = data.zoom === "reset"
-        ? 1
-        : Math.min(2.5, Math.max(0.5, (explore.mapZoom || 1) * (steps[data.zoom] ?? 1)));
+        ? null
+        : Math.min(2.5, Math.max(0.5, (explore.mapZoom ?? 1) * (steps[data.zoom] ?? 1)));
       render();
       break;
     }

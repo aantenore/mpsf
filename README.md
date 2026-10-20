@@ -193,6 +193,7 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.21** — Change Observatory: project plan fits the page; mobile toolbar fix.
 - **1.0.20** — README answers the first questions newcomers ask.
 - **1.0.19** — Change Observatory: checks show Passed or Failed; Italian fixes.
 - **1.0.18** — `/mpsf:doctor` tells a new user what to do next.
