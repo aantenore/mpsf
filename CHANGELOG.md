@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.6
+
+- Change Observatory: a dark theme that follows the operating system or browser setting (prefers-color-scheme). The page used to stay white on a dark screen. All colours now come from the theme tokens in `styles.css`, so a team can retune both themes in one place. Compatibility: no record, ref or config key changed.
+
 ## 1.0.5
 
 - Windows and input robustness: smoke test commands are judged by the bare program name, so `node.exe -e`, `python3.exe -c`, `bash.exe`, `sh.exe` and `wsl.exe` are refused like their plain forms. `known-error` refuses a `remove_path` into `.GIT`, `.Git.` or `.sdlc` in any letter case (macOS and Windows file systems treat them as the same folder) and refuses `.` or empty segments. A CLI preset file saved with a byte order mark (Windows Notepad, PowerShell) now loads. `context budget --set ""` is refused instead of silently removing the cap. `scripts/release.mjs` accepts `--version=X` and refuses a version that is not newer than main. Change Observatory: no change. Compatibility: no record, ref or config key changed.
