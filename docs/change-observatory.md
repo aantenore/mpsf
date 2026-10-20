@@ -2,6 +2,8 @@
 
 Change Observatory is the visual, local-first lineage reader bundled with MPSF. It turns canonical `.sdlc/` records into a presentation that a non-technical stakeholder can start with and a technical reviewer can drill through to raw evidence.
 
+![Change Observatory overview with sample data](images/observatory-overview.png)
+
 ## Your First Time
 
 Change Observatory is a small web page that runs on your own computer and only

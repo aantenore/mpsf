@@ -18,7 +18,7 @@ In Claude Code:
 /mpsf:doctor
 ```
 
-In Codex, follow the installer steps in the [README Quick Start](../README.md#codex).
+In Codex, follow the installer steps in the [README install steps](../README.md#codex).
 `doctor` should report a usable runtime; see [Claude Code Installation](hosts/claude-code.md) or [Codex](hosts/codex.md#doctor) if it does not.
 
 **2. Create a disposable project.** Nothing touches a real repository while you

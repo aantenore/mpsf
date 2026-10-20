@@ -16,7 +16,7 @@ This distinction matters. A CodeBurn delta is useful for visibility, warnings, e
 Every collection uses the same four allowlisted CodeBurn filters:
 
 - `provider` asks which local session-log producer CodeBurn should read. Example: `codex` (use the provider that matches the agent host whose logs you want). It does not mean a billing account or an OpenAI project ID.
-- `project` asks which CodeBurn project filter should be aggregated. Example: `TravelOps`. CodeBurn can match more than one session, so use the narrowest stable project value available.
+- `project` asks which CodeBurn project filter should be aggregated. Example: `my-app`. CodeBurn can match more than one session, so use the narrowest stable project value available.
 - `from` and `to` ask for a fixed inclusive calendar window in `YYYY-MM-DD` form. Example: both `2026-07-14` for one day. A baseline and its current snapshot must use exactly the same window.
 - `id` identifies the persisted evidence record. Example: `ASSESSMENT-001-codeburn-start`. It does not affect CodeBurn filtering.
 
@@ -54,7 +54,7 @@ cannot be found, `budget meter start` says so and repeats these steps.
 
 ## Start snapshot
 
-Use a start snapshot immediately before the task begins. The example below asks CodeBurn to aggregate Codex sessions matching `TravelOps` on 14 July 2026, normalizes the cumulative counters, hashes the source report, and returns a persistible snapshot:
+Use a start snapshot immediately before the task begins. The example below asks CodeBurn to aggregate Codex sessions matching `my-app` on 14 July 2026, normalizes the cumulative counters, hashes the source report, and returns a persistible snapshot:
 
 ```js
 import fs from "node:fs/promises";
@@ -62,7 +62,7 @@ import { collectCodeBurnMeteringSnapshot } from "../lib/codeburn-metering-adapte
 
 const query = {
   provider: "codex",
-  project: "TravelOps",
+  project: "my-app",
   from: "2026-07-14",
   to: "2026-07-14",
 };
@@ -82,7 +82,7 @@ await fs.writeFile(
 `collectCodeBurnMeteringSnapshot` first checks the configured command with `--version`, accepts only 0.9.x, then runs the equivalent of:
 
 ```text
-codeburn report --provider codex --project TravelOps --from 2026-07-14 --to 2026-07-14 --format json
+codeburn report --provider codex --project my-app --from 2026-07-14 --to 2026-07-14 --format json
 ```
 
 The displayed command is explanatory; callers should use the library so unvalidated values cannot become raw argv.

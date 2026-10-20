@@ -757,7 +757,7 @@ node bin/mpsf.mjs budget meter start \
   --adapter codeburn \
   --id METER-ASSESS-001-CODEBURN \
   --provider codex \
-  --project TravelOps \
+  --project my-app \
   --from 2026-07-15 \
   --to 2026-07-15
 ```

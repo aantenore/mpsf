@@ -12,7 +12,7 @@ On every computer, in its clone of the project, the same command:
 mpsf message setup [--provider git|github|local] [--repo owner/name] [--issue N]
 ```
 
-Which channel setup picks: `--provider`; else the one the settings already choose; else GitHub when `--repo`/`--issue` are given or the project already has a channel issue (TravelOps and other existing projects stay where they are); else `git`.
+Which channel setup picks: `--provider`; else the one the settings already choose; else GitHub when `--repo`/`--issue` are given or the project already has a channel issue (existing projects stay where they are); else `git`.
 
 ### Git channel
 

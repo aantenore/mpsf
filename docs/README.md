@@ -5,7 +5,8 @@ This page is the documentation map. Start with the goal that matches what you wa
 ## Start here
 
 - [Getting started](getting-started.md) — try it in five minutes, choose a natural-language starter, understand what you will approve, and distinguish a new PR, an existing PR, and a local-only result.
-- [Project overview](../README.md) — what the plugin does, the normal two-checkpoint experience, and maintainer commands.
+- [Project overview](../README.md) — what the plugin does, why it is different, and how to install it.
+- [Reference overview](reference.md) — the complete tour in one page: the guided journey, Observatory, autonomy, several computers, metering, verification, release and repository layout.
 
 ## Your host
 
