@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.22
+
+- Change Observatory: Contracts, Decisions, Changes and Verification open with their own first record in the side inspector, instead of keeping a record selected on another view (for example a changed file shown next to the decisions). Compatibility: no record, ref or config key changed.
+
 ## 1.0.21
 
 - Change Observatory: the project plan map fits the page width by default (never below 60% or above its natural size), so a plan with several waves is visible without scrolling; + and − zoom as before and Reset fits it again. A blocked story says "Blocked at: <step>" instead of "Next step". On a phone the sort and story selects move under the search box instead of being squeezed to an empty box. Screenshots in `docs/images/` updated. Compatibility: no record, ref or config key changed.

@@ -772,10 +772,29 @@ function setView(view) {
   if (state.view !== view) state.explore.pages = 1;
   state.view = view;
   state.inspectorOpen = false;
+  followViewSelection(view);
   if (window.location.hash !== `#${view}`) window.history.pushState(navEntry(), "", `#${view}`);
   if (window.matchMedia("(max-width: 720px)").matches) setNavigationOpen(false);
   render();
   elements.primary.focus({ preventScroll: true });
+}
+
+// A record list opens with its own first record in the inspector, not one
+// selected on another view.
+const VIEW_COLLECTIONS = Object.freeze({
+  contracts: "contracts",
+  decisions: "decisions",
+  changes: "changes",
+  verification: "verification",
+});
+
+function followViewSelection(view) {
+  const items = state.model?.[VIEW_COLLECTIONS[view]];
+  if (!Array.isArray(items) || !items.length || items.includes(state.selectedItem)) return;
+  const id = recordSelectionKey(items[0]);
+  if (!id || !state.records.has(id)) return;
+  state.selectedId = id;
+  state.selectedItem = state.records.get(id);
 }
 
 function selectRecord(id) {
