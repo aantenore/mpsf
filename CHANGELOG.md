@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.3
+
+- Coordination robustness: `coordinator free-claims` no longer frees a claim when the presence of other computers could not be read (failed fetch, or only expired copies with no live computer at all, this one included); it asks a person instead. A presence record counts only under its own ref name, so a copy pushed under another name cannot speak for a computer. A status time in the future (a clock that jumped back) no longer silences `[auto]` status and offers until the clock catches up. Change Observatory: presence shown there follows the same rule. Compatibility: no record, ref or config key changed.
+
 ## 1.0.2
 
 - Robustness: after `/clear` or `/compact` the session start hook runs again and re-injects the project instructions and standing approvals instead of suppressing them as already seen. Two commands that start at the same moment on the same story can no longer both take the single-flight lock: the lock file is published complete, and a stale lock is taken over only if it is still the one judged stale. The JSON Schema validator checks only a record's own keys, so a record with a `constructor` or `toString` field is no longer misjudged. Change Observatory: no change. Compatibility: no record, ref or config key changed.

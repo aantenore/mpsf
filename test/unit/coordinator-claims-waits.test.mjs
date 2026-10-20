@@ -33,6 +33,8 @@ test("free-claims frees only abandoned claims whose holder has no live presence;
   assert.equal(plans["ST-F"].reason, "not_shared");
   // Without any presence known, absence cannot be proved.
   assert.equal(planFreeClaims({ stories: [abandoned("ST-A")], presence: [], now: NOW })[0].reason, "presence_unknown");
+  // Only expired copies (the presence fetch failed): stale, not proof of absence.
+  assert.equal(planFreeClaims({ stories: [abandoned("ST-A", { host: "pc-off" })], presence: [gone("pc-off")], now: NOW })[0].reason, "presence_unknown");
 });
 
 test("settle-waits closes expired explicit waits and stale questions only", () => {

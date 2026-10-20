@@ -174,6 +174,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.3** — coordination: no claim freed on unreadable presence, presence checked against its ref name, clock-skew fix.
 - **1.0.2** — robustness: session context back after `/clear` and `/compact`, race-free command lock, stricter record validation.
 - **1.0.1** — first run: clearer `doctor` next step, plugin folder shown, `mpsf` alias guide, Linux sandbox note.
 - **1.0.0** — first stable release: new README and logo, Change Observatory screenshots, the full overview in [docs/reference.md](docs/reference.md). Same behaviour as 0.164.x.
