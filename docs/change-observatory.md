@@ -185,6 +185,12 @@ mpsf observe \
   --portfolio-manifest portfolio.json
 ```
 
+Each project card shows the requests and decisions it found, the stories in
+progress and the blocked ones, plus the titles of up to three recent requests.
+The cards come from a quick, bounded read of each project: when a large project
+is read only in part, a count shows as `12+` (at least 12) or `–` (not reached),
+and the card asks for a review. Open the project for the full picture.
+
 For CI or a quick terminal check, use the one-shot read-only command instead:
 
 ```bash

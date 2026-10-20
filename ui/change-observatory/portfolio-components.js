@@ -135,10 +135,10 @@ function summaryCard(label, value, tone = "neutral") {
 
 function projectCard(project) {
   const available = project.status === "available";
-  const previewItems = project.previews.slice(0, 3).map((preview) => node("li", {}, [
+  const previewItems = project.previews.filter((preview) => preview.title !== "Recorded evidence").slice(0, 3).map((preview) => node("li", {}, [
     node("span", { className: "portfolio-preview-kind", text: t(sentenceCase(preview.kind)) }),
     node("strong", { text: preview.title }),
-    node("p", { text: preview.summary }),
+    preview.summary === "No summary was recorded." ? null : node("p", { text: preview.summary }),
   ]));
   const actionLabel = available ? "Open project details" : "Review unavailable project";
   return node("article", {
@@ -156,10 +156,11 @@ function projectCard(project) {
     ]),
     available
       ? node("dl", { className: "portfolio-counts" }, [
+          // The summary scan does not count changes or checks; only what it measures is shown.
           count("Asked", project.counts.asked),
-          count("Changed", project.counts.changed),
           count("Decided", project.counts.decided),
-          count("Checks", project.counts.verification),
+          project.activeWork === null || project.activeWork === undefined ? null : count("In progress", project.activeWork),
+          project.blockers === null || project.blockers === undefined ? null : count("Blocked", project.blockers),
         ])
       : node("p", {
           className: "portfolio-card-message",

@@ -210,8 +210,19 @@ function normalizeProject(value) {
       : null,
     message: status === "unavailable" ? boundedText(value.message, null, 256) : null,
     counts: Object.freeze(counts),
+    // Optional: an older server sends no aggregates and the card leaves these out.
+    activeWork: optionalCount(value.aggregates?.activeWorkflows),
+    blockers: optionalCount(value.aggregates?.blockers),
     previews: Object.freeze(previews),
   });
+}
+
+// A bounded scan that stopped early shows "at least" the count it reached.
+function optionalCount(bucket) {
+  const value = bucket?.count;
+  if (!Number.isSafeInteger(value) || value < 0) return null;
+  if (bucket.truncated !== true) return value;
+  return value ? `${value}+` : "–";
 }
 
 function normalizePreview(value) {
