@@ -178,6 +178,7 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.14** — git channel: lock never taken from a live holder; refused pending pushes recover on their own.
 - **1.0.13** — README compares MPSF with spec-driven kits.
 - **1.0.12** — Change Observatory: sample-project screenshots, Now and Chat documented, clearer chat.
 - **1.0.11** — new page: [see it catch problems in one minute](docs/see-it-work.md).
