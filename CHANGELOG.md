@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.164.6
+
+- Brand: the plugin images (`assets/logo.png`, `assets/logo-dark.png`, `assets/icon.png` and the skill icons) now show the MPSF mark instead of the old Agentic SDLC artwork. File names are unchanged. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 0.164.5
 
 - Docs: a shorter README that says what MPSF is for, how it differs and how to try it, with Change Observatory screenshots made from sample data (`docs/images/`). The complete overview that used to fill the README is now [docs/reference.md](docs/reference.md); the guides link there. Example project names in the metering guides are now generic. Change Observatory: no change. Compatibility: no record, ref or config key changed.
