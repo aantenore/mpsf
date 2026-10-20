@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.5
+
+- Windows and input robustness: smoke test commands are judged by the bare program name, so `node.exe -e`, `python3.exe -c`, `bash.exe`, `sh.exe` and `wsl.exe` are refused like their plain forms. `known-error` refuses a `remove_path` into `.GIT`, `.Git.` or `.sdlc` in any letter case (macOS and Windows file systems treat them as the same folder) and refuses `.` or empty segments. A CLI preset file saved with a byte order mark (Windows Notepad, PowerShell) now loads. `context budget --set ""` is refused instead of silently removing the cap. `scripts/release.mjs` accepts `--version=X` and refuses a version that is not newer than main. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.4
 
 - Change Observatory: the Now panel (who works on what, open questions, chat) is a card on the Overview only, so Stories, Timeline and Map start with their own content; its title line counts work in progress, open questions and free computers, and status lines no longer show the [auto] tag. Chat: the reply box has a label and takes focus when you press Reply, Ctrl+Enter (Cmd+Enter) sends, choosing a room keeps keyboard focus, message times are short (hour today, date otherwise) with the full time on hover, and the 30-second refresh no longer redraws the chat while you are typing. Discussions say "1 turn" and show deadlines without seconds. The visual-QA preview server now serves sample Now and chat data and accepts sent messages. Compatibility: no record, ref or config key changed.

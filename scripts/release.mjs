@@ -54,7 +54,12 @@ export function isMergedState(viewJson) {
 function parseArgs(argv) {
   const opts = { update: true };
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
+    let arg = argv[i];
+    const equals = arg.indexOf("=");
+    if (arg.startsWith("--") && equals > 0) {
+      argv = [...argv.slice(0, i), arg.slice(0, equals), arg.slice(equals + 1), ...argv.slice(i + 1)];
+      arg = argv[i];
+    }
     if (arg === "--no-update") opts.update = false;
     else if (["--version", "--title", "--body"].includes(arg)) {
       if (i + 1 >= argv.length) throw new Error(`Missing value for ${arg}`);
@@ -91,7 +96,7 @@ function main() {
   const tags = git("tag", "--list", "v*").split("\n").filter((t) => /^v\d+\.\d+\.\d+$/.test(t));
   const newVersion = opts.version ?? computeNextVersion(oldVersion, tags);
   if (!parseVersion(newVersion)) throw new Error(`Invalid version: ${newVersion}`);
-  if (newVersion === oldVersion) throw new Error(`Version ${newVersion} equals origin/main version.`);
+  if (compareVersions(newVersion, oldVersion) <= 0) throw new Error(`Version ${newVersion} is not newer than origin/main's ${oldVersion}.`);
   if (tags.includes(`v${newVersion}`)) throw new Error(`Tag v${newVersion} already exists.`);
 
   step(`rebase onto origin/main (${oldVersion} -> ${newVersion})`);

@@ -174,6 +174,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.5** — Windows edge cases: `.exe` smoke commands, case-insensitive protected folders, BOM in presets.
 - **1.0.4** — Change Observatory: Now panel on the Overview only, chat keeps focus while you type.
 - **1.0.3** — coordination: no claim freed on unreadable presence, presence checked against its ref name, clock-skew fix.
 - **1.0.2** — robustness: session context back after `/clear` and `/compact`, race-free command lock, stricter record validation.

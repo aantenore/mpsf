@@ -677,3 +677,10 @@ test("content-bound local targets relax identity only for manifest-covered write
   assert.equal(localReleaseTargetStructureMatches(before, relocatedApp, ["/r/app"]), false);
   assert.equal(localReleaseTargetStructureMatches(before, recreatedApp, []), false);
 });
+
+test("smoke command checks judge Windows executable names by their bare name", () => {
+  for (const argv of [["node.exe", "-e", "x"], ["python3.exe", "-c", "x"], ["bash.exe", "-c", "x"], ["sh.exe", "x"], ["wsl.exe", "ls"]]) {
+    assert.throws(() => normalizeSmokeTestCommand(JSON.stringify(argv)), UserError, argv[0]);
+  }
+  assert.doesNotThrow(() => normalizeSmokeTestCommand(JSON.stringify(["npm.cmd", "test"])));
+});
