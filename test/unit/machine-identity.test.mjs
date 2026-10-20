@@ -86,3 +86,21 @@ test("the default folder follows XDG_CONFIG_HOME, else ~/.config", () => {
   assert.equal(machineDir({ XDG_CONFIG_HOME: "/x/cfg" }, "/home/u"), path.join("/x/cfg", "agentic-sdlc"));
   if (process.platform !== "win32") assert.equal(machineDir({}, "/home/u"), path.join("/home/u", ".config", "agentic-sdlc"));
 });
+
+test("an unusable machine key file is moved aside and replaced", async () => {
+  const { default: fs } = await import("node:fs");
+  const { default: os } = await import("node:os");
+  const { default: path } = await import("node:path");
+  const { machineKey, MACHINE_KEY_FILE } = await import("../../lib/runtime/machine.mjs");
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "machine-key-"));
+  try {
+    const first = machineKey({}, { home });
+    const keyFile = fs.readdirSync(home, { recursive: true }).find((name) => String(name).endsWith(MACHINE_KEY_FILE));
+    fs.writeFileSync(path.join(home, keyFile), "not a key");
+    const second = machineKey({}, { home });
+    assert.notEqual(second.fingerprint, first.fingerprint);
+    assert.equal(machineKey({}, { home }).fingerprint, second.fingerprint);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
