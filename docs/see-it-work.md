@@ -2,14 +2,20 @@
 
 Two checks from the README, run by hand in a throwaway folder, with the output they really print. No agent session is needed: these are the same CLI commands the agent runs for you.
 
-You need the `mpsf` alias from [Run the CLI from your terminal](hosts/claude-code.md#run-the-cli-from-your-terminal) (or `node <plugin folder>/bin/mpsf.mjs`), Git with a user name and email set, and a POSIX shell (on Windows, Git Bash or WSL).
+You need Git with a user name and email set, `perl` (already there on macOS, most Linux distributions and Git Bash), a POSIX shell (on Windows, Git Bash or WSL) and an `mpsf` alias. `/mpsf:doctor` prints the `Plugin folder` to use:
+
+```bash
+alias mpsf='node "$HOME/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs"'
+```
+
+Details in [Run the CLI from your terminal](hosts/claude-code.md#run-the-cli-from-your-terminal).
 
 ## 1. Someone edits the project history
 
 Every recorded event is hash-linked to the previous one and to a checkpoint. Change one word in the history file and `trace verify` names the file and what broke.
 
 ```bash
-mkdir mpsf-demo && cd mpsf-demo && git init
+cd ~ && mkdir mpsf-demo && cd mpsf-demo && git init
 mpsf init
 mpsf trace append --type decision --summary "Reject trips above the cost limit" --actor-type human
 git add -A && git commit -m "Start"

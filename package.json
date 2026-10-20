@@ -1,6 +1,6 @@
 {
   "name": "mpsf",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "description": "MPSF (My Personal Software Factory): contract-driven delivery, verified assessments, and visual project lineage for Codex and Claude Code.",
   "type": "module",
   "bin": {
@@ -31,7 +31,7 @@
     "check": "node scripts/check-source-syntax.mjs",
     "release": "node scripts/release.mjs",
     "sync-version": "node scripts/sync-version.mjs && git add .claude-plugin .codex-plugin legacy",
-    "doctor": "node bin/agentic-sdlc.mjs doctor",
+    "doctor": "node bin/mpsf.mjs doctor",
     "smoke": "node bin/agentic-sdlc.mjs --help",
     "test": "node scripts/run-test-suite.mjs",
     "test:fast": "node scripts/run-test-suite.mjs --tier=fast",

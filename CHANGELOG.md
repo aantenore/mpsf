@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.30
+
+- Docs and skills: SECURITY.md (private vulnerability reporting) and CONTRIBUTING.md added; Claude Code install lines marked as prompt input, not shell; trial folders created outside the plugin checkout; see-it-work lists perl and shows the alias inline; the old AGENTIC_SDLC_ prefix explained once; npm run doctor uses bin/mpsf.mjs; mpsf help trace append lists --requested-by, --authorized-by and --request-summary; /mpsf:continue-pr checks story availability before task start; /mpsf:observe explains --worktree. README What's new keeps the latest five entries. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.29
 
 - Docs, CLI examples and tests use neutral sample names (ShopFront, DLG-SHOP-001) instead of a real client project or real people. Change Observatory: no change. Compatibility: no record, ref or config key changed; existing delegation ids keep working.

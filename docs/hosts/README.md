@@ -23,8 +23,8 @@ Requirements, stories, contracts, gates, autonomy and approvals, delivery (pull 
 |---|---|---|
 | Install | `/plugin marketplace add aantenore/mpsf`, `/plugin install mpsf@aantenore` | `install-personal-marketplace-v2.py` check, plan, apply, validate, confirm ([codex.md](codex.md#install)) |
 | Update | `claude plugin marketplace update aantenore && claude plugin update mpsf@aantenore`, then `/reload-plugins`; optional autonomous update with `AGENTIC_SDLC_AUTO_UPDATE=1` | rerun the installer and `codex plugin add` ([codex.md](codex.md#update)); no autonomous update |
-| Uninstall | `/plugin uninstall mpsf@aantenore` | `codex plugin remove agentic-sdlc-codex-plugin@personal` |
-| Doctor | `/mpsf:doctor` | `npm run doctor` or `node <plugin-root>/bin/mpsf.mjs doctor` |
+| Uninstall | `/plugin uninstall mpsf@aantenore` | `codex plugin remove agentic-sdlc-codex-plugin@personal` (identifier kept for in-place updates, see [codex.md](codex.md)) |
+| Doctor | `/mpsf:doctor` | `node <plugin-root>/bin/mpsf.mjs doctor` (`npm run doctor` from a checkout) |
 | Starting a journey | `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`, `/mpsf:local`, `/mpsf:observe`, `/mpsf:status`, or plain language | the starter prompts of the agent cards, or plain language |
 | CLI path | `~/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs` (slash commands and hooks use `${CLAUDE_PLUGIN_ROOT}`) | `~/.codex/plugins/cache/personal/agentic-sdlc-codex-plugin/<version>/bin/mpsf.mjs` (see [codex.md](codex.md#verify-the-exact-build-not-only-the-version)) |
 | Hooks (`hooks/hooks.json`, shared) | enabled with the plugin | run only after you trust them in "Review hooks"; `SessionEnd` capped at 3 seconds |

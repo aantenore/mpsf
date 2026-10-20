@@ -10,9 +10,9 @@ Prerequisites: Node.js **18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git. T
 
 **1. Install the plugin.**
 
-In Claude Code:
+In Claude Code, type these in the prompt (not in a shell):
 
-```bash
+```text
 /plugin marketplace add aantenore/mpsf
 /plugin install mpsf@aantenore
 /mpsf:doctor
@@ -25,7 +25,7 @@ In Codex, follow the installer steps in the [README install steps](../README.md#
 experiment:
 
 ```bash
-mkdir mpsf-trial && cd mpsf-trial && git init
+cd ~ && mkdir mpsf-trial && cd mpsf-trial && git init
 ```
 
 Open that folder in a new Claude Code session or Codex task.

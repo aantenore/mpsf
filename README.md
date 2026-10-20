@@ -50,7 +50,9 @@ Requires **Node.js 18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git.
 
 ### Claude Code
 
-```bash
+Type these in the Claude Code prompt, not in a shell:
+
+```text
 /plugin marketplace add aantenore/mpsf
 /plugin install mpsf@aantenore
 /mpsf:doctor
@@ -66,6 +68,7 @@ Codex installs from a checkout through a transactional installer (check, plan, a
 git clone https://github.com/aantenore/mpsf.git
 cd mpsf
 python3 scripts/install-personal-marketplace-v2.py check
+cd ..
 ```
 
 Then follow [Codex install](docs/hosts/codex.md#install) for the remaining steps.
@@ -193,47 +196,18 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.30** — SECURITY.md and CONTRIBUTING.md; docs and skills match the CLI.
 - **1.0.29** — Neutral sample names in docs, CLI examples and tests.
 - **1.0.28** — Observatory: readable charts on phones, Decisions without routine noise, fairer portfolio cards.
 - **1.0.27** — Change Observatory: portfolio cards show only what was counted.
 - **1.0.26** — Change Observatory: quieter record lists.
 - **1.0.25** — Change Observatory: layout fixes found on a real 122-story project.
-- **1.0.24** — state-file helper through the runtime host (CI fix).
-- **1.0.23** — Change Observatory: a new project opens on the steps to its first story.
-- **1.0.22** — Change Observatory: each record view opens with its own record in the inspector.
-- **1.0.21** — Change Observatory: project plan fits the page; mobile toolbar fix.
-- **1.0.20** — README answers the first questions newcomers ask.
-- **1.0.19** — Change Observatory: checks show Passed or Failed; Italian fixes.
-- **1.0.18** — `/mpsf:doctor` tells a new user what to do next.
-- **1.0.17** — guard refuses switching the plugin off in host settings; lighter PreToolUse.
-- **1.0.16** — machine key self-repairs; state pushes retry only on a moved tip.
-- **1.0.15** — README shows the Observatory chat across computers.
-- **1.0.14** — git channel: lock never taken from a live holder; refused pending pushes recover on their own.
-- **1.0.13** — README compares MPSF with spec-driven kits.
-- **1.0.12** — Change Observatory: sample-project screenshots, Now and Chat documented, clearer chat.
-- **1.0.11** — new page: [see it catch problems in one minute](docs/see-it-work.md).
-- **1.0.10** — local state files written atomically: parallel hooks no longer lose state.
-- **1.0.9** — Stop hook stays within its time limit; long `run` timeouts no longer fire at once.
-- **1.0.8** — guard: follows the targeted project from any folder; comments and CRLF cannot hide commands.
-- **1.0.7** — CLI messages use the `mpsf:` prefix.
-- **1.0.6** — Change Observatory: dark theme that follows your system setting.
-- **1.0.5** — Windows edge cases: `.exe` smoke commands, case-insensitive protected folders, BOM in presets.
-- **1.0.4** — Change Observatory: Now panel on the Overview only, chat keeps focus while you type.
-- **1.0.3** — coordination: no claim freed on unreadable presence, presence checked against its ref name, clock-skew fix.
-- **1.0.2** — robustness: session context back after `/clear` and `/compact`, race-free command lock, stricter record validation.
-- **1.0.1** — first run: clearer `doctor` next step, plugin folder shown, `mpsf` alias guide, Linux sandbox note.
-- **1.0.0** — first stable release: new README and logo, Change Observatory screenshots, the full overview in [docs/reference.md](docs/reference.md). Same behaviour as 0.164.x.
-- **0.164.x** — agent discussions: a settled outcome stays settled, a person can decide from any computer, and the Observatory redacts discussion text.
-- **0.164.0** — Change Observatory: write in the chat, reply, agree or object to a discussion.
-- **0.163.0** — Change Observatory: chat view of the project channel, one room per story.
-- **0.160–0.162** — discussions between agents, where only a signed decision binds.
-- **0.159.x** — Windows back in CI; fast test tier in a few minutes per cell.
 
-Everything else is in the [changelog](CHANGELOG.md).
+Every release is in the [changelog](CHANGELOG.md).
 
 ## Contributing
 
-Issues and pull requests are welcome. Iterate with `npm run test:fast`; run `npm test` before a pull request. Bump versions with `npm run sync-version`.
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 

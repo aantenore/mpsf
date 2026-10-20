@@ -21,7 +21,7 @@ The first command registers this repository as a plugin marketplace from its `.c
 
 ### Switching from agentic-sdlc
 
-The plugin used to be called `agentic-sdlc`. The marketplace keeps an `agentic-sdlc` entry that is only a bridge: after `claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, the next session installs `mpsf@aantenore` and uninstalls `agentic-sdlc@aantenore`; then run `/reload-plugins`. By hand: `claude plugin install mpsf@aantenore && claude plugin uninstall agentic-sdlc@aantenore`. Project records, refs and config do not change, so computers on either name keep working on the same project.
+The plugin used to be called `agentic-sdlc`. The marketplace keeps an `agentic-sdlc` entry that is only a bridge: after `claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, the next session installs `mpsf@aantenore` and uninstalls `agentic-sdlc@aantenore`; then run `/reload-plugins`. By hand: `claude plugin install mpsf@aantenore && claude plugin uninstall agentic-sdlc@aantenore`. Project records, refs and config do not change, so computers on either name keep working on the same project. For the same reason, environment variables (`AGENTIC_SDLC_*`), git refs (`refs/agentic-sdlc/`) and on-disk names below keep the old prefix.
 
 To install from a local checkout instead:
 
