@@ -1220,8 +1220,8 @@ function publishRecordsAfter(handler) {
       if (storyId && event === "pull_request.merge" && autoCloseEnabled(context.config)) {
         const started = startBackgroundClose(context, storyId);
         process.stderr.write(started.started
-          ? `agentic-sdlc: story close --id ${storyId} started in the background (log: ${started.log}).\n`
-          : `agentic-sdlc: automatic story close of ${storyId} did not start (${started.reason}); run story close --id ${storyId}.\n`);
+          ? `mpsf: story close --id ${storyId} started in the background (log: ${started.log}).\n`
+          : `mpsf: automatic story close of ${storyId} did not start (${started.reason}); run story close --id ${storyId}.\n`);
       }
     } catch {
       // Publication is best effort; its own failure path already reported the problem.
@@ -1263,7 +1263,7 @@ async function sendRunAlert() {
     let alert = alertFor(action, options, { error, exitCode: process.exitCode, blockers, result, extra });
     // A failing check of a story that is already over is only worth a local line, not a question for the others.
     if (alert?.kind === "question" && action === "gate.check" && storyIsTerminal(root, alert.story)) {
-      process.stderr.write(`agentic-sdlc: ${alert.story} is already merged/closed; the failed gate check is not announced on the channel.\n`);
+      process.stderr.write(`mpsf: ${alert.story} is already merged/closed; the failed gate check is not announced on the channel.\n`);
       alert = null;
     }
     const sent = alert ? await sendAutoAlert(root, alert, { stderr: (text) => process.stderr.write(text) }) : null;
@@ -1673,7 +1673,7 @@ async function main() {
         // best effort
       }
       if (singleFlight.busy) {
-        process.stderr.write(`agentic-sdlc: ${singleFlight.busy}\n`);
+        process.stderr.write(`mpsf: ${singleFlight.busy}\n`);
         process.exit(LOCK_BUSY_EXIT_CODE);
       }
       try {

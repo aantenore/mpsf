@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.7
+
+- CLI messages printed by the plugin now start with `mpsf:` instead of the old `agentic-sdlc:` name (known-error hints, story sync, run deadlines, channel join, background story close). The hidden metadata in GitHub issue messages keeps its old marker, so older computers still read them. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.6
 
 - Change Observatory: a dark theme that follows the operating system or browser setting (prefers-color-scheme). The page used to stay white on a dark screen. All colours now come from the theme tokens in `styles.css`, so a team can retune both themes in one place. Compatibility: no record, ref or config key changed.

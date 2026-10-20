@@ -174,6 +174,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.7** — CLI messages use the `mpsf:` prefix.
 - **1.0.6** — Change Observatory: dark theme that follows your system setting.
 - **1.0.5** — Windows edge cases: `.exe` smoke commands, case-insensitive protected folders, BOM in presets.
 - **1.0.4** — Change Observatory: Now panel on the Overview only, chat keeps focus while you type.
