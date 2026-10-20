@@ -1,6 +1,6 @@
 # MPSF reference overview
 
-The [project README](../README.md) is the short tour. This page keeps the complete overview in one place: the guided journey, the Change Observatory, autonomy and approvals, several computers, metering, verification, release, and the repository layout. Each section links to the focused guide.
+MPSF stands for My Personal Software Factory. The [project README](../README.md) is the short tour. This page keeps the complete overview in one place: the guided journey, the Change Observatory, autonomy and approvals, several computers, metering, verification, release, and the repository layout. Each section links to the focused guide.
 
 ## Technical summary
 

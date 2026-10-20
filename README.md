@@ -8,7 +8,7 @@
 <h3 align="center">Your coding agent wrote the code. Can you show what it was asked, what it was allowed to touch, and what it actually tested?</h3>
 
 <p align="center">
-  MPSF is a free plugin for <b>Claude Code</b> and <b>OpenAI Codex</b> that turns agent work into a reviewable, verifiable record kept in your own git repository.<br>
+  MPSF (<b>My Personal Software Factory</b>) is a free plugin for <b>Claude Code</b> and <b>OpenAI Codex</b> that turns agent work into a reviewable, verifiable record kept in your own git repository.<br>
   No server, no account, no telemetry: records stay in your repository.
 </p>
 
@@ -161,6 +161,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.0** — first stable release: new README and logo, Change Observatory screenshots, the full overview in [docs/reference.md](docs/reference.md). Same behaviour as 0.164.x.
 - **0.164.x** — agent discussions: a settled outcome stays settled, a person can decide from any computer, and the Observatory redacts discussion text.
 - **0.164.0** — Change Observatory: write in the chat, reply, agree or object to a discussion.
 - **0.163.0** — Change Observatory: chat view of the project channel, one room per story.
