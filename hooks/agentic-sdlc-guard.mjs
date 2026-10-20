@@ -218,7 +218,7 @@ async function preToolUse(payload) {
     return;
   }
   const mode = projectMainThreadMode(root);
-  const strict = strictMainThreadVerdict(payload, mode, process.env, { roots: governedTreeRoots(root) });
+  const strict = strictMainThreadVerdict(payload, mode, process.env, { roots: mode === "strict" ? governedTreeRoots(root) : null });
   if (strict) {
     process.stderr.write(`${strict.reason}\n`);
     process.exitCode = 2;

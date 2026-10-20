@@ -1213,3 +1213,10 @@ test("a session outside the project is still guarded when the call targets it", 
     fs.rmSync(elsewhere, { recursive: true, force: true });
   }
 });
+
+test("an edit that switches the mpsf plugin entry off in the host settings is refused", () => {
+  for (const name of ["mpsf@aantenore", "agentic-sdlc@aantenore"]) {
+    const payload = { tool_name: "Edit", tool_input: { file_path: path.join(GOVERNED, ".claude", "settings.json"), old_string: `"${name}": true`, new_string: `"${name}": false` } };
+    assert.equal(evaluatePreToolUse(payload)?.decision, "deny", name);
+  }
+});
