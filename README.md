@@ -193,6 +193,7 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.24** — state-file helper through the runtime host (CI fix).
 - **1.0.23** — Change Observatory: a new project opens on the steps to its first story.
 - **1.0.22** — Change Observatory: each record view opens with its own record in the inspector.
 - **1.0.21** — Change Observatory: project plan fits the page; mobile toolbar fix.
