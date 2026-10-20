@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.1
+
+- First run: `doctor` in a folder that is not set up yet now tells you to ask your agent to initialize it, and prints the plugin folder so you can run the CLI yourself. New guide section [Run the CLI from your terminal](docs/hosts/claude-code.md#run-the-cli-from-your-terminal) with an `mpsf` alias; the README notes that the local trial needs bubblewrap on Linux; the trial folder is `mpsf-trial` everywhere. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.0
 
 - First stable release. No behaviour change from 0.164.7: the version moves to 1.0.0 to mark the plugin as stable. Since the last release (0.164.3): a shorter README that says what MPSF (My Personal Software Factory) is for and how to try it, Change Observatory screenshots, the complete overview in [docs/reference.md](docs/reference.md), and the new logo set in `assets/brand/` that also replaces the plugin images. The guides no longer name plugin versions in titles and examples, so they stay valid without manual edits; version numbers remain only where a minimum version matters. `scripts/release.mjs` no longer rewrites version numbers inside `README.md` and `docs/`, so release notes there are not overwritten by the next bump. Upgrading needs nothing: older computers compare versions numerically, so 1.0.0 is simply newer than 0.164.x. Change Observatory: no change. Compatibility: no record, ref or config key changed.

@@ -76,6 +76,8 @@ Then follow [Codex install](docs/hosts/codex.md#install) for the remaining steps
 mkdir mpsf-trial && cd mpsf-trial && git init
 ```
 
+This local-only trial runs a sandboxed smoke test: built in on macOS and Windows 10 1809+, while Linux needs bubblewrap at `/usr/bin/bwrap` (`sudo apt install bubblewrap` or your distribution's package).
+
 Open the folder in a new agent session and ask:
 
 ```text
@@ -100,7 +102,7 @@ On a real project, start with the request that matches the outcome and add your 
 | Finish a pull request that already exists | `Continue this existing pull request, verify the requested changes, and update the PR without creating a new one.` | `/mpsf:continue-pr` |
 | Build and verify only on this machine | `Build and verify this result only on my local machine. Do not push, open a pull request, deploy, or use production.` | `/mpsf:local` |
 
-Full walk-through: [Getting started](docs/getting-started.md).
+Full walk-through: [Getting started](docs/getting-started.md). To run the `mpsf …` commands shown in the docs from your own terminal, see [Run the CLI from your terminal](docs/hosts/claude-code.md#run-the-cli-from-your-terminal).
 
 ## Why it is different
 
@@ -172,6 +174,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.1** — first run: clearer `doctor` next step, plugin folder shown, `mpsf` alias guide, Linux sandbox note.
 - **1.0.0** — first stable release: new README and logo, Change Observatory screenshots, the full overview in [docs/reference.md](docs/reference.md). Same behaviour as 0.164.x.
 - **0.164.x** — agent discussions: a settled outcome stays settled, a person can decide from any computer, and the Observatory redacts discussion text.
 - **0.164.0** — Change Observatory: write in the chat, reply, agree or object to a discussion.

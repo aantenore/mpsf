@@ -45,6 +45,17 @@ node /path/to/mpsf/bin/mpsf.mjs doctor --json
 
 A failed check exits non-zero and names the concrete fix.
 
+## Run the CLI from your terminal
+
+The plugin does not add an `mpsf` command to your shell. Some steps are meant for you alone, such as approving a standing approval or trusting a remote, and the docs write them as `mpsf …`. `/mpsf:doctor` prints the installed `Plugin folder`; point an alias at it:
+
+```bash
+alias mpsf='node "$HOME/.claude/plugins/cache/aantenore/mpsf/<version>/bin/mpsf.mjs"'
+mpsf doctor
+```
+
+The folder name carries the version, so after an update run `/mpsf:doctor` again and refresh the alias. On Windows PowerShell: `function mpsf { node "<Plugin folder>\bin\mpsf.mjs" @args }`.
+
 ## Slash commands
 
 | Command | Starter intent |

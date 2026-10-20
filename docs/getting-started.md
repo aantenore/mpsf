@@ -25,7 +25,7 @@ In Codex, follow the installer steps in the [README install steps](../README.md#
 experiment:
 
 ```bash
-mkdir sdlc-trial && cd sdlc-trial && git init
+mkdir mpsf-trial && cd mpsf-trial && git init
 ```
 
 Open that folder in a new Claude Code session or Codex task.
@@ -56,7 +56,7 @@ In Claude Code the same starters are available as slash commands:
 `/mpsf:assess`, `/mpsf:deliver`, `/mpsf:continue-pr`,
 `/mpsf:local`, `/mpsf:observe`, and `/mpsf:status`.
 
-To remove the trial, delete the `sdlc-trial` directory: every record the trial
+To remove the trial, delete the `mpsf-trial` directory: every record the trial
 created lives in its `.sdlc/` directory.
 
 ## Choose A Starting Request
@@ -380,7 +380,7 @@ Start with a read-only question:
 Why is MPSF blocked? Explain what happened, what remains protected, and the next safe action without changing anything.
 ```
 
-Operators can use:
+Operators can use the CLI directly (`<plugin-root>` is the `Plugin folder` that `/mpsf:doctor` prints; see [Run the CLI from your terminal](hosts/claude-code.md#run-the-cli-from-your-terminal) for an `mpsf` alias):
 
 ```bash
 node <plugin-root>/bin/mpsf.mjs status
