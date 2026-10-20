@@ -43,7 +43,7 @@ test("a pull request lacks its story's records until it carries the claim and a 
 });
 
 test("the branch a merge commit brought in is read from its subject", () => {
-  assert.equal(mergedBranchFromSubject("Merge pull request #12 from travelops/feature/ST-CAT-001"), "feature/ST-CAT-001");
+  assert.equal(mergedBranchFromSubject("Merge pull request #12 from shopfront/feature/ST-CAT-001"), "feature/ST-CAT-001");
   assert.equal(mergedBranchFromSubject("Merge branch 'feature/ST-1' into main"), "feature/ST-1");
   assert.equal(mergedBranchFromSubject("feat: catalog"), null);
 });

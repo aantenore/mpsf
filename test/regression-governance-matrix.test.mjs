@@ -295,7 +295,7 @@ test("delivery matrix binds local, new PR, and existing PR targets without widen
         requestedLevel: "checkpointed",
         authority: hostVerifiedAuthority(),
         kind: "local_release",
-        localWritePath: "/workspace/travelops",
+        localWritePath: "/workspace/shopfront",
       }),
       /strict child of root_path/u,
     );
@@ -634,7 +634,7 @@ function deliveryProfile(options) {
     kind = "pull_request",
     mode = "new",
     prUrl = "https://github.com/aantenore/agentic-sdlc/pull/184",
-    localWritePath = "/workspace/travelops/dist",
+    localWritePath = "/workspace/shopfront/dist",
   } = options;
   const isLocal = kind === "local_release";
   const isExisting = !isLocal && mode === "existing";
@@ -649,14 +649,14 @@ function deliveryProfile(options) {
     material_scope: {
       objective: "Exercise one exact delivery.",
       acceptance_criteria: ["The exact delivery passes."],
-      release_target: isLocal ? "/workspace/travelops/dist" : "pull_request",
+      release_target: isLocal ? "/workspace/shopfront/dist" : "pull_request",
     },
     requested_level: requestedLevel,
     constraints: {
       allowed_tools: ["node"],
       allowed_capabilities: ["test.run"],
       allowed_environments: [isLocal ? "local" : "pull_request"],
-      allowed_write_paths: [isLocal ? "/workspace/travelops/dist" : "test/"],
+      allowed_write_paths: [isLocal ? "/workspace/shopfront/dist" : "test/"],
       forbidden_actions: ["production.deploy"],
       budget_ref: null,
     },
@@ -679,7 +679,7 @@ function deliveryProfile(options) {
     },
     local_release_target: isLocal ? {
       environment: "local",
-      root_path: "/workspace/travelops",
+      root_path: "/workspace/shopfront",
       allowed_write_paths: [localWritePath],
       allowed_actions: ["build.local", "release.local", "test.run"],
       smoke_tests: ['["node","--version"]'],

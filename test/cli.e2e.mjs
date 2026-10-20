@@ -4503,7 +4503,7 @@ test("assessment tranche runs from precise checkpoints through budgeted release-
   const meterStart = JSON.parse(mustRun([
     "budget", "meter", "start", "--root", project,
     "--proposal", "ASSESS-E2E", "--adapter", "codeburn",
-    "--project", "TravelOps", "--from", "2026-07-14", "--to", "2026-07-14", "--json",
+    "--project", "ShopFront", "--from", "2026-07-14", "--to", "2026-07-14", "--json",
   ]).stdout);
   assert.equal(meterStart.status, "created");
   assert.equal(meterStart.baseline.snapshot.assurance.classification, "advisory_observed");

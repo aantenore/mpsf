@@ -13,7 +13,7 @@ import { matchKnownErrors, readKnownErrors, readLastFailures } from "../../lib/k
 import { computeSignature } from "../../lib/known-errors/signature.mjs";
 import { createFixtureDir } from "../helpers/test-isolation.mjs";
 
-// TravelOps issue 52: the vitest cache inside a package made the gate fail on every computer.
+// A pilot project issue: the vitest cache inside a package made the gate fail on every computer.
 const VITEST_FAILURE = (story, commit) =>
   `Story ${story} changed packages/engine/.vitest/json/output.json outside the approved requirement write paths (commit ${commit})`;
 

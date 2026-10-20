@@ -78,7 +78,7 @@ function linkedItem(id, type, title, status = "approved") {
 function modelWithDossier(lanes) {
   return normalizeViewModel({
     schemaVersion: VIEW_MODEL_SCHEMA,
-    project: { id: "travelops", name: "TravelOps" },
+    project: { id: "shopfront", name: "ShopFront" },
     summary: { asked: [], changed: [], decided: [] },
     iterations: [{
       id: "ST-MVP",
@@ -288,15 +288,15 @@ test("missing summaries and generated labels follow the Italian locale", (t) => 
       },
     }]),
   });
-  model.iterations[0].title = "TravelOps MVP";
+  model.iterations[0].title = "ShopFront MVP";
   model.iterations[0].summary = "No recorded summary.";
   model.semanticObservations = [];
   const timeline = globalThis.document.createElement("main");
   renderPrimary(timeline, model, { view: "timeline", selectedId: null, filters: {} });
   const meta = timeline.querySelector(".dossier-meta");
-  assert.match(meta.textContent, /TravelOps MVP/u, "recorded titles keep their spelling");
+  assert.match(meta.textContent, /ShopFront MVP/u, "recorded titles keep their spelling");
   assert.match(meta.textContent, /Nessun riepilogo registrato\./u);
   assert.doesNotMatch(timeline.textContent, /No recorded summary|Generated explanation|Source recorded/u);
   const options = timeline.querySelectorAll("option").map((option) => option.textContent);
-  assert.ok(options.includes("TravelOps MVP"), "iteration options are not re-cased");
+  assert.ok(options.includes("ShopFront MVP"), "iteration options are not re-cased");
 });

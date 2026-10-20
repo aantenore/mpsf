@@ -99,7 +99,7 @@ test("git-remote emits hash-bound, idempotent push observations without executin
   };
   const registry = createProviderRegistry([createGitRemoteProvider({ commandRunner: runner })]);
   const subject = {
-    repository: "example.test/acme/travelops",
+    repository: "example.test/acme/shopfront",
     remote: "origin",
     destination_ref: "refs/heads/provider-spi",
     base_ref: "refs/heads/main",
@@ -155,7 +155,7 @@ test("git-remote can complete a legacy cwd-bound receipt from a relocated checko
   })]);
   const legacySubject = {
     cwd: sourceCwd,
-    repository: "example.test/acme/travelops",
+    repository: "example.test/acme/shopfront",
     remote: "origin",
     destination_ref: "refs/heads/provider-spi",
     base_ref: "refs/heads/main",
@@ -255,7 +255,7 @@ test("github-cli preserves exact merge precondition and completion verification"
   let merged = false;
   let observedBaseSha = SHA.base;
   const open = {
-    url: "https://github.com/acme/travelops/pull/42",
+    url: "https://github.com/acme/shopfront/pull/42",
     state: "OPEN",
     isDraft: false,
     headRefOid: SHA.head,
@@ -278,8 +278,8 @@ test("github-cli preserves exact merge precondition and completion verification"
   };
   const registry = createProviderRegistry([createGitHubCliProvider({ commandRunner: runner })]);
   const subject = {
-    repository: "github.com/acme/travelops",
-    pr_url: "https://github.com/acme/travelops/pull/42",
+    repository: "github.com/acme/shopfront",
+    pr_url: "https://github.com/acme/shopfront/pull/42",
     head_branch: "provider-spi",
     base_branch: "main",
     base_sha: SHA.base,
@@ -348,7 +348,7 @@ test("github-cli finds a merge whatever the letter case of owner and repository"
   // Approved records keep the repository in lower case; gh reports its real case.
   let merged = false;
   const open = {
-    url: "https://github.com/AliceGibellato/TravelOps/pull/1",
+    url: "https://github.com/Example-Org/ShopFront/pull/1",
     state: "OPEN",
     isDraft: false,
     headRefOid: SHA.head,
@@ -361,8 +361,8 @@ test("github-cli finds a merge whatever the letter case of owner and repository"
     : open);
   const registry = createProviderRegistry([createGitHubCliProvider({ commandRunner: runner })]);
   const subject = {
-    repository: "github.com/alicegibellato/travelops",
-    pr_url: "https://github.com/alicegibellato/travelops/pull/1",
+    repository: "github.com/example-org/shopfront",
+    pr_url: "https://github.com/example-org/shopfront/pull/1",
     head_branch: "feature/ST-FOUND-001",
     base_branch: "main",
     base_sha: SHA.base,
@@ -382,8 +382,8 @@ test("github-cli finds a merge whatever the letter case of owner and repository"
   );
   assert.equal(completion.proof.merge_commit_sha, SHA.merge);
   assert.equal(
-    canonicalGitHubPullRequestUrl("https://github.com/AliceGibellato/TravelOps.git/pull/1"),
-    "https://github.com/alicegibellato/travelops/pull/1",
+    canonicalGitHubPullRequestUrl("https://github.com/Example-Org/ShopFront.git/pull/1"),
+    "https://github.com/example-org/shopfront/pull/1",
   );
   // A branch name is case-sensitive on the remote, so it still has to match exactly.
   merged = false;
@@ -400,7 +400,7 @@ test("github-cli proves create and update without exposing mutation commands", (
   const calls = [];
   let mode = "create-before";
   const created = {
-    url: "https://github.com/acme/travelops/pull/43",
+    url: "https://github.com/acme/shopfront/pull/43",
     state: "OPEN",
     isDraft: false,
     headRefOid: SHA.head,
@@ -425,7 +425,7 @@ test("github-cli proves create and update without exposing mutation commands", (
   };
   const registry = createProviderRegistry([createGitHubCliProvider({ commandRunner: runner })]);
   const createSubject = {
-    repository: "acme/travelops",
+    repository: "acme/shopfront",
     head_branch: "provider-spi",
     base_branch: "main",
     source_sha: SHA.head,
@@ -469,7 +469,7 @@ test("github-cli proves create and update without exposing mutation commands", (
 
 test("github-cli adopts an existing exact PR only when --pr-url names it", () => {
   const existing = {
-    url: "https://github.com/acme/travelops/pull/44",
+    url: "https://github.com/acme/shopfront/pull/44",
     state: "OPEN",
     isDraft: false,
     headRefOid: SHA.head,
@@ -481,7 +481,7 @@ test("github-cli adopts an existing exact PR only when --pr-url names it", () =>
     commandRunner: (_executable, args) => JSON.stringify(args[1] === "list" ? [existing] : existing),
   })]);
   const subject = {
-    repository: "acme/travelops",
+    repository: "acme/shopfront",
     head_branch: "provider-spi",
     base_branch: "main",
     source_sha: SHA.head,
@@ -493,7 +493,7 @@ test("github-cli adopts an existing exact PR only when --pr-url names it", () =>
   ), "provider_transition_not_needed");
   assertProviderError(() => registry.observePrecondition(
     "github-cli",
-    operation("PR-CREATE-44", "pull_request.create", { ...subject, pr_url: "https://github.com/acme/travelops/pull/45" }),
+    operation("PR-CREATE-44", "pull_request.create", { ...subject, pr_url: "https://github.com/acme/shopfront/pull/45" }),
   ), "provider_transition_not_needed");
 
   const withUrl = { ...subject, pr_url: existing.url };
@@ -516,7 +516,7 @@ test("github-cli adopts an existing exact PR only when --pr-url names it", () =>
   // The adopted proof does not carry over to a different PR URL.
   assertProviderError(() => registry.verifyCompletion(
     "github-cli",
-    operation("PR-CREATE-44", "pull_request.create", { ...subject, pr_url: "https://github.com/acme/travelops/pull/45" }, TIME.completed),
+    operation("PR-CREATE-44", "pull_request.create", { ...subject, pr_url: "https://github.com/acme/shopfront/pull/45" }, TIME.completed),
     precondition,
   ), "provider_precondition_mismatch");
 });
@@ -525,8 +525,8 @@ test("github-cli rejects URL and branch argument injection before running gh", (
   let calls = 0;
   const registry = createProviderRegistry([createGitHubCliProvider({ commandRunner: () => { calls += 1; return "{}"; } })]);
   const subject = {
-    repository: "acme/travelops",
-    pr_url: "https://github.com/acme/travelops/pull/42?x=1",
+    repository: "acme/shopfront",
+    pr_url: "https://github.com/acme/shopfront/pull/42?x=1",
     head_branch: "provider-spi",
     base_branch: "main",
     source_sha: SHA.head,
@@ -541,7 +541,7 @@ test("github-cli rejects URL and branch argument injection before running gh", (
     "github-cli",
     operation("PR-INJECT-BRANCH", "pull_request.merge", {
       ...subject,
-      pr_url: "https://github.com/acme/travelops/pull/42",
+      pr_url: "https://github.com/acme/shopfront/pull/42",
       head_branch: "--repo=other",
     }),
   ), "provider_operation_invalid");
@@ -758,7 +758,7 @@ test("legacy provider mappings are derived in memory without changing v1 profile
     profile_hash: "f".repeat(64),
     delivery_kind: "pull_request",
     pull_request_target: {
-      repository: "github.com/acme/travelops",
+      repository: "github.com/acme/shopfront",
       base_branch: "main",
       head_branch: "provider-spi",
     },
@@ -778,7 +778,7 @@ test("legacy provider mappings are derived in memory without changing v1 profile
   });
 
   const generic = structuredClone(profile);
-  generic.pull_request_target.repository = "git.example/acme/travelops";
+  generic.pull_request_target.repository = "git.example/acme/shopfront";
   const genericMapping = legacyProviderBindingsForProfile(generic);
   assert.equal(genericMapping.bindings.pull_request.provider_id, "git-remote");
   assert.equal(genericMapping.bindings.pull_request.compatibility, "unsupported-fail-closed");

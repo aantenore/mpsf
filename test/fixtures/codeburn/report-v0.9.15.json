@@ -20,8 +20,8 @@
   },
   "projects": [
     {
-      "name": "Users-antonioantenore-Documents-TravelOps",
-      "path": "Users/antonioantenore/Documents/TravelOps",
+      "name": "Users-dev-Documents-ShopFront",
+      "path": "Users/dev/Documents/ShopFront",
       "cost": 12.3456,
       "savings": 0,
       "avgCostPerSession": 6.1728,

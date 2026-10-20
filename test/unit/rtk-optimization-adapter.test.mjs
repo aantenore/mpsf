@@ -135,7 +135,7 @@ test("telemetry collection uses a shell-free configured command and preserves so
   const executor = async (actualExecutable, argv, options) => {
     calls.push({ executable: actualExecutable, argv: [...argv], options });
     assert.equal(options.shell, false);
-    assert.equal(options.cwd, "/workspace/travelops");
+    assert.equal(options.cwd, "/workspace/shopfront");
     if (argv.at(-1) === "--version") {
       return { stdout: "rtk 0.43.0\n", stderr: "" };
     }
@@ -147,7 +147,7 @@ test("telemetry collection uses a shell-free configured command and preserves so
     executable,
     prefix_args: prefixArgs,
     executor,
-    cwd: "/workspace/travelops",
+    cwd: "/workspace/shopfront",
   });
 
   assert.equal(telemetry.status, "operational");

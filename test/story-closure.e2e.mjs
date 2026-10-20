@@ -101,7 +101,7 @@ function approveDependencies(project, dependencyId, edges) {
   mustRun(["dependency", "approve", "--root", project, "--id", dependencyId, ...humanApproval(`Approve ${dependencyId}`)]);
 }
 
-// Reproduces the planning state of the TravelOps trial: five approved stories
+// Reproduces the planning state of a pilot project: five approved stories
 // chained by approved dependencies, abandoned in favour of one delivery story
 // that nobody ever started.
 function createTrialProject(name) {

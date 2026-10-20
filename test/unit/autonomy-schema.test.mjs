@@ -108,21 +108,21 @@ function localDeliveryProfile(requirement) {
     material_scope: {
       objective: "Install and verify one local build",
       scope: ["local package"],
-      release_target: "/workspace/travelops/dist",
+      release_target: "/workspace/shopfront/dist",
     },
     requested_level: "bounded-autonomous",
     constraints: {
       allowed_tools: ["exec_command"],
       allowed_capabilities: ["package.local"],
       allowed_environments: ["local"],
-      allowed_write_paths: ["/workspace/travelops/dist"],
+      allowed_write_paths: ["/workspace/shopfront/dist"],
       forbidden_actions: ["production.deploy"],
       budget_ref: null,
     },
     local_release_target: {
       environment: "local",
-      root_path: "/workspace/travelops",
-      allowed_write_paths: ["/workspace/travelops/dist"],
+      root_path: "/workspace/shopfront",
+      allowed_write_paths: ["/workspace/shopfront/dist"],
       allowed_actions: ["build.local", "release.local", "test.run"],
       smoke_tests: ['["node","--version"]'],
       rollback: { required: true, procedure: "Restore the previous local package" },
@@ -275,13 +275,13 @@ function localReleaseActionReceiptV3({
   }
   if (includeVerification) {
     receipt.local_release_verification = {
-      target_root: "/workspace/travelops",
-      allowed_write_paths: ["/workspace/travelops/dist"],
+      target_root: "/workspace/shopfront",
+      allowed_write_paths: ["/workspace/shopfront/dist"],
       smoke_tests: ['["node","smoke.mjs"]'],
-      smoke_cwd: "/workspace/travelops/dist",
+      smoke_cwd: "/workspace/shopfront/dist",
       smoke_test_receipts: [{
         command: ["node", "smoke.mjs"],
-        cwd: "/workspace/travelops/dist",
+        cwd: "/workspace/shopfront/dist",
         sandbox: "macos-sandbox-exec-readonly-no-network",
         exit_code: 0,
         signal: null,
@@ -340,8 +340,8 @@ function localReleaseAttemptReceipt() {
       authorization_receipt_ref: authorizationRef,
       evidence: [{ path: ".sdlc/tests/ST-SCHEMA.json", sha256: "2".repeat(64) }],
       operation_args: {
-        scope_paths: ["/workspace/travelops/dist"],
-        smoke_cwd: "/workspace/travelops",
+        scope_paths: ["/workspace/shopfront/dist"],
+        smoke_cwd: "/workspace/shopfront",
         smoke_tests: ['["node","--version"]'],
         rollback: "Restore the previous local package",
       },
@@ -358,11 +358,11 @@ function localReleaseAttemptReceipt() {
         policy_hash: "5".repeat(64),
       },
       root_identity: {
-        path: "/workspace/travelops",
-        realpath: "/workspace/travelops",
+        path: "/workspace/shopfront",
+        realpath: "/workspace/shopfront",
       },
       paths: [{
-        path: "/workspace/travelops/dist",
+        path: "/workspace/shopfront/dist",
         kind: "directory",
         digest: "6".repeat(64),
       }],

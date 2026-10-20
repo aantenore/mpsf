@@ -222,9 +222,9 @@ test("absolute paths and executable command lines remain only in optional techni
   });
 
   const literals = [
-    "/Users/antonioantenore/Documents/TravelOps/package.json",
-    String.raw`C:\TravelOps\package.json`,
-    String.raw`\\build-server\TravelOps\package.json`,
+    "/Users/dev/Documents/ShopFront/package.json",
+    String.raw`C:\ShopFront\package.json`,
+    String.raw`\\build-server\ShopFront\package.json`,
     "npm test",
   ];
 

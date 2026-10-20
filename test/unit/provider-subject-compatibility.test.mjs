@@ -4,7 +4,7 @@ import test from "node:test";
 import { deliveryProviderOperationSubjectsMatch } from "../../lib/delivery/provider-subject-compatibility.mjs";
 
 const portablePushSubject = Object.freeze({
-  repository: "github.com/acme/travelops",
+  repository: "github.com/acme/shopfront",
   remote: "origin",
   destination_ref: "refs/heads/codex/portable",
   base_ref: "refs/heads/main",
@@ -55,7 +55,7 @@ test("legacy git.push cwd is the only portable provider-subject difference", () 
 
 test("non-git provider subjects remain byte-for-byte canonical and cwd is not projected", () => {
   const pullRequestSubject = {
-    repository: "github.com/acme/travelops",
+    repository: "github.com/acme/shopfront",
     head_branch: "codex/portable",
     base_branch: "main",
     source_sha: "a".repeat(40),

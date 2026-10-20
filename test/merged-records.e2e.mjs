@@ -181,7 +181,7 @@ function mergedWithoutRecords(label) {
   git(first, ["add", "src/catalog.mjs"]);
   git(first, ["-c", "user.name=agente-cat-001", "commit", "--quiet", "-m", "feat: catalog"]);
   git(first, ["checkout", "--quiet", "main"]);
-  git(first, ["merge", "--quiet", "--no-ff", "-m", "Merge pull request #12 from travelops/feature/ST-CAT-001", "feature/ST-CAT-001"]);
+  git(first, ["merge", "--quiet", "--no-ff", "-m", "Merge pull request #12 from shopfront/feature/ST-CAT-001", "feature/ST-CAT-001"]);
   git(first, ["push", "--quiet", "origin", "main"]);
   git(second, ["pull", "--quiet", "--ff-only"]);
   git(second, ["remote", "set-head", "origin", "main"]);
@@ -228,7 +228,7 @@ test("the computer that did the work publishes the story's records as their own 
   git(first, ["commit", "--quiet", "-m", "feat: catalog"]);
   git(first, ["push", "--quiet", "origin", "feature/ST-CAT-001"]);
   git(second, ["fetch", "--quiet", "origin"]);
-  git(second, ["merge", "--quiet", "--no-ff", "-m", "Merge pull request #12 from travelops/feature/ST-CAT-001", "origin/feature/ST-CAT-001"]);
+  git(second, ["merge", "--quiet", "--no-ff", "-m", "Merge pull request #12 from shopfront/feature/ST-CAT-001", "origin/feature/ST-CAT-001"]);
   git(second, ["push", "--quiet", "origin", "main"]);
   mustRun(["story", "release", "--root", first, "--id", "ST-CAT-001", "--reason", "Merged"], first);
 
@@ -244,7 +244,7 @@ test("the computer that did the work publishes the story's records as their own 
   assert.equal(mustRunJson(["story", "publish-records", "--root", first, "--id", "ST-CAT-001"], first).commit, published.commit);
 
   git(second, ["fetch", "--quiet", "origin"]);
-  git(second, ["merge", "--quiet", "--no-ff", "-m", "Merge pull request #13 from travelops/sdlc-records/ST-CAT-001", "origin/sdlc-records/ST-CAT-001"]);
+  git(second, ["merge", "--quiet", "--no-ff", "-m", "Merge pull request #13 from shopfront/sdlc-records/ST-CAT-001", "origin/sdlc-records/ST-CAT-001"]);
   git(second, ["push", "--quiet", "origin", "main"]);
   assert.equal(JSON.parse(fs.readFileSync(path.join(second, ".sdlc", "stories", "ST-CAT-001", "claim.json"), "utf8")).status, "released");
   // The records now on main with the same bytes are not reported as missing, and nothing is created.

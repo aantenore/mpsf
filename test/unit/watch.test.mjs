@@ -199,7 +199,7 @@ test("Stop hook: blocks once without a watch, passes with an active watch, anti-
 test("watch wakes up for the exact kind-less message addressed to Antonio in the text", async () => {
   const root = repo();
   try {
-    const alice = { id: "9", from: "Alice · PC1 (alicegibellato)", host: "pc-1", time: LATE, text: "Alice · PC1 -> Antonio: ok, ST-CHAT-003B … è tua …" };
+    const alice = { id: "9", from: "Alice · PC1 (alice-r)", host: "pc-1", time: LATE, text: "Alice · PC1 -> Antonio: ok, ST-CHAT-003B … è tua …" };
     const ctx = { ...context({ rounds: [[], [alice]] }), names: new Set(["Antonio · PC3", "pc-b7b5ff", "aantenore"]) };
     const result = await runWatch(root, { env, timeout: "30m", context: ctx, ...clock() });
     assert.equal(result.status, "event");

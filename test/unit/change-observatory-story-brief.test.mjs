@@ -44,7 +44,7 @@ async function deliveredStory(root) {
     links: { requirements: ["REQ-A"] },
     audit: {
       created_by: { id: "agent", type: "agent", name: "Claude Code" },
-      git: { user: { name: "Antonio Antenore", email: "someone@example.com" } },
+      git: { user: { name: "Marco Bianchi", email: "someone@example.com" } },
     },
   });
   await write(root, ".sdlc/stories/ST-A/claim.json", { story_id: "ST-A", agent: "pc3", status: "released" });
@@ -68,7 +68,7 @@ async function deliveredStory(root) {
     trace({ id: "TR-1", type: "test", action: "test.record", summary: "Unit suite", outcome: "passed", evidence: [".sdlc/tests/ST-A-run-1.json"] }),
     trace({ id: "TR-2", type: "test", action: "test.record", summary: "Browser check", outcome: "blocked", evidence: [".sdlc/tests/ST-A-run-2.json"] }),
     trace({ id: "TR-3", type: "test", action: "test.record", summary: "Manual check", outcome: "failed-minor" }),
-    trace({ id: "TR-4", type: "gate", action: "autonomy.delivery.approve", summary: "Approved", actor: { type: "human", name: "Alice Gibellato" } }),
+    trace({ id: "TR-4", type: "gate", action: "autonomy.delivery.approve", summary: "Approved", actor: { type: "human", name: "Alice Rossi" } }),
     trace({ id: "TR-5", type: "gate", action: "pull_request.create", outcome: "passed", summary: "Completed pull_request.create", git: { branch: "feature/ST-A" } }),
     trace({ id: "TR-6", type: "gate", action: "pull_request.merge", outcome: "passed", summary: "Completed pull_request.merge", evidence: [".sdlc/stories/ST-A/evidence/merge.json"], created_at: "2026-10-10T15:51:00.000Z" }),
   ]);
@@ -94,7 +94,7 @@ test("the story brief reads what was asked, the merged pull request, the checks 
   // Two traces cite their test-run records, so each check counts once.
   assert.deepEqual(story.brief.tests, { passed: 1, failed: 1, notRun: 1, total: 3 });
   assert.deepEqual(story.brief.who, {
-    person: "Antonio Antenore", agent: "Claude Code", computer: "pc3", approvers: ["Alice Gibellato"],
+    person: "Marco Bianchi", agent: "Claude Code", computer: "pc3", approvers: ["Alice Rossi"],
   });
   assert.doesNotMatch(JSON.stringify(story.brief), /@example\.com/u);
 

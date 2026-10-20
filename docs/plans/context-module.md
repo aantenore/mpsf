@@ -15,7 +15,7 @@ An agent working on one story today re-reads a lot of text that it does not need
   instructions after a resume;
 - long skill text that sends the agent to read many files.
 
-Measured on `ST-QA-FIX-SUITE-MAIN-2` (TravelOps, origin/main): the 40 files that belong
+Measured on `ST-QA-FIX-SUITE-MAIN-2` (a pilot project, origin/main): the 40 files that belong
 to the story weigh about 1.4 MB (~350k tokens); the records the context pack reads to
 build its answer weigh ~3.8 MB (~959k tokens, mostly the project trace and gate reports).
 

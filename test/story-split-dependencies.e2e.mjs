@@ -96,7 +96,7 @@ function statusStory(project, storyId) {
   return mustRunJson(["orchestrate", "status", "--root", project]).stories.find((story) => story.id === storyId);
 }
 
-// The TravelOps planning state: ST-ORCH-001 had approved dependents before it
+// The planning state of a pilot project: ST-ORCH-001 had approved dependents before it
 // was split into a client (A), tools (B) and agents and orchestrator (C).
 function createSplitProject(name) {
   const project = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), `sdlc-${name}-`)));

@@ -29,7 +29,7 @@ const FIXTURE_PATH = path.resolve(TEST_DIR, "../fixtures/codeburn/report-v0.9.15
 const FIXTURE_JSON = fs.readFileSync(FIXTURE_PATH, "utf8");
 const QUERY = Object.freeze({
   provider: "codex",
-  project: "TravelOps",
+  project: "ShopFront",
   from: "2026-07-14",
   to: "2026-07-14",
 });
@@ -89,7 +89,7 @@ test("report argv is allowlisted and execution never uses a shell or real CodeBu
     "--provider",
     "codex",
     "--project",
-    "TravelOps",
+    "ShopFront",
     "--from",
     "2026-07-14",
     "--to",

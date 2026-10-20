@@ -45,7 +45,7 @@ function authorizationInput(overrides = {}) {
       { action: "assessment.verify", subject },
       { action: "assessment.execute", subject },
     ],
-    scope: { project: "TravelOps", workflow: "assessment-001" },
+    scope: { project: "ShopFront", workflow: "assessment-001" },
     use_policy: {
       mode: "single-use",
       max_uses: 1,
@@ -73,7 +73,7 @@ test("authorization snapshot is immutable, canonical, and bound to exact content
       { action: "assessment.execute", subject },
       { action: "assessment.verify", subject },
     ],
-    scope: { workflow: "assessment-001", project: "TravelOps" },
+    scope: { workflow: "assessment-001", project: "ShopFront" },
   }));
 
   assert.equal(snapshot.authorization_hash, reordered.authorization_hash);

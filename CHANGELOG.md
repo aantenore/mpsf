@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.29
+
+- Docs, CLI examples and tests use neutral sample names (ShopFront, DLG-SHOP-001) instead of a real client project or real people. Change Observatory: no change. Compatibility: no record, ref or config key changed; existing delegation ids keep working.
+
 ## 1.0.28
 
 - Change Observatory: chart axis labels keep a readable size at any width and panel headings no longer grow tall on phones; Decisions hide routine bookkeeping steps (work started, result attached, agreement linked) behind Show routine steps; portfolio cards give each record kind a fair share of the bounded read, stop counting finished workflows as in progress and old failed reports as blocked.
@@ -555,7 +559,7 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 ## 0.150.0
 
 - New `git` messaging provider: the channel lives in the project's own remote, one ref per computer (`refs/agentic-sdlc/channel/<machine-id>`), each message a small signed commit. Any git host, no other service or account; each computer pushes only to its own ref, so there are no conflicts. Reads fetch only the channel refs and walk only new commits; a message pushed late is still delivered; each computer compacts its ref to the last 14 days. Hosts that refuse custom refs get branches `agentic-sdlc/channel/<machine-id>` (with `[skip ci]`), detected at the first refused push.
-- `message setup` uses `git` for new channels; a project that already has a GitHub channel issue keeps it (TravelOps does), and `--repo`/`--issue` or `--provider github` still choose GitHub. Nothing already configured is rewritten.
+- `message setup` uses `git` for new channels; a project that already has a GitHub channel issue keeps it (older pilot projects do), and `--repo`/`--issue` or `--provider github` still choose GitHub. Nothing already configured is rewritten.
 - Signed messages on every provider that the plugin writes (git and the GitHub issue), with this computer's Ed25519 key. `message setup` proposes the public key in `.sdlc/machines/<machine-id>.json`: commit and merge it, then the other computers trust that computer. Unregistered keys read as `[unverified: key not registered]`, missing or wrong signatures as `[untrusted]`; a hand-written GitHub comment is trusted when its author is owner, member or collaborator. `message status` shows this computer's key.
 - Change Observatory: the "Now" panel marks unverified and untrusted messages.
 - Compatibility: older plugins do not know the `git` provider and say messaging needs a newer plugin; they keep using the issue on projects that use it. To join a git channel, update the plugin.

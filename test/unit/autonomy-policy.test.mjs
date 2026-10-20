@@ -19,7 +19,7 @@ import {
 import { assertAgainstSchema } from "../../lib/json-schema-validator.mjs";
 
 const NOW = "2026-07-17T10:00:00.000Z";
-const ROOT = "/workspace/travelops";
+const ROOT = "/workspace/shopfront";
 const HASH = Object.freeze({
   approval: "a".repeat(64),
   contract: "b".repeat(64),
@@ -401,7 +401,7 @@ test("local releases can be bounded autonomous only inside an exact reversible t
   assert.equal(decision.delivery.kind, "local_release");
   assertAgainstSchema(delivery, "delivery-execution-profile");
 
-  const windowsShortNameRoot = path.join(ROOT, "RUNNER~1", "travelops");
+  const windowsShortNameRoot = path.join(ROOT, "RUNNER~1", "shopfront");
   assert.doesNotThrow(() => deliveryProfile(requirement, {
     id: "AUT-LOCAL-SHORT-NAME",
     delivery_id: "LOCAL-RELEASE-SHORT-NAME",

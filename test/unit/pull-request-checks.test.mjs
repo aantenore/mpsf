@@ -104,7 +104,7 @@ function completeFacts() {
 
 function externalMerge() {
   return {
-    pr_url: "https://github.com/acme/travelops/pull/1",
+    pr_url: "https://github.com/acme/shopfront/pull/1",
     merge_commit_sha: "c".repeat(40),
     merged_by: "alice",
     merged_at: "2026-05-01T13:00:00Z",

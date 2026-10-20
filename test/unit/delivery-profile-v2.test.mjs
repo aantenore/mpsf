@@ -166,8 +166,8 @@ test("v2 local releases bind only release.local to a filesystem observer", () =>
       pull_request_target: null,
       local_release_target: {
         environment: "local",
-        root_path: "/workspace/travelops",
-        allowed_write_paths: ["/workspace/travelops/dist"],
+        root_path: "/workspace/shopfront",
+        allowed_write_paths: ["/workspace/shopfront/dist"],
         allowed_actions: ["build.local", "release.local", "test.run"],
         smoke_tests: ['["node","--version"]'],
         rollback: { required: true, procedure: "Restore the previous package" },
@@ -189,8 +189,8 @@ test("v2 local releases bind only release.local to a filesystem observer", () =>
 test("v2 local releases can require a typed rollback verifier before release", () => {
   const localReleaseTarget = {
     environment: "local",
-    root_path: "/workspace/travelops",
-    allowed_write_paths: ["/workspace/travelops/dist"],
+    root_path: "/workspace/shopfront",
+    allowed_write_paths: ["/workspace/shopfront/dist"],
     allowed_actions: ["build.local", "release.local", "rollback.verify", "test.run"],
     smoke_tests: ['["node","--version"]'],
     rollback: {
@@ -239,10 +239,10 @@ test("v2 local releases bind reversible data actions to an exact migration decla
       pull_request_target: null,
       local_release_target: {
         environment: "local",
-        root_path: "/workspace/travelops",
+        root_path: "/workspace/shopfront",
         allowed_write_paths: [
-          "/workspace/travelops/app",
-          "/workspace/travelops/data",
+          "/workspace/shopfront/app",
+          "/workspace/shopfront/data",
         ],
         allowed_actions: [
           "build.local",
@@ -252,14 +252,14 @@ test("v2 local releases bind reversible data actions to an exact migration decla
           "test.run",
         ],
         smoke_tests: ['["node","--version"]'],
-        smoke_cwd: "/workspace/travelops/app",
+        smoke_cwd: "/workspace/shopfront/app",
         data_migration: {
-          target_path: "/workspace/travelops/data/store.json",
+          target_path: "/workspace/shopfront/data/store.json",
           scopes: ["customers.version"],
           preview_evidence: [{ path: "evidence/preview.json", sha256: "a".repeat(64) }],
           backup: {
             required: true,
-            path: "/workspace/travelops/data/store.before.json",
+            path: "/workspace/shopfront/data/store.before.json",
           },
           rollback_verification_required: true,
         },
@@ -282,7 +282,7 @@ test("v2 local releases bind reversible data actions to an exact migration decla
   ]);
   assert.equal(
     profile.local_release_target.data_migration.backup.path,
-    path.normalize("/workspace/travelops/data/store.before.json"),
+    path.normalize("/workspace/shopfront/data/store.before.json"),
   );
   assert.deepEqual(buildDeliveryExecutionProfileV2(profile), profile);
   assertAgainstSchema(profile, "delivery-execution-profile-v2");
@@ -306,11 +306,11 @@ test("local release smoke working directories stay inside an allowed write path"
       pull_request_target: null,
       local_release_target: {
         environment: "local",
-        root_path: "/workspace/travelops/release",
-        allowed_write_paths: ["/workspace/travelops/release/app"],
+        root_path: "/workspace/shopfront/release",
+        allowed_write_paths: ["/workspace/shopfront/release/app"],
         allowed_actions: ["build.local", "release.local", "test.run"],
         smoke_tests: ['["npm","run","smoke:local"]'],
-        smoke_cwd: "/workspace/travelops/release/app/package",
+        smoke_cwd: "/workspace/shopfront/release/app/package",
         rollback: { required: true, procedure: "Restore the previous package" },
         external_access_allowed: false,
         production_access_allowed: false,
@@ -322,7 +322,7 @@ test("local release smoke working directories stay inside an allowed write path"
   const profile = buildDeliveryExecutionProfileV2(base);
   assert.equal(
     profile.local_release_target.smoke_cwd,
-    path.normalize("/workspace/travelops/release/app/package"),
+    path.normalize("/workspace/shopfront/release/app/package"),
   );
   assert.deepEqual(buildDeliveryExecutionProfileV2(profile), profile);
   assertAgainstSchema(profile, "delivery-execution-profile-v2");
@@ -331,7 +331,7 @@ test("local release smoke working directories stay inside an allowed write path"
     ...base,
     local_release_target: {
       ...base.local_release_target,
-      smoke_cwd: "/workspace/travelops/release/other",
+      smoke_cwd: "/workspace/shopfront/release/other",
     },
   }), /smoke_cwd must be equal to or inside one allowed_write_path/u);
 });
