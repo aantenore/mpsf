@@ -149,15 +149,17 @@ Details: [Messages between computers](docs/messaging.md), [Adapters and roles](d
 
 MPSF does not replace your agent, your tests or your CI. It adds the agreement and the record around them.
 
-| | Plain agent session | Rules file (`CLAUDE.md`, `AGENTS.md`) | CI checks | **MPSF** |
-| --- | :---: | :---: | :---: | :---: |
-| Scope agreed before the agent writes code | | partly | | ✔ |
-| Scope enforced outside the model | | | | ✔ |
-| Agent autonomy chosen per delivery | | | | ✔ |
-| Tests tied to the exact command and exit status that ran | | | ✔ | ✔ |
-| Why a decision was taken, kept with the code | | | | ✔ |
-| Visual history a product owner can read | | | | ✔ |
-| Several computers coordinated without a server | | | | ✔ |
+| | Plain agent session | Rules file (`CLAUDE.md`, `AGENTS.md`) | Spec-driven kit (e.g. [Spec Kit](https://github.com/github/spec-kit)) | CI checks | **MPSF** |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| Scope agreed before the agent writes code | | partly | ✔ | | ✔ |
+| Scope enforced outside the model | | | | | ✔ |
+| Agent autonomy chosen per delivery | | | | | ✔ |
+| Tests tied to the exact command and exit status that ran | | | | ✔ | ✔ |
+| Why a decision was taken, kept with the code | | | partly | | ✔ |
+| Visual history a product owner can read | | | | | ✔ |
+| Several computers coordinated without a server | | | | | ✔ |
+
+A spec-driven kit gives the agent better instructions: spec, plan and task files it reads before coding. MPSF checks the result against what you approved, with a deterministic CLI instead of the model's word. The two fit together: the agent can turn a spec into the requirement you approve.
 
 ## Who it is for
 
@@ -176,6 +178,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.13** — README compares MPSF with spec-driven kits.
 - **1.0.12** — Change Observatory: sample-project screenshots, Now and Chat documented, clearer chat.
 - **1.0.11** — new page: [see it catch problems in one minute](docs/see-it-work.md).
 - **1.0.10** — local state files written atomically: parallel hooks no longer lose state.
