@@ -84,7 +84,7 @@ Search limits are validated and bounded to 1-100.
 
 ## Context packs and compact output
 
-Added in 0.148.0. Four things keep an agent from re-reading text it does not need.
+Four things keep an agent from re-reading text it does not need.
 
 **Context pack.** One story, one phase, a few hundred tokens instead of whole records (a final gate report alone can weigh hundreds of KB):
 
@@ -122,12 +122,12 @@ Defaults live in the plugin's `config/context.json`; a project overrides any val
 }
 ```
 
-Projects that set `host_policy.context` need 0.148.0 on every computer; older plugins are told to update. Design: [context-module](plans/context-module.md).
+Projects that set `host_policy.context` need a plugin that supports it on every computer; older plugins are told to update. Design: [context-module](plans/context-module.md).
 
 ## RTK command gateway
 
 [RTK](https://github.com/rtk-ai/rtk) filters noisy command output before it
-enters model context. MPSF 0.159.38 integrates RTK 0.43+ behind a
+enters model context. MPSF integrates RTK 0.43+ behind a
 configurable, shell-free gateway; RTK remains an optional, separately installed
 binary.
 

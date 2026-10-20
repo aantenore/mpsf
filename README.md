@@ -56,6 +56,8 @@ Requires **Node.js 18.20.3–18.x, 20.12.0–20.x, or 21.6.0+** and Git.
 /mpsf:doctor
 ```
 
+Full guide: [Claude Code Installation](docs/hosts/claude-code.md).
+
 ### Codex
 
 Codex installs from a checkout through a transactional installer (check, plan, apply, validate, with a byte-exact restore if anything fails):
@@ -89,7 +91,16 @@ Implement a configurable trip-policy module that rejects trips above a cost limi
 
 The agent proposes a requirement and a work brief and waits for your approval before writing code. When it finishes, run `/mpsf:observe` (or ask it to open the Change Observatory) to see the request, the decisions, the changed files and the recorded tests. Delete the folder to remove everything.
 
-Other starters, in Claude Code as slash commands: `/mpsf:assess` (understand an existing codebase), `/mpsf:deliver` (requirement to new pull request), `/mpsf:continue-pr` (finish an existing PR without opening another), `/mpsf:local` (build and verify only on this machine), `/mpsf:status`. Full walk-through: [Getting started](docs/getting-started.md).
+On a real project, start with the request that matches the outcome and add your requirement, PR link or limits after it:
+
+| Goal | Ask the agent | Claude Code shortcut |
+| --- | --- | --- |
+| Understand an existing codebase | `Contextualize this project and prepare an initial technical assessment.` | `/mpsf:assess` |
+| Requirement to a new pull request | `Turn this new requirement into an agreed work brief, implement it, verify it, and open a new pull request.` | `/mpsf:deliver` |
+| Finish a pull request that already exists | `Continue this existing pull request, verify the requested changes, and update the PR without creating a new one.` | `/mpsf:continue-pr` |
+| Build and verify only on this machine | `Build and verify this result only on my local machine. Do not push, open a pull request, deploy, or use production.` | `/mpsf:local` |
+
+Full walk-through: [Getting started](docs/getting-started.md).
 
 ## Why it is different
 

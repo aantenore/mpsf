@@ -673,7 +673,7 @@ a hard metric without trusted exact metering.
 ## Native Codex-session advisory metering
 
 `codex-session` is bundled, enabled, and selected by default, including for
-existing 0.12 project configurations that do not yet declare it. It reads only
+older project configurations that do not yet declare it. It reads only
 `session_meta` and `token_count` events from the exact local task selected by
 the host's `CODEX_THREAD_ID` or explicit `--thread-id`. It does not read prompt
 or response bodies, execute a shell, scrape a page, call a web API, or require

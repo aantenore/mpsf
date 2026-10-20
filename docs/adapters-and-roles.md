@@ -1,6 +1,6 @@
 # Adapters and roles
 
-Two choices used to be fixed: how computers send each other notes (a GitHub issue) and where the project's records live (the `.sdlc/` folder in git). Since 0.147.0 the messaging channel is replaceable. The records store is replaceable only for explicit waits and delegation reads so far; the other records are still written to `.sdlc/`, apart from the operational records that the `sdlc-state` store moves to a branch (see below). One computer can also be named coordinator. Everything here is optional: with no configuration the plugin behaves as before. The design is in [pluggable-adapters](plans/pluggable-adapters.md).
+Two choices used to be fixed: how computers send each other notes (a GitHub issue) and where the project's records live (the `.sdlc/` folder in git). The messaging channel is now replaceable. The records store is replaceable only for explicit waits and delegation reads so far; the other records are still written to `.sdlc/`, apart from the operational records that the `sdlc-state` store moves to a branch (see below). One computer can also be named coordinator. Everything here is optional: with no configuration the plugin behaves as before. The design is in [pluggable-adapters](plans/pluggable-adapters.md).
 
 ## Configuration
 
@@ -27,7 +27,7 @@ All of it is in `.sdlc/config.json` under `host_policy`:
 - A missing section means the default: the channel `message setup` chose for the clone (`git` for a new one, else the GitHub issue already in use), records in git, roles assigned automatically.
 - An unknown provider is refused with a clear error; it is never replaced by the default.
 - Credentials never go in the file. A key that looks like a secret must end in `_env` (name of an environment variable) or `_ref` (reference to a credential store, such as `keychain:team-chat`). Values are scanned for secrets.
-- Older plugins reject these keys, so computers on a plugin before 0.147.0 are told to update before they change the project.
+- Older plugins reject these keys, so computers on a plugin that predates them are told to update before they change the project.
 
 ## Messaging providers
 
@@ -68,7 +68,7 @@ Delivery action receipts (`autonomy/actions/`), autonomy executions (`autonomy/e
 
 Stays on the base branch: requirements, contracts, decisions, baseline, config, stories (`story.json`, claims, steps) and dependencies.
 
-From 0.159.0 (level 2) the traces with their checkpoints, the workflow instances and the final gate receipts move too. A history both computers extended is never overwritten: the events only this computer has are re-sealed after the branch's (as `trace rebase` does) and then pushed fast-forward. Dependency checks, closing-record warnings, the trace fork warning and story sync read them from the state branch. A project migrated with 0.154 runs `state migrate` again to move them; do it on a checkout whose records are up to date with the base branch (`story sync` first).
+At level 2 the traces with their checkpoints, the workflow instances and the final gate receipts move too. A history both computers extended is never overwritten: the events only this computer has are re-sealed after the branch's (as `trace rebase` does) and then pushed fast-forward. Dependency checks, closing-record warnings, the trace fork warning and story sync read them from the state branch. A project migrated before level 2 existed runs `state migrate` again to move them; do it on a checkout whose records are up to date with the base branch (`story sync` first).
 
 ```bash
 mpsf state migrate --dry-run   # what would move
@@ -77,7 +77,7 @@ git commit -m "Operational records on sdlc-state" && git push   # through your u
 mpsf state status              # where they are, how many are not pushed yet
 ```
 
-`state migrate` adds `.sdlc/compatibility/sdlc-state-records.json` and `sdlc-state-traces.json`. They switch every computer to the state branch and make plugins older than 0.154.0 (0.159.0 for level 2) ask for an update instead of missing records. No configuration key is needed. To change the defaults, set `host_policy.adapters.records` to `{ "provider": "sdlc-state", "options": { "branch": "sdlc-state", "remote": "origin", "push_interval_seconds": 120, "pull_interval_seconds": 60 } }` through `config migrate`.
+`state migrate` adds `.sdlc/compatibility/sdlc-state-records.json` and `sdlc-state-traces.json`. They switch every computer to the state branch and make plugins too old to read the state branch ask for an update instead of missing records. No configuration key is needed. To change the defaults, set `host_policy.adapters.records` to `{ "provider": "sdlc-state", "options": { "branch": "sdlc-state", "remote": "origin", "push_interval_seconds": 120, "pull_interval_seconds": 60 } }` through `config migrate`.
 
 How the records move:
 - The host hooks run `state sync --if-due` in the background at session start and at every stop, and `state push` at session end. `state pull`, `state push` and `state sync` do it by hand.

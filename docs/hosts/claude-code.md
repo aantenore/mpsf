@@ -1,6 +1,6 @@
 # MPSF on Claude Code
 
-How to install, update and use MPSF 0.159.38 from Claude Code. What Claude Code and Codex share, and where they differ, is in [hosts](README.md); the Codex packaging is in [codex.md](codex.md).
+How to install, update and use MPSF from Claude Code. What Claude Code and Codex share, and where they differ, is in [hosts](README.md); the Codex packaging is in [codex.md](codex.md).
 
 ## Prerequisite
 
@@ -21,7 +21,7 @@ The first command registers this repository as a plugin marketplace from its `.c
 
 ### Switching from agentic-sdlc
 
-The plugin was called `agentic-sdlc` before 0.155.0. The marketplace keeps an `agentic-sdlc` entry that is only a bridge: after `claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, the next session installs `mpsf@aantenore` and uninstalls `agentic-sdlc@aantenore`; then run `/reload-plugins`. By hand: `claude plugin install mpsf@aantenore && claude plugin uninstall agentic-sdlc@aantenore`. Project records, refs and config do not change, so computers on either name keep working on the same project.
+The plugin used to be called `agentic-sdlc`. The marketplace keeps an `agentic-sdlc` entry that is only a bridge: after `claude plugin marketplace update aantenore && claude plugin update agentic-sdlc@aantenore`, the next session installs `mpsf@aantenore` and uninstalls `agentic-sdlc@aantenore`; then run `/reload-plugins`. By hand: `claude plugin install mpsf@aantenore && claude plugin uninstall agentic-sdlc@aantenore`. Project records, refs and config do not change, so computers on either name keep working on the same project.
 
 To install from a local checkout instead:
 
@@ -98,7 +98,7 @@ Then run `/reload-plugins` in the open session (the same command the plugin prin
 
 Project behavior does not change silently on update: each initialized project pins its configuration, and a plugin upgrade requires an explicit reviewed migration plan. See [Configuration safety](../configuration-safety.md).
 
-If a project already uses settings from a newer release (for example `host_policy.adapters` or `host_policy.roles` from 0.147.0, or `host_policy.context` from 0.148.0), each session starts with a notice naming the required version and the update command, and commands that change the project are refused until the plugin on this computer is updated.
+If a project already uses settings from a newer release (for example `host_policy.adapters`, `host_policy.roles` or `host_policy.context`), each session starts with a notice naming the required version and the update command, and commands that change the project are refused until the plugin on this computer is updated.
 
 ## Autonomous update (opt-in)
 

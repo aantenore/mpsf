@@ -1,4 +1,4 @@
-# How MPSF 0.159.38 Works
+# How MPSF Works
 
 MPSF turns a natural-language request into a bounded, reproducible execution tranche. The agent (Codex or Claude Code) handles conversation and reasoning; the CLI handles deterministic validation and state changes; the target repository keeps the evidence under `.sdlc/`.
 
@@ -221,7 +221,7 @@ node "$CODEX_STATE_HOME/plugins/cache/personal/agentic-sdlc-codex-plugin/$VERSIO
 
 An npm installation may additionally create an npm bin shim. From a source
 checkout, use `node /path/to/mpsf/bin/mpsf.mjs`.
-All examples below use commands exposed by the `MPSF 0.159.38` help output and assume the shell is in the target project:
+All examples below use commands listed by `mpsf --help` and assume the shell is in the target project:
 
 ```bash
 cd /path/to/target-project
@@ -800,7 +800,7 @@ after it, each with the fingerprint it was first sealed with as
 content, so moving an event never hides a change to it. Events the other
 branch already has are not repeated, a working copy with merge markers is read
 from `HEAD`, and running it again changes nothing. `--file` selects another
-history file. Plugin versions before 0.27.0 verify a rebased history too.
+history file.
 
 The privacy rules come from `.sdlc/config.json`. If that file disappears from
 an initialized project (one with `.sdlc/project.json` or `.sdlc/config.lock.json`),

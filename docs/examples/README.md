@@ -14,9 +14,9 @@ The run observes and proposes; it never decides. It has no approval, no write ac
 
 ### Minimum CLI version
 
-The example uses `autonomy delivery checks`, so the CLI revision it installs must be v0.21.0 or later, the first tagged release that has it. Release tags currently stop at v0.27.1, so for any newer release set `AGENTIC_SDLC_REF` to the full commit SHA of a revision you reviewed. Edit `AGENTIC_SDLC_REF` in the copied workflow from `REPLACE_WITH_RELEASE_TAG` to such a tag or SHA. The example deliberately ships a placeholder instead of a SHA: a SHA written here would pin one revision forever, and an older one would fail at the checks step.
+The example uses `autonomy delivery checks`, so the CLI revision it installs must be v0.21.0 or later, the first tagged release that has it; any current release tag qualifies. Edit `AGENTIC_SDLC_REF` in the copied workflow from `REPLACE_WITH_RELEASE_TAG` to such a tag or SHA. The example deliberately ships a placeholder instead of a SHA: a SHA written here would pin one revision forever, and an older one would fail at the checks step.
 
-The workflow also sets `AGENTIC_SDLC_JSON_PROFILE: full`, because its scripts read fields of the complete `--json` payload. From 0.148.0 a project (`host_policy.context.output.json_profile: "agent"`) or the runner (`AGENTIC_SDLC_OUTPUT=compact`) can ask for the shorter agent profile, which has no `requirement` object; the variable keeps the complete payload, and older CLIs ignore it.
+The workflow also sets `AGENTIC_SDLC_JSON_PROFILE: full`, because its scripts read fields of the complete `--json` payload. A project (`host_policy.context.output.json_profile: "agent"`) or the runner (`AGENTIC_SDLC_OUTPUT=compact`) can ask for the shorter agent profile, which has no `requirement` object; the variable keeps the complete payload, and older CLIs ignore it.
 
 ### What happens, in order
 

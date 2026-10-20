@@ -4,7 +4,7 @@ User-visible changes of the plugin, newest first. Design notes live in [docs/pla
 
 ## 1.0.0
 
-- First stable release. No behaviour change from 0.164.7: the version moves to 1.0.0 to mark the plugin as stable. Since the last release (0.164.3): a shorter README that says what MPSF (My Personal Software Factory) is for and how to try it, Change Observatory screenshots, the complete overview in [docs/reference.md](docs/reference.md), and the new logo set in `assets/brand/` that also replaces the plugin images. Upgrading needs nothing: older computers compare versions numerically, so 1.0.0 is simply newer than 0.164.x. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+- First stable release. No behaviour change from 0.164.7: the version moves to 1.0.0 to mark the plugin as stable. Since the last release (0.164.3): a shorter README that says what MPSF (My Personal Software Factory) is for and how to try it, Change Observatory screenshots, the complete overview in [docs/reference.md](docs/reference.md), and the new logo set in `assets/brand/` that also replaces the plugin images. The guides no longer name plugin versions in titles and examples, so they stay valid without manual edits; version numbers remain only where a minimum version matters. Upgrading needs nothing: older computers compare versions numerically, so 1.0.0 is simply newer than 0.164.x. Change Observatory: no change. Compatibility: no record, ref or config key changed.
 
 ## 0.164.7
 
