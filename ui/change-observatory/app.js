@@ -461,8 +461,8 @@ async function loadSourceRef() {
   const stale = staleCheckoutMessage(source);
   target.classList.toggle("is-stale", Boolean(stale));
   target.setAttribute("role", stale ? "alert" : "status");
-  target.textContent = stale ?? `${t("Records from")} ${t("Local files")}`;
-  target.title = stale ? `${t("Records from")} ${t("Local files")}` : "";
+  target.textContent = stale ?? `${t("Records from")} ${t("local files")}`;
+  target.title = stale ? `${t("Records from")} ${t("local files")}` : "";
   target.hidden = false;
 }
 

@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.23
+
+- Change Observatory: a project without stories now opens on "No story yet" with three steps (ask your agent, with the request ready to copy; keep the page open; follow the story) and the latest records, instead of zero counters and empty charts. Stories and Map say how to get a first story instead of "No story matches these filters". The Now card stays hidden on a single computer with messaging off and nothing claimed. The header reads "Records from local files". Compatibility: no record, ref or config key changed.
+
 ## 1.0.22
 
 - Change Observatory: Contracts, Decisions, Changes and Verification open with their own first record in the side inspector, instead of keeping a record selected on another view (for example a changed file shown next to the decisions). Compatibility: no record, ref or config key changed.

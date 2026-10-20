@@ -95,6 +95,10 @@ here), and the ref mode keeps a snapshot under `.git/agentic-sdlc/observatory/`.
 
    ![Now and Chat on the Overview of a sample project](images/observatory-now-chat.png)
 
+   The Now card stays hidden on a single computer with messaging off and no
+   story claimed. A project without stories opens on the three steps to a
+   first one, with the request to paste to your agent.
+
 7. **Light or dark.** The page follows the light or dark setting of your
    system or browser.
 

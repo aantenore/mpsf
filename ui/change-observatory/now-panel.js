@@ -231,6 +231,12 @@ export function renderNowPanel(container, view, { send = null, onSent = null } =
   const open = Array.isArray(view.open) ? view.open : [];
   const free = Array.isArray(view.free) ? view.free : [];
   const { computers, roles } = wellFormedCoordination(view);
+  // One computer with messaging off and nothing claimed: the card would only say so.
+  const waitsShown = Array.isArray(view.waits) && view.waits.length > 0;
+  if (!work.length && view.messaging === "off" && !computers.length && !roles.some((item) => item.holder) && !waitsShown && !view.context?.sessions?.length) {
+    container.hidden = true;
+    return;
+  }
   const counts = [
     work.length ? `${work.length} ${label("in progress")}` : null,
     open.length ? `${open.length} ${label(open.length === 1 ? "open question" : "open questions")}` : null,

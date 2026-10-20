@@ -4414,3 +4414,45 @@ mark {
     --pulse-ring: rgb(109 155 255 / 35%);
   }
 }
+
+/* First run: the steps to a first story instead of empty charts. */
+.first-run .dash-hero-copy {
+  flex-basis: 100%;
+}
+
+.first-run-steps {
+  display: grid;
+  gap: 14px;
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+
+.first-run-steps li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.first-run-steps p {
+  margin: 2px 0 0;
+  color: var(--ink-secondary);
+}
+
+.first-run-request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.first-run-request code {
+  flex: 1 1 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

@@ -659,9 +659,60 @@ function progressBar(stateCounts, total) {
   return node("div", { className: "progress-figure" }, [svg, legend]);
 }
 
+// The request a new user can paste to their agent to record a first story.
+const FIRST_STORY_REQUEST = "Turn this new requirement into an agreed work brief, implement it, verify it, and open a new pull request.";
+
+function copyButton(text) {
+  const button = node("button", { className: "text-button", text: t("Copy"), attrs: { type: "button" } });
+  button.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = t("Copied");
+    } catch {
+      button.textContent = t("Select the text and copy it");
+    }
+  });
+  return button;
+}
+
+// A project without stories gets the three steps to its first one instead of empty charts.
+function firstRunView(events, state) {
+  const steps = [
+    ["Ask your agent for a first story", "In Claude Code or Codex, open this project and ask, adding what you want built:"],
+    ["Keep this page open", "It refreshes by itself. Turn on Live updates to follow each step as it is recorded."],
+    ["Follow the story", "What was asked, decided, changed and checked appears in Stories, Timeline and Map."],
+  ];
+  const list = node("ol", { className: "first-run-steps" }, steps.map(([title, detail], index) => node("li", {}, [
+    node("strong", { text: title, i18n: true }),
+    node("p", { text: detail, i18n: true }),
+    index === 0
+      ? node("div", { className: "first-run-request" }, [node("code", { text: FIRST_STORY_REQUEST }), copyButton(FIRST_STORY_REQUEST)])
+      : null,
+  ])));
+  return node("div", { className: "view-stack dashboard" }, [
+    node("section", { className: "dash-hero first-run" }, [
+      node("div", { className: "dash-hero-copy" }, [
+        node("h2", { className: "dash-hero-title", text: t("No story yet") }),
+        node("p", { className: "dash-hero-status", text: t("The project is ready. Its first story shows up here as soon as your agent records it.") }),
+        list,
+      ]),
+    ]),
+    events.length
+      ? panel(
+        "Latest activity",
+        "What was recorded most recently",
+        node("ol", { className: "event-list is-compact" }, events.slice(0, INSIGHT_SETTINGS.recentEventCount).map((event) =>
+          eventRow(event, state, { storiesById: new Map(), showDate: true }))),
+        { actions: [linkButton("Full timeline", { action: "go-view", targetView: "activity" })] },
+      )
+      : null,
+  ]);
+}
+
 export function dashboardView(model, state) {
   const insight = insightsFor(model, edgesOf(state), claimsOf(state), remoteOf(state));
   const { stories, stateCounts, health, events } = insight;
+  if (!stories.length) return firstRunView(events, state);
   const lastEvent = events.find((event) => event.time !== null);
   const active = stories.filter((story) => story.state === "live" || story.recent);
   const inProgress = stateCounts.live;
@@ -952,7 +1003,9 @@ export function storiesView(model, state) {
             ])
             : null,
         ])
-        : emptyMessage("No story matches these filters.", "Clear the search or pick another status."),
+        : insight.stories.length
+          ? emptyMessage("No story matches these filters.", "Clear the search or pick another status.")
+          : emptyMessage("No story has been recorded yet.", "Ask your agent for a first story; it appears here as soon as it is recorded."),
       { actions: [node("span", { className: "panel-count", text: `${visible.length} / ${insight.stories.length}` })] },
     ),
   ]);
@@ -1098,7 +1151,7 @@ export function mapView(model, state) {
   const insight = insightsFor(model, edgesOf(state), claimsOf(state), remoteOf(state));
   const exploreState = explore(state);
   const stories = insight.stories;
-  if (!stories.length) return emptyMessage("No story has been recorded yet.");
+  if (!stories.length) return emptyMessage("No story has been recorded yet.", "Ask your agent for a first story; it appears here as soon as it is recorded.");
   const hasPlan = edgesOf(state).length > 0;
   const mode = hasPlan ? (exploreState.mapMode ?? "plan") : "story";
   if (mode === "plan") return planView(state, insight);
