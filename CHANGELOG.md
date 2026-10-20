@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.25
+
+- Change Observatory: in the story dossier a long story title in the story picker no longer squeezes the panel title into a narrow column and spills out of the panel; panel headings wrap and the picker shortens the title. Statuses read in sentence case ("No status recorded", not "No Status Recorded"). Found with a real project of 122 stories. Compatibility: no record, ref or config key changed.
+
 ## 1.0.24
 
 - Maintenance: the atomic state-file helper reaches files, the process and randomness through the runtime host like every other module (fixes the red host-seam check on main). Change Observatory: no change. Compatibility: no record, ref or config key changed.

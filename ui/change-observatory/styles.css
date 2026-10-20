@@ -842,10 +842,28 @@ svg {
   font-size: 12px;
 }
 
+.section-heading {
+  flex-wrap: wrap;
+}
+
+.section-heading > div:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
 .section-heading-actions {
   display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.section-heading-actions .compact-select {
+  max-width: min(420px, 100%);
+  text-overflow: ellipsis;
 }
 
 .compact-select {
@@ -1524,7 +1542,6 @@ svg {
 .status-text {
   color: var(--neutral);
   font-weight: 700;
-  text-transform: capitalize;
 }
 
 .status-text[data-state="complete"],
