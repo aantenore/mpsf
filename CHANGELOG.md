@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.26
+
+- Change Observatory: in Decisions, Changes, Contracts and Verification a row whose record has no status (a step completed, work started) no longer repeats "No status recorded" on every line; the side inspector still says it. Compatibility: no record, ref or config key changed.
+
 ## 1.0.25
 
 - Change Observatory: in the story dossier a long story title in the story picker no longer squeezes the panel title into a narrow column and spills out of the panel; panel headings wrap and the picker shortens the title. Statuses read in sentence case ("No status recorded", not "No Status Recorded"). Found with a real project of 122 stories. Compatibility: no record, ref or config key changed.

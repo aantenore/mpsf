@@ -923,7 +923,8 @@ function recordRow(item, selectedId) {
       ]),
       node("span", { className: "record-meta" }, [
         item.storyId ? node("span", { className: "story-id", text: String(item.storyId) }) : null,
-        statusText(display.status),
+        // An event without a status (a step, a start) says nothing more by repeating so on every row.
+        display.status === t("No status recorded") ? null : statusText(display.status),
         provenanceBadge(item.provenance),
       ]),
     ],
