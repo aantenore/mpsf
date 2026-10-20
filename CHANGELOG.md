@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.33
+
+- Tests: the governance rollout matrix skips its local-release case on a host without a smoke sandbox (bubblewrap on Linux, sandbox-exec on macOS), like the other local-release tests, instead of failing. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.32
 
 - README: the history check and the secret scan show their real output inline (shortened), so a visitor sees what MPSF catches without leaving the page. Change Observatory: no change. Compatibility: no record, ref or config key changed.

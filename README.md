@@ -212,11 +212,11 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.33** — Governance matrix test no longer fails on hosts without a smoke sandbox.
 - **1.0.32** — README shows the two checks failing on purpose.
 - **1.0.31** — CLI suggests the command or option you meant.
 - **1.0.30** — SECURITY.md and CONTRIBUTING.md; docs and skills match the CLI.
 - **1.0.29** — Neutral sample names in docs, CLI examples and tests.
-- **1.0.28** — Observatory: readable charts on phones, Decisions without routine noise, fairer portfolio cards.
 
 Every release is in the [changelog](CHANGELOG.md).
 

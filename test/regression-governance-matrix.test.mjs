@@ -52,6 +52,13 @@ after(() => {
   }
 });
 
+// A local release proposal needs the smoke sandbox of this host, like the other local-release tests.
+function hostSupportsLocalSmokeSandbox() {
+  if (process.platform === "darwin") return fs.existsSync("/usr/bin/sandbox-exec");
+  if (process.platform === "linux") return fs.existsSync("/usr/bin/bwrap");
+  return false;
+}
+
 test("rollout matrix keeps legacy behavior deliberate and enforces new governed work fail-closed", async (t) => {
   await t.test("off permits a reviewed legacy task at supervised level", () => {
     const project = rolloutProject("off");
@@ -105,7 +112,9 @@ test("rollout matrix keeps legacy behavior deliberate and enforces new governed 
     assert.match(`${rejected.stdout}\n${rejected.stderr}`, /needs --delivery-profile/u);
   });
 
-  await t.test("enforce_all blocks legacy work and permits one fully selected v2 local release", () => {
+  await t.test("enforce_all blocks legacy work and permits one fully selected v2 local release", {
+    skip: hostSupportsLocalSmokeSandbox() ? false : "requires a supported local smoke sandbox to propose a local release",
+  }, () => {
     const project = rolloutProject("enforce_all");
     createLegacyWork(project, "ALL-LEGACY");
     const legacy = startTask(project, "ST-ALL-LEGACY");
