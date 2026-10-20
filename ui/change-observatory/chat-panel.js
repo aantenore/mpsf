@@ -23,7 +23,8 @@ const ITALIAN = Object.freeze({
   propose: "proposta",
   object: "obiezione",
   decide: "decisione",
-  ack: "ok",
+  ack: "concorda",
+  "Agrees.": "Concorda.",
   answer: "risposta",
   question: "domanda",
   request: "richiesta",
@@ -48,8 +49,18 @@ const ITALIAN = Object.freeze({
 const state = { room: null, showAuto: false, open: false, draft: "", target: null, error: null, busy: false };
 const REPLY_KINDS = new Set(["question", "request"]);
 
+// Message kinds as people read them; the wire names stay as they are.
+const ENGLISH = Object.freeze({
+  discuss: "discussion",
+  propose: "proposal",
+  object: "objection",
+  decide: "decision",
+  ack: "agrees",
+  join: "joined",
+});
+
 function label(text) {
-  return getLocale() === "it" ? ITALIAN[text] ?? text : text;
+  return getLocale() === "it" ? ITALIAN[text] ?? text : ENGLISH[text] ?? text;
 }
 
 function roomName(id) {
@@ -93,7 +104,9 @@ function discussionOf(message, byId) {
 }
 
 function messageItem(message, byId, actions) {
-  const { body, action } = splitAction(message.text);
+  const split = splitAction(message.text);
+  const action = split.action;
+  const body = split.body || (message.kind === "ack" ? label("Agrees.") : "");
   const parent = message.replyTo ? byId.get(message.replyTo) : null;
   const flags = [
     message.kind && message.kind !== "info" ? node("span", { className: "now-flag", text: label(message.kind) }) : null,
@@ -210,7 +223,9 @@ export function renderChat(chat, { send = null, onSent = null } = {}) {
 
   function draw() {
     const shown = messages.filter((message) => message.room === state.room && (state.showAuto || !message.auto));
-    const roomList = node("ul", { className: "chat-rooms" }, rooms.map((room) => {
+    // A room with only automatic messages stays out of the list until they are shown.
+    const listed = rooms.filter((room) => state.showAuto || room.people > 0 || room.id === state.room);
+    const roomList = node("ul", { className: "chat-rooms" }, listed.map((room) => {
       const button = node("button", {
         className: `chat-room${room.id === state.room ? " is-active" : ""}`,
         text: `${roomName(room.id)} (${state.showAuto ? room.count : room.people})`,

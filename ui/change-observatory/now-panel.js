@@ -132,13 +132,16 @@ function trustFlag(message) {
 }
 
 function senderItem(sender) {
-  const shown = sender.status && sender.status !== sender.last ? [sender.status, sender.last] : [sender.last];
+  // The status and the last message are the same message when the status was sent last; an empty agreement adds nothing.
+  const same = (left, right) => left?.time === right?.time && left?.text === right?.text;
+  const shown = [sender.status, same(sender.status, sender.last) || !String(sender.last?.text ?? "").trim() ? null : sender.last];
+  if (!shown[0] && !shown[1]) shown[1] = sender.last;
   return node("li", { className: "now-item" }, [
     node("strong", { text: sender.from }),
     ...shown.filter(Boolean).map((message) => node("span", { className: "now-meta" }, [
       trustFlag(message),
       node("span", { text: `${String(message.text ?? "").replace(/^\[auto\]\s*/u, "")} ` }),
-      node("time", { text: relativeTime(message.time), attrs: { datetime: message.time } }),
+      node("time", { text: `· ${relativeTime(message.time)}`, attrs: { datetime: message.time } }),
     ])),
   ]);
 }

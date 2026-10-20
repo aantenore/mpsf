@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.12
+
+- Change Observatory: new screenshots in `docs/images/` made from a sample online shop (overview, Now and Chat, project plan, timeline, stories in the dark theme), and `scripts/observatory-screenshots.mjs` to make them again; `node test/helpers/change-observatory-preview-server.mjs --demo` serves the same sample so you can try the page without a project. Chat: message kinds read as words (discussion, proposal, objection, agrees), an agreement without text says so, rooms with only automatic messages stay out of the list until they are shown, and Send is a clear primary button with visible keyboard focus. The Now card no longer repeats a computer's status line twice, and each time is set apart from the text. The guide [Change Observatory](docs/change-observatory.md) explains Now, Chat and the dark theme. Compatibility: no record, ref or config key changed.
+
 ## 1.0.11
 
 - Docs: new page [See it catch problems in one minute](docs/see-it-work.md). In a throwaway folder you edit one word of the project history and commit a fake key, then read the real output of `trace verify` and `secret scan`. Linked from the README and the docs map. `trace verify` now says "1 event" instead of "1 events". Change Observatory: no change. Compatibility: no record, ref or config key changed.

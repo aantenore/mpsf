@@ -4,12 +4,15 @@ import { dirname, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildNowModel } from "../../lib/change-observatory/now-panel.mjs";
+import { buildDemoModel, demoDependencies, demoNowInputs } from "./change-observatory-demo-data.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, "../..");
 const uiRoot = resolve(repositoryRoot, "ui/change-observatory");
 const fixturePath = resolve(repositoryRoot, "test/fixtures/change-observatory/view-model.json");
-const fixture = JSON.parse(await readFile(fixturePath, "utf8"));
+// `--demo` serves the sample shop used for the README screenshots instead of the visual-QA fixture.
+const demo = process.argv.includes("--demo");
+const fixture = demo ? buildDemoModel() : JSON.parse(await readFile(fixturePath, "utf8"));
 const knownSources = new Set(fixture.records.map((record) => record.path));
 
 // Synthetic "Now" panel data: claims and chat messages relative to the
@@ -29,6 +32,11 @@ const previewMessages = [
   { id: "p5", from: "visual-qa-linux", kind: "info", text: "Hello everyone, the Linux runner is back.", time: minutesAgo(8), trust: "unverified" },
   { id: "p6", from: "visual-qa-linux", kind: "offer", text: "[auto] free: can take work or help", time: minutesAgo(6), trust: "unverified" },
 ];
+if (demo) {
+  const inputs = demoNowInputs();
+  previewClaims.splice(0, previewClaims.length, ...inputs.claims);
+  previewMessages.splice(0, previewMessages.length, ...inputs.messages);
+}
 let previewSequence = 0;
 
 const MIME = {
@@ -66,8 +74,15 @@ export function createPreviewServer() {
     send(response, 200, JSON.stringify(fixture), "application/json; charset=utf-8");
     return;
   }
+  if (demo && url.pathname === "/api/v1/dependencies") {
+    send(response, 200, JSON.stringify(demoDependencies()), "application/json; charset=utf-8");
+    return;
+  }
   if (url.pathname === "/api/v1/now") {
     const now = buildNowModel({ claims: previewClaims, messages: previewMessages, messaging: "on" });
+    // Like the real server, name each story in progress.
+    const titles = new Map(fixture.iterations.map((iteration) => [iteration.id, iteration.title]));
+    now.work = now.work.map((item) => (titles.has(item.storyId) ? { ...item, title: titles.get(item.storyId) } : item));
     send(response, 200, JSON.stringify(now), "application/json; charset=utf-8");
     return;
   }
@@ -84,7 +99,7 @@ export function createPreviewServer() {
     const id = `preview-${++previewSequence}`;
     previewMessages.push({
       id,
-      from: "visual-qa-browser",
+      from: demo ? "you" : "visual-qa-browser",
       kind: body.kind || "info",
       story: body.story ?? undefined,
       reply_to: body.replyTo ?? undefined,

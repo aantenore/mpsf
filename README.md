@@ -176,6 +176,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.12** — Change Observatory: sample-project screenshots, Now and Chat documented, clearer chat.
 - **1.0.11** — new page: [see it catch problems in one minute](docs/see-it-work.md).
 - **1.0.10** — local state files written atomically: parallel hooks no longer lose state.
 - **1.0.9** — Stop hook stays within its time limit; long `run` timeouts no longer fire at once.

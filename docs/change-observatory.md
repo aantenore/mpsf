@@ -4,6 +4,16 @@ Change Observatory is the visual, local-first lineage reader bundled with MPSF. 
 
 ![Change Observatory overview with sample data](images/observatory-overview.png)
 
+| Project plan | Stories, dark theme |
+| --- | --- |
+| ![Project plan map: stories in waves, each line from a story to the work it unlocks](images/observatory-map.png) | ![Stories view in the dark theme with status, steps and activity per story](images/observatory-stories-dark.png) |
+
+The screenshots show a sample online shop, not a real project. To make them
+again after a change to the page, run
+`npm install --no-save playwright && npx playwright install chromium && node scripts/observatory-screenshots.mjs`; it starts the
+sample with `node test/helpers/change-observatory-preview-server.mjs --demo`,
+which you can also open in a browser to try the page without a project.
+
 ## Your First Time
 
 Change Observatory is a small web page that runs on your own computer and only
@@ -71,7 +81,24 @@ here), and the ref mode keeps a snapshot under `.git/agentic-sdlc/observatory/`.
    details. Titles and summaries that contain record IDs, paths, or commands
    keep their readable words; only the technical fragment is removed.
 
-6. **If something goes wrong.** A port that is already in use is reported with
+6. **See who is working on what.** On the Overview, the **Now** card shows the
+   stories in progress on every computer, discussions between agents, open
+   questions, free computers and the latest status from each computer. Its
+   title line counts them, so you can keep it closed. Below it, **Chat** shows
+   the project channel as rooms, one per story plus *General*. When messaging
+   is on you can write, reply, agree with or object to a proposal from the page
+   (Ctrl+Enter or Cmd+Enter sends); the message is signed and sent as this
+   computer, like `message send`. Automatic status messages stay hidden until
+   you tick *Show automatic messages*. The other views leave the Now card out
+   and start with their own content. See
+   [Messages between computers](messaging.md) for turning messaging on.
+
+   ![Now and Chat on the Overview of a sample project](images/observatory-now-chat.png)
+
+7. **Light or dark.** The page follows the light or dark setting of your
+   system or browser.
+
+8. **If something goes wrong.** A port that is already in use is reported with
    the suggestion to use `--port 0`. `--host` accepts only `127.0.0.1`; other
    addresses are refused on purpose so that the page is never reachable from
    another computer. If the project settings file (`.sdlc/config.json`) is
