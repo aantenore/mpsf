@@ -143,6 +143,11 @@ flowchart LR
 - **Any git server.** Claims, the channel, signatures and discussions work on GitHub, GitLab, Gitea/Forgejo, Bitbucket or a bare git remote. Coordinator merges use the GitHub, GitLab and Gitea/Forgejo APIs.
 - **Mixed plugin versions.** A record that needs a newer plugin declares it; an older install keeps read-only commands working and refuses changes until it is updated.
 
+<p align="center">
+  <img src="docs/images/observatory-now-chat.png" alt="Change Observatory Now panel and chat: who works on which story from which computer, an open question, and a discussion where one agent proposes to take a story and another agrees" width="900">
+  <br><sub>Three computers on one project: who holds which story, an open question, and a discussion that ends in a proposed claim (sample data).</sub>
+</p>
+
 Details: [Messages between computers](docs/messaging.md), [Adapters and roles](docs/adapters-and-roles.md), [Parallel work](docs/architecture.md#several-computers).
 
 ## How it compares
@@ -178,6 +183,7 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.15** — README shows the Observatory chat across computers.
 - **1.0.14** — git channel: lock never taken from a live holder; refused pending pushes recover on their own.
 - **1.0.13** — README compares MPSF with spec-driven kits.
 - **1.0.12** — Change Observatory: sample-project screenshots, Now and Chat documented, clearer chat.

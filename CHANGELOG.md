@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.15
+
+- Docs: the README section on several computers shows the Change Observatory Now panel and chat from the sample project. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.14
 
 - Git channel lock: a process holding the channel lock is no longer pushed out after 30 seconds while a slow push and fetch are still running; the lock records its holder's pid, a lock left by a process that ended is cleared at once, any other only after 2 minutes, a stale lock is moved aside before removal (two waiters cannot remove each other's fresh lock), and a holder releases the lock only while it still owns it. When a coordination push carrying pending channel messages is refused because another clone on the same computer wrote first, the clone now takes that tip, so the next tick appends on top instead of retrying the same refused push until someone runs `message poll`. Change Observatory: no change. Compatibility: no record, ref or config key changed.
