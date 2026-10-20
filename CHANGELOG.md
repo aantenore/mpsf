@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.31
+
+- CLI: a mistyped command or option gets the nearest match (`mpsf obsrve` -> Did you mean: mpsf observe?) and a pointer to `mpsf help`; a missing required option prints the command usage; usage mistakes no longer suggest recording a known error; `mpsf next` says Nothing pending on this computer instead of agent jargon. Docs: configuration-safety explains which config entries are settings and which only state guarantees the CLI always enforces. Change Observatory: no change. Compatibility: no record, ref or config key changed; error messages keep their existing prefixes.
+
 ## 1.0.30
 
 - Docs and skills: SECURITY.md (private vulnerability reporting) and CONTRIBUTING.md added; Claude Code install lines marked as prompt input, not shell; trial folders created outside the plugin checkout; see-it-work lists perl and shows the alias inline; the old AGENTIC_SDLC_ prefix explained once; npm run doctor uses bin/mpsf.mjs; mpsf help trace append lists --requested-by, --authorized-by and --request-summary; /mpsf:continue-pr checks story availability before task start; /mpsf:observe explains --worktree. README What's new keeps the latest five entries. Change Observatory: no change. Compatibility: no record, ref or config key changed.

@@ -298,7 +298,7 @@ import {
   gateGuidance,
   requirementAutonomyCeilingGuidance,
 } from "../lib/human-guidance.mjs";
-import { findCommand } from "../lib/cli/command-catalog.mjs";
+import { closeCommandMatches, findCommand } from "../lib/cli/command-catalog.mjs";
 import { renderHelp, UnknownCommandError } from "../lib/cli/help.mjs";
 import { generateCompletion, SUPPORTED_SHELLS } from "../lib/cli/completion.mjs";
 import {
@@ -333,6 +333,7 @@ import {
   unsupportedNodeRuntimeMessage,
 } from "../lib/runtime-support.mjs";
 import {
+  UsageError,
   UserError,
   fail,
   failUsage,
@@ -1242,6 +1243,8 @@ async function noteKnownErrors() {
     if (!action || !sdlcRoot) return;
     const failedTestRun = action === "test.record" && options?.["exit-code"] !== undefined && String(options["exit-code"]) !== "0";
     if (!error && (Number(process.exitCode) || 0) === 0 && !failedTestRun) return;
+    // A mistyped command or a missing option is not a recurring failure worth a known error.
+    if (error instanceof UsageError || /^Missing required option /u.test(String(error?.message ?? ""))) return;
     const { knownErrorHints } = await import("../lib/known-errors/hints.mjs");
     const lines = knownErrorHints({
       action, options, error, exitCode: process.exitCode, result, root, sdlcRoot, config,
@@ -1776,7 +1779,11 @@ async function main() {
     // Records written by a newer plugin stop changes here and warn on reads.
     assertPluginSatisfiesProject(context, resolution, parsed.options);
     if (!resolution || !handler) {
-      failUsage(`Unknown command: ${parsed.positionals.slice(0, 2).join(" ")}`);
+      const typed = parsed.positionals.slice(0, 2).join(" ");
+      const close = closeCommandMatches(typed);
+      const hint = close.length > 0 ? ` Did you mean: ${close.map((item) => `mpsf ${item}`).join(", ")}?` : "";
+      const group = parsed.positionals.length > 1 && findCommand([parsed.positionals[0]]) ? parsed.positionals[0] : "";
+      failUsage(`Unknown command: ${typed}.${hint} Run mpsf help${group ? ` ${group}` : ""} to list ${group ? "its actions" : "commands"}.`);
     }
     // A pinned coordinator's reserved actions run only on the computer holding the role.
     const reserved = await (await import("../lib/engine/role-guard.mjs")).checkReservedAction({ root: context.root, config: context.config, resolution, options: parsed.options });
@@ -1822,6 +1829,16 @@ async function main() {
     const expected = error instanceof UserError
       || error instanceof CliPresetError
       || error instanceof MutationGovernanceError;
+    if (error instanceof UserError && /^Missing required option --[a-z0-9-]+$/u.test(error.message)) {
+      const words = (parsed?.positionals ?? []).slice(0, 3);
+      for (let size = words.length; size > 0; size -= 1) {
+        const usage = findCommand(words.slice(0, size))?.usage;
+        if (usage) {
+          error.message = `${error.message}. Usage: mpsf ${usage}`;
+          break;
+        }
+      }
+    }
     {
       const italian = (() => {
         try {

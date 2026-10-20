@@ -196,12 +196,11 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.31** — CLI suggests the command or option you meant.
 - **1.0.30** — SECURITY.md and CONTRIBUTING.md; docs and skills match the CLI.
 - **1.0.29** — Neutral sample names in docs, CLI examples and tests.
 - **1.0.28** — Observatory: readable charts on phones, Decisions without routine noise, fairer portfolio cards.
 - **1.0.27** — Change Observatory: portfolio cards show only what was counted.
-- **1.0.26** — Change Observatory: quieter record lists.
-- **1.0.25** — Change Observatory: layout fixes found on a real 122-story project.
 
 Every release is in the [changelog](CHANGELOG.md).
 

@@ -38,6 +38,10 @@ The first lines give the outcome, its practical impact, any decision you need to
 
 Commands that only inspect state remain available during recovery. Commands that change governed project records stop before writing when the config is drifted or invalid.
 
+### Settings you can change and guarantees you cannot
+
+`.sdlc/config.json` holds two kinds of entries. Settings such as `claim_policy.default_ttl_seconds`, `host_policy.*` or the messaging provider change how the CLI behaves. Other entries, such as `claim_policy.one_active_claim_per_story`, the `*_schema` names or the `require_*` flags of the delivery and gate policies, state guarantees the CLI always enforces: they are written down so a reviewer can read the rules in the project itself, and the CLI does not read them, so turning one off changes nothing. To change behaviour, look for the setting in [Configurable workflows](configurable-workflows.md) or in `mpsf help config`.
+
 ## Review before applying
 
 The preview is read-only:
