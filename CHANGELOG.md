@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.10
+
+- Local state files written whole: the coordination, presence, attention, welcome, keep-going, role and process-hygiene state files are written to a temp file and renamed, so a hook running in parallel no longer reads a half-written file and starts from an empty state (which dropped the clones this computer renews, welcomed computers and the keep-going counter). Docs: [How it works](docs/how-it-works.md) states the shorter SIGTERM waits of the Stop and session end hooks. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.9
 
 - Stop hook within its time limit: plugin commands past their limit get a 2-second SIGTERM wait at Stop (it was 10), so the keep-going decision is no longer lost when the host cuts the hook at 15 seconds; on Windows the slow PowerShell process scan for the leftover-process warning runs in the background and its warning arrives at the next prompt. When keep-going cannot keep its loop counter (no git folder, read-only `.git`), it no longer blocks a Stop the host already marked as a repeat. `mpsf run --timeout 30d` and `AGENTIC_SDLC_LISTEN_MAX_HOURS=720` no longer stop the command at once (Node timers overflow above about 24.8 days; the delay is now capped there). Change Observatory: no change. Compatibility: no record, ref or config key changed.

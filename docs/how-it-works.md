@@ -1388,6 +1388,8 @@ more than one minute past the limit; a limit of `0` disables it.
 The first command or hook after a plugin update also stops this user's
 already-running plugin commands of any version that are past the limit
 (SIGTERM, then SIGKILL after 10 seconds if the command line still matches).
+The Stop hook waits 2 seconds and the session end hook 0.8 seconds instead,
+to stay inside the host's hook time limits.
 
 Heavy commands also run one at a time. Gate check, story complete-step,
 workflow instance start/transition, autonomy delivery
