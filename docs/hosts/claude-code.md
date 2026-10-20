@@ -133,9 +133,11 @@ The exemption is read from the base branch as the trusted remote reports it (`gi
 
 ## Hook output budget
 
-Hooks repeat nothing within a session, cap their lines (12 by default; the SessionStart instructions are limited by tokens only) and stay inside a token budget per event (700, 250, 200, 150 and 150 tokens for SessionStart, UserPromptSubmit, PostToolUse, PreToolUse and Stop; see [Context packs and compact output](../token-efficiency.md#context-packs-and-compact-output)). `SessionStart`, the Stop hint and `story claim` point at `context pack` instead of listing records. Tune with `host_policy.context.hooks`.
+Hooks repeat nothing within a session (after `/clear` or `/compact` the SessionStart context is sent again, since the agent no longer holds it), cap their lines (12 by default; the SessionStart instructions are limited by tokens only) and stay inside a token budget per event (700, 250, 200, 150 and 150 tokens for SessionStart, UserPromptSubmit, PostToolUse, PreToolUse and Stop; see [Context packs and compact output](../token-efficiency.md#context-packs-and-compact-output)). `SessionStart`, the Stop hint and `story claim` point at `context pack` instead of listing records. Tune with `host_policy.context.hooks`.
 
 ## Scripts and host settings
+
+The guard follows the project a tool call targets, not only the session folder: a session started in `~` that writes into `<project>/.sdlc/` or runs `mpsf --root <project>`, `git -C <project>` or `cd <project> && …` gets the same rules as one started inside the project. Shell comments and Windows line endings (CRLF here-documents) are read as the shell reads them, so they cannot hide a command from the guard.
 
 The guard reads a script file that a shell command runs (`bash x.sh`, `sh < x.sh`, `source` or `.`, `./x.sh`, `cat x.sh | bash`, `node x.mjs`, `python3 x.py`, also nested in `bash -c` or `eval`) when git does not track it or it has uncommitted changes, and checks it as if its lines were typed in the command. Shell scripts get every guard rule; other scripts are refused when they change the session markers, run a person-only `mpsf` subcommand, write the protected records or refs, or push or merge. A script created and run in the same command is refused: write it in one call and run it in the next. Tracked, unchanged scripts are not read.
 

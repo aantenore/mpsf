@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import {
   CONTEXT_PACK_INSTRUCTION,
   evaluatePreToolUse,
+  targetedPaths,
   mainThreadMode,
   orchestratorEditWarning,
   orchestratorSessionContext,
@@ -181,10 +182,27 @@ function readAgentScript(cwd, file) {
   }
 }
 
+/**
+ * The governed project a tool call acts on: the session's own, else one that a
+ * written file or a folder named in the command (`--root`, `git -C`, `cd`) lies in,
+ * so a session started outside the project cannot reach it unguarded.
+ */
+function targetGovernedRoot(payload) {
+  const own = governedRoot(payload.cwd);
+  if (own) return own;
+  const cwd = path.resolve(String(payload.cwd || process.cwd()));
+  for (const target of targetedPaths(payload)) {
+    const full = path.resolve(cwd, target.replace(/^~(?=[\\/])/u, process.env.HOME || process.env.USERPROFILE || "~"));
+    const found = governedRoot(full);
+    if (found) return found;
+  }
+  return null;
+}
+
 async function preToolUse(payload) {
   // Every rule protects mpsf records, so other projects are never touched.
-  if (!insideGovernedProject(payload.cwd)) return;
-  const root = governedRoot(payload.cwd);
+  const root = targetGovernedRoot(payload);
+  if (!root) return;
   const verdict = evaluatePreToolUse(payload, {
     env: process.env,
     isUngovernedRepo: (attempt) => isUngovernedRepo(payload.cwd, attempt.dirs, process.env) || isGuardExempt(payload.cwd, attempt),
@@ -252,7 +270,7 @@ async function sessionStart(payload) {
   // The update notice is safety-critical: written first and never deduplicated.
   let notice = "";
   try {
-    notice = await pluginUpdateNotice(root);
+    notice = await pluginUpdateNotice(governedRoot(root) ?? root);
   } catch {
     // The notice is advice; the CLI enforces the check on its own.
   }
@@ -262,7 +280,7 @@ async function sessionStart(payload) {
   if (orchestrator) parts.push(orchestrator);
   else if (governedRoot(root)) parts.push(STORY_LABEL_INSTRUCTION);
   if (orchestrator || governedRoot(root)) parts.push(PROCESS_HYGIENE_INSTRUCTION, CONTEXT_PACK_INSTRUCTION, WATCH_INSTRUCTION);
-  parts.push(...(await standingContext(root)));
+  parts.push(...(await standingContext(governedRoot(root) ?? root)));
   const text = parts.filter(Boolean).join("\n");
   if (!text) return;
   const filtered = await budgeted(text, {

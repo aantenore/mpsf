@@ -1186,3 +1186,30 @@ test("the host settings files keep their env, hooks and plugin entries out of th
   assert.equal(verdict(edit("/home/u/.codex/config.toml", "", "[shell_environment_policy]\nset = { MPSF_KEEP_GOING = \"off\" }")), "deny");
   assert.equal(verdict(codexPatch(".claude/settings.json")), "allow");
 });
+
+test("shell comments and CRLF here-documents do not hide a person-only command", () => {
+  for (const command of [
+    "# it's a note\nmpsf autonomy standing approve --id X",
+    "echo hi # <<X\nmpsf autonomy standing approve --id X",
+    "cat <<EOF\r\nx\r\nEOF\r\nmpsf autonomy standing approve --id X",
+    "echo ${#x}; mpsf autonomy standing approve --id X",
+  ]) {
+    assert.equal(evaluatePreToolUse(shell(command))?.decision, "deny", JSON.stringify(command));
+  }
+  assert.equal(evaluatePreToolUse(shell("echo ok # mpsf autonomy standing approve --id X")), null);
+});
+
+test("a session outside the project is still guarded when the call targets it", () => {
+  const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), "hook-elsewhere-"));
+  try {
+    for (const tool_input of [
+      { command: `mpsf --root ${quoted(GOVERNED)} autonomy standing approve --id X` },
+      { command: `cd ${quoted(GOVERNED)} && mpsf autonomy standing approve --id X` },
+    ]) {
+      const result = spawnSync(process.execPath, [HOOK, "pre-tool-use"], { input: JSON.stringify({ tool_name: "Bash", cwd: elsewhere, tool_input }), encoding: "utf8", env: cleanHookEnv() });
+      assert.equal(result.status, 2, tool_input.command);
+    }
+  } finally {
+    fs.rmSync(elsewhere, { recursive: true, force: true });
+  }
+});

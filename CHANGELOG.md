@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.8
+
+- Guard hardening: the PreToolUse guard now follows the project a tool call targets, so a session started outside the project (for example in `~`) that writes into `<project>/.sdlc/` or runs `mpsf --root <project>`, `git -C <project>` or `cd <project> && …` is checked like one inside it. Shell comments (`# it's …` with an apostrophe, `# <<X`) and CRLF here-documents can no longer hide a person-only command, a merge or a push from the guard. The plugin-update notice and the standing-approvals summary at session start are found from a subfolder of the project too. Strict main-thread mode treats a folder named like `..cache` as inside the tree. Docs: [Claude Code host](docs/hosts/claude-code.md#scripts-and-host-settings). Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.7
 
 - CLI messages printed by the plugin now start with `mpsf:` instead of the old `agentic-sdlc:` name (known-error hints, story sync, run deadlines, channel join, background story close). The hidden metadata in GitHub issue messages keeps its old marker, so older computers still read them. Change Observatory: no change. Compatibility: no record, ref or config key changed.
