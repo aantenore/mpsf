@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.32
+
+- README: the history check and the secret scan show their real output inline (shortened), so a visitor sees what MPSF catches without leaving the page. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.31
 
 - CLI: a mistyped command or option gets the nearest match (`mpsf obsrve` -> Did you mean: mpsf observe?) and a pointer to `mpsf help`; a missing required option prints the command usage; usage mistakes no longer suggest recording a known error; `mpsf next` says Nothing pending on this computer instead of agent jargon. Docs: configuration-safety explains which config entries are settings and which only state guarantees the CLI always enforces. Change Observatory: no change. Compatibility: no record, ref or config key changed; error messages keep their existing prefixes.

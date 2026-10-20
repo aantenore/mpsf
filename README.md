@@ -120,7 +120,23 @@ Full walk-through: [Getting started](docs/getting-started.md). To run the `mpsf 
 | **Two hosts, one tree** | Claude Code and Codex load the same skills, schemas, templates and CLI. | [Hosts](docs/hosts/README.md) |
 | **Windows included** | The local-release smoke test runs in a sandbox on all three systems: built in on macOS, bubblewrap on Linux, a per-run AppContainer on Windows 10 1809+ with no admin rights. | [Windows](docs/windows.md) |
 
-Want to see two of these checks fail on purpose before installing anything else? [See it catch problems in one minute](docs/see-it-work.md): edit one word of the history, commit a fake key, and read what the CLI prints.
+Change one word in the recorded history and the next check says so, with exit status 1 (output shortened):
+
+```text
+$ mpsf trace verify
+The project history changed unexpectedly.
+- .sdlc/traces/project.jsonl: CHANGED (checkpoint_drift, last_event_hash_mismatch, rolling_hash_mismatch)
+```
+
+Commit a fake cloud key and the delivery cannot be certified:
+
+```text
+$ mpsf secret scan --story ST-001 --base HEAD~1
+- Found 2 credential match(es) in 1 scanned file(s) of story ST-001
+- src/config.mjs:1 aws_access_key_id AKIA…
+```
+
+Both run in a throwaway folder in one minute: [See it catch problems](docs/see-it-work.md).
 
 <p align="center">
   <img src="docs/images/observatory-timeline.png" alt="Change Observatory timeline: requests, agreements, changes, decisions and checks over time" width="900">
@@ -196,11 +212,11 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.32** — README shows the two checks failing on purpose.
 - **1.0.31** — CLI suggests the command or option you meant.
 - **1.0.30** — SECURITY.md and CONTRIBUTING.md; docs and skills match the CLI.
 - **1.0.29** — Neutral sample names in docs, CLI examples and tests.
 - **1.0.28** — Observatory: readable charts on phones, Decisions without routine noise, fairer portfolio cards.
-- **1.0.27** — Change Observatory: portfolio cards show only what was counted.
 
 Every release is in the [changelog](CHANGELOG.md).
 

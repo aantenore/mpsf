@@ -1,6 +1,6 @@
 {
   "name": "agentic-sdlc",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "description": "agentic-sdlc is now mpsf (My Personal Software Factory). This bridge installs mpsf@aantenore and removes itself.",
   "author": {
     "name": "Antonio Antenore",
