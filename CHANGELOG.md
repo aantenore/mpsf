@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 0.164.4
+
+- Brand: new logo set in `assets/brand/` (`logo.svg`, `logo-dark.svg`, `icon.svg`, `icon-512.png`). The mark is an M whose two strokes meet in a single node: separate lines of work joined into one signed record. SVGs have no external fonts. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 0.164.3
 
 - Release: ships the 0.164.2 changes with a fully tested CI run (all gate cells, Windows included). No behaviour change. Change Observatory: no change. Compatibility: no record, ref or config key changed.
