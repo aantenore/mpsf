@@ -37,6 +37,8 @@ const ITALIAN = Object.freeze({
   Send: "Invia",
   Cancel: "Annulla",
   "Write a message": "Scrivi un messaggio",
+  "Message to the room": "Messaggio alla stanza",
+  "Ctrl+Enter sends": "Ctrl+Invio invia",
   "Say why you object": "Spiega perché obietti",
   "Not sent": "Non inviato",
   "Queued: it is sent when the channel answers.": "In coda: parte quando il canale risponde.",
@@ -56,7 +58,9 @@ function roomName(id) {
 
 function timeText(value) {
   const at = new Date(value ?? "");
-  return Number.isFinite(at.getTime()) ? at.toLocaleString() : "";
+  if (!Number.isFinite(at.getTime())) return "";
+  const sameDay = at.toDateString() === new Date().toDateString();
+  return sameDay ? at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : at.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
 }
 
 /** The readable text and the action of a discussion message (its last line). */
@@ -100,7 +104,7 @@ function messageItem(message, byId, actions) {
       node("strong", { text: message.from ?? "" }),
       ...flags,
       message.to ? node("span", { className: "now-meta", text: `${label("to")} ${message.to}` }) : null,
-      node("time", { className: "now-meta", text: timeText(message.time), attrs: { datetime: message.time } }),
+      node("time", { className: "now-meta", text: timeText(message.time), attrs: { datetime: message.time, title: message.time ? new Date(message.time).toLocaleString() : null } }),
     ]),
     parent ? node("div", { className: "chat-quote", text: `${label("reply to")} ${parent.from}: ${splitAction(parent.text).body.split("\n")[0].slice(0, 120)}` }) : null,
     body ? node("div", { className: "chat-text", text: body }) : null,
@@ -132,6 +136,7 @@ export function renderChat(chat, { send = null, onSent = null } = {}) {
     state.target = { id: mode === "reply" ? discussion ?? message.id : discussion, from: message.from, mode, question: REPLY_KINDS.has(message.kind) };
     state.error = null;
     draw();
+    wrapper.querySelector(".chat-input")?.focus?.();
   }
 
   const actions = send
@@ -175,10 +180,16 @@ export function renderChat(chat, { send = null, onSent = null } = {}) {
   function composer() {
     if (!send) return null;
     const mode = state.target?.mode ?? "message";
-    const area = node("textarea", { className: "chat-input", attrs: { rows: "2", maxlength: "2000", placeholder: label(mode === "object" ? "Say why you object" : "Write a message") } });
+    const area = node("textarea", { className: "chat-input", attrs: { rows: "2", maxlength: "2000", "aria-label": label("Message to the room"), title: label("Ctrl+Enter sends"), placeholder: label(mode === "object" ? "Say why you object" : "Write a message") } });
     area.value = state.draft;
     area.addEventListener("input", () => {
       state.draft = area.value;
+    });
+    area.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault?.();
+        submit();
+      }
     });
     const heading = state.target
       ? node("div", { className: "chat-quote" }, [
@@ -208,6 +219,7 @@ export function renderChat(chat, { send = null, onSent = null } = {}) {
       button.addEventListener("click", () => {
         state.room = room.id;
         draw();
+        wrapper.querySelector(".chat-room.is-active")?.focus?.();
       });
       return node("li", {}, [button]);
     }));

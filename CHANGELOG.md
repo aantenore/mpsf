@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.4
+
+- Change Observatory: the Now panel (who works on what, open questions, chat) is a card on the Overview only, so Stories, Timeline and Map start with their own content; its title line counts work in progress, open questions and free computers, and status lines no longer show the [auto] tag. Chat: the reply box has a label and takes focus when you press Reply, Ctrl+Enter (Cmd+Enter) sends, choosing a room keeps keyboard focus, message times are short (hour today, date otherwise) with the full time on hover, and the 30-second refresh no longer redraws the chat while you are typing. Discussions say "1 turn" and show deadlines without seconds. The visual-QA preview server now serves sample Now and chat data and accepts sent messages. Compatibility: no record, ref or config key changed.
+
 ## 1.0.3
 
 - Coordination robustness: `coordinator free-claims` no longer frees a claim when the presence of other computers could not be read (failed fetch, or only expired copies with no live computer at all, this one included); it asks a person instead. A presence record counts only under its own ref name, so a copy pushed under another name cannot speak for a computer. A status time in the future (a clock that jumped back) no longer silences `[auto]` status and offers until the clock catches up. Change Observatory: presence shown there follows the same rule. Compatibility: no record, ref or config key changed.

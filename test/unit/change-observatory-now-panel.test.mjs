@@ -322,3 +322,13 @@ test("the chat composer replies, agrees and objects through the given sender", a
   renderNowPanel(readOnly, buildNowModel({ messages, messaging: "on", nowMs: NOW }));
   assert.equal(readOnly.querySelector("textarea"), null);
 });
+
+test("the Now summary counts work, open questions and free computers, and status lines drop the [auto] tag", (t_) => {
+  withBrowser(t_);
+  setLocale("en");
+  const container = document.createElement("section");
+  renderNowPanel(container, buildNowModel({ claims: CLAIMS, messages: MESSAGES, messaging: "on", nowMs: NOW }));
+  const summary = container.querySelector("summary").textContent;
+  assert.match(summary, /2 in progress · 2 open questions · 1 free computer/u);
+  assert.doesNotMatch(container.querySelector(".now-details").textContent, /\[auto\]/u);
+});

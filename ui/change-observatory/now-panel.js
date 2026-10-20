@@ -10,6 +10,11 @@ const REFRESH_MS = 30_000;
 const ITALIAN = Object.freeze({
   Now: "Adesso",
   "Who is doing what across computers": "Chi sta facendo cosa sui vari computer",
+  "in progress": "in corso",
+  "open question": "domanda aperta",
+  "open questions": "domande aperte",
+  "free computer": "computer libero",
+  "free computers": "computer liberi",
   "In progress": "In corso",
   "Nobody is working on a story right now.": "Nessuno sta lavorando a una storia in questo momento.",
   phase: "fase",
@@ -65,6 +70,7 @@ const ITALIAN = Object.freeze({
   agreed: "concordata",
   decided: "decisa",
   turns: "turni",
+  turn: "turno",
   proposal: "proposta",
   decision: "decisione",
   objections: "obiezioni",
@@ -131,7 +137,7 @@ function senderItem(sender) {
     node("strong", { text: sender.from }),
     ...shown.filter(Boolean).map((message) => node("span", { className: "now-meta" }, [
       trustFlag(message),
-      node("span", { text: `${message.text} ` }),
+      node("span", { text: `${String(message.text ?? "").replace(/^\[auto\]\s*/u, "")} ` }),
       node("time", { text: relativeTime(message.time), attrs: { datetime: message.time } }),
     ])),
   ]);
@@ -153,12 +159,12 @@ function actionText(action) {
 }
 
 function discussionItem(item) {
-  const parts = [`${(item.participants ?? []).join(", ")}`, `${item.turns} ${label("turns")}`];
+  const parts = [`${(item.participants ?? []).join(", ")}`, `${item.turns} ${label(item.turns === 1 ? "turn" : "turns")}`];
   if (item.decision) parts.push(`${label("decision")}: ${actionText(item.decision)}`);
   else if (item.proposal) parts.push(`${label("proposal")}: ${actionText(item.proposal)}${item.objections ? ` · ${label("objections")} ${item.objections}` : ""}`);
   if (Array.isArray(item.command)) parts.push(`${label("run")}: mpsf ${item.command.join(" ")}`);
   if (item.ignoredDecisions) parts.push(`${label("unsigned decisions ignored")}: ${item.ignoredDecisions}`);
-  if (!item.decision && item.deadline) parts.push(`${label("deadline")} ${new Date(item.deadline).toLocaleTimeString()}`);
+  if (!item.decision && item.deadline) parts.push(`${label("deadline")} ${new Date(item.deadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
   return node("li", { className: "now-item" }, [
     node("strong", { text: item.story ? `${item.topic} (${item.story})` : item.topic }),
     node("span", { className: "now-flag", text: label(item.state) }),
@@ -217,10 +223,15 @@ export function renderNowPanel(container, view, { send = null, onSent = null } =
   const open = Array.isArray(view.open) ? view.open : [];
   const free = Array.isArray(view.free) ? view.free : [];
   const { computers, roles } = wellFormedCoordination(view);
+  const counts = [
+    work.length ? `${work.length} ${label("in progress")}` : null,
+    open.length ? `${open.length} ${label(open.length === 1 ? "open question" : "open questions")}` : null,
+    free.length ? `${free.length} ${label(free.length === 1 ? "free computer" : "free computers")}` : null,
+  ].filter(Boolean);
   const children = [
     node("summary", {}, [
       node("strong", { text: label("Now") }),
-      node("span", { className: "now-meta", text: ` ${label("Who is doing what across computers")}` }),
+      node("span", { className: "now-meta", text: ` ${counts.length ? counts.join(" · ") : label("Who is doing what across computers")}` }),
     ]),
     section("In progress", work.length
       ? work.map(workItem)
@@ -280,6 +291,8 @@ export function mountNowPanel({ api, anchor }) {
       const view = await api.loadNow();
       const key = JSON.stringify({ ...view, generatedAt: null });
       if (key === lastKey) return;
+      // Redrawing would take the cursor out of a message being written; the next refresh catches up.
+      if (container.contains?.(document.activeElement) && document.activeElement?.tagName === "TEXTAREA") return;
       lastKey = key;
       renderNowPanel(container, view, {
         send: typeof api.sendChat === "function" && view.messaging === "on" ? (message) => api.sendChat(message) : null,

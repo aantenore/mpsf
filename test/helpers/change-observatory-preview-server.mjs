@@ -3,12 +3,33 @@ import { readFile } from "node:fs/promises";
 import { dirname, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { buildNowModel } from "../../lib/change-observatory/now-panel.mjs";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, "../..");
 const uiRoot = resolve(repositoryRoot, "ui/change-observatory");
 const fixturePath = resolve(repositoryRoot, "test/fixtures/change-observatory/view-model.json");
 const fixture = JSON.parse(await readFile(fixturePath, "utf8"));
 const knownSources = new Set(fixture.records.map((record) => record.path));
+
+// Synthetic "Now" panel data: claims and chat messages relative to the
+// current time, so relative ages read naturally. Sent messages stay in memory.
+const minutesAgo = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
+const previewClaims = [
+  { storyId: "ST-VISUAL-QA", state: "claimed", agent: "claude", holder: "visual-qa-mac", branch: "feature/ST-VISUAL-QA", claimedAt: minutesAgo(95), health: "active" },
+  { storyId: "ST-NEXT", state: "parked", agent: "codex", holder: "visual-qa-pc", branch: "feature/ST-NEXT", claimedAt: minutesAgo(300) },
+];
+const previewMessages = [
+  { id: "p1", from: "visual-qa-mac", kind: "info", text: "[auto] status: ST-VISUAL-QA (phase build)", time: minutesAgo(40), trust: "trusted" },
+  { id: "p2", from: "visual-qa-pc", kind: "question", story: "ST-VISUAL-QA", text: "Who reviews the visual checks?", time: minutesAgo(25), trust: "trusted" },
+  { id: "p3", from: "visual-qa-mac", kind: "answer", reply_to: "p2", text: "I will, after the build.", time: minutesAgo(20), trust: "trusted" },
+  { id: "p4", from: "visual-qa-pc", kind: "propose", story: "ST-VISUAL-QA", reply_to: "p2", text: "Hand the review to the Mac\nmpsf-action: {\"action\":\"handoff\",\"story\":\"ST-VISUAL-QA\",\"to_agent\":\"visual-qa-mac\"}", time: minutesAgo(12), trust: "trusted" },
+  { id: "d1", from: "visual-qa-pc", kind: "discuss", story: "ST-NEXT", text: "Who picks up ST-NEXT while it is parked?", time: minutesAgo(18), trust: "trusted" },
+  { id: "d2", from: "visual-qa-linux", kind: "propose", story: "ST-NEXT", reply_to: "d1", text: "The Linux runner is free and can take it\nmpsf-action: {\"action\":\"claim\",\"story\":\"ST-NEXT\",\"agent\":\"visual-qa-linux\"}", time: minutesAgo(9), trust: "unverified" },
+  { id: "p5", from: "visual-qa-linux", kind: "info", text: "Hello everyone, the Linux runner is back.", time: minutesAgo(8), trust: "unverified" },
+  { id: "p6", from: "visual-qa-linux", kind: "offer", text: "[auto] free: can take work or help", time: minutesAgo(6), trust: "unverified" },
+];
+let previewSequence = 0;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -43,6 +64,35 @@ export function createPreviewServer() {
   const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
   if (url.pathname === "/api/v1/observatory") {
     send(response, 200, JSON.stringify(fixture), "application/json; charset=utf-8");
+    return;
+  }
+  if (url.pathname === "/api/v1/now") {
+    const now = buildNowModel({ claims: previewClaims, messages: previewMessages, messaging: "on" });
+    send(response, 200, JSON.stringify(now), "application/json; charset=utf-8");
+    return;
+  }
+  if (url.pathname === "/api/v1/chat/send" && request.method === "POST") {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    let body;
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+      send(response, 400, JSON.stringify({ error: { code: "invalid_json", message: "The request body is not a JSON object" } }), "application/json; charset=utf-8");
+      return;
+    }
+    const id = `preview-${++previewSequence}`;
+    previewMessages.push({
+      id,
+      from: "visual-qa-browser",
+      kind: body.kind || "info",
+      story: body.story ?? undefined,
+      reply_to: body.replyTo ?? undefined,
+      text: String(body.text ?? ""),
+      time: new Date().toISOString(),
+      trust: "trusted",
+    });
+    send(response, 200, JSON.stringify({ sent: true, id }), "application/json; charset=utf-8");
     return;
   }
   if (url.pathname === "/api/v1/source") {

@@ -4044,9 +4044,23 @@ mark {
 .nav-expert[hidden] { display: none; }
 
 .now-panel {
-  border-bottom: 1px solid var(--line);
+  margin: 16px 16px 0;
+  padding: 14px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   background: var(--surface);
-  padding: 12px 28px;
+}
+
+/* Who is doing what belongs to the overview; the other views keep their content on top. */
+#app[data-active-view]:not([data-active-view="overview"]) .now-panel {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .now-panel {
+    margin: 10px 10px 0;
+    padding: 12px 14px;
+  }
 }
 
 .now-panel[hidden] {
