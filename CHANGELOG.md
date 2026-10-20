@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.9
+
+- Stop hook within its time limit: plugin commands past their limit get a 2-second SIGTERM wait at Stop (it was 10), so the keep-going decision is no longer lost when the host cuts the hook at 15 seconds; on Windows the slow PowerShell process scan for the leftover-process warning runs in the background and its warning arrives at the next prompt. When keep-going cannot keep its loop counter (no git folder, read-only `.git`), it no longer blocks a Stop the host already marked as a repeat. `mpsf run --timeout 30d` and `AGENTIC_SDLC_LISTEN_MAX_HOURS=720` no longer stop the command at once (Node timers overflow above about 24.8 days; the delay is now capped there). Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.8
 
 - Guard hardening: the PreToolUse guard now follows the project a tool call targets, so a session started outside the project (for example in `~`) that writes into `<project>/.sdlc/` or runs `mpsf --root <project>`, `git -C <project>` or `cd <project> && …` is checked like one inside it. Shell comments (`# it's …` with an apostrophe, `# <<X`) and CRLF here-documents can no longer hide a person-only command, a merge or a push from the guard. The plugin-update notice and the standing-approvals summary at session start are found from a subfolder of the project too. Strict main-thread mode treats a folder named like `..cache` as inside the tree. Docs: [Claude Code host](docs/hosts/claude-code.md#scripts-and-host-settings). Change Observatory: no change. Compatibility: no record, ref or config key changed.

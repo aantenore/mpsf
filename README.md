@@ -174,6 +174,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.9** — Stop hook stays within its time limit; long `run` timeouts no longer fire at once.
 - **1.0.8** — guard: follows the targeted project from any folder; comments and CRLF cannot hide commands.
 - **1.0.7** — CLI messages use the `mpsf:` prefix.
 - **1.0.6** — Change Observatory: dark theme that follows your system setting.

@@ -351,6 +351,7 @@ async function reapRuns(payload, options = {}) {
 // Codex caps the SessionEnd hook at 3 seconds: two short SIGTERM waits keep the reap inside it.
 // Anything left over is stopped by the next Stop hook or the run watchdog.
 const SESSION_END_KILL_AFTER_MS = 800;
+const STOP_KILL_AFTER_MS = 2000;
 
 /**
  * Hands back this computer's presence and roles when the session ends, in a
@@ -384,7 +385,12 @@ async function keepGoing(payload) {
   const commonDir = findGitCommonDir(root);
   const output = await keepGoingStop(root, payload, { commonDir });
   const { processHygieneAtStop } = await import("../lib/host-hooks/process-hygiene.mjs");
-  const { message } = await processHygieneAtStop(root, { commonDir, pluginRoot: PLUGIN_ROOT });
+  const { message } = await processHygieneAtStop(root, {
+    commonDir,
+    pluginRoot: PLUGIN_ROOT,
+    // PowerShell's process scan can take many seconds: on Windows the warning comes from a background run, at the next prompt.
+    deferWarning: process.platform === "win32" ? () => runDetached("hygiene-warning", root, payload.session_id) : null,
+  });
   const merged = message ? { ...output, systemMessage: [output?.systemMessage, message].filter(Boolean).join("\n") } : output;
   if (!merged) return;
   const { filterHookOutput } = await import("../lib/host-hooks/injection-budget.mjs");
@@ -407,7 +413,8 @@ try {
     await autoUpdate("stop");
     syncStateBranch(payload, ["sync", "--if-due"]);
     try {
-      await reapRuns(payload);
+      // Short SIGTERM waits keep the reap and the keep-going decision inside the 15 s Stop limit.
+      await reapRuns(payload, { killAfterMs: STOP_KILL_AFTER_MS });
     } finally {
       await keepGoing(payload);
     }
@@ -418,6 +425,10 @@ try {
   } else if (event === "roles-tick") {
     const { rolesTick } = await import("../lib/engine/role-leases.mjs");
     await rolesTick(process.argv[3], { sessionId: process.argv[4] || null, force: true });
+  } else if (event === "hygiene-warning") {
+    const { processHygieneAtStop } = await import("../lib/host-hooks/process-hygiene.mjs");
+    const { findGitCommonDir } = await import("../lib/runtime/run-registry.mjs");
+    await processHygieneAtStop(process.argv[3], { commonDir: findGitCommonDir(process.argv[3]), pluginRoot: PLUGIN_ROOT, throttle: false });
   } else if (event === "session-release") {
     const { releaseAtSessionEnd } = await import("../lib/engine/role-leases.mjs");
     releaseAtSessionEnd(process.argv[3], { sessionId: process.argv[4] || null });
