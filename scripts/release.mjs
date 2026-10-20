@@ -14,8 +14,6 @@ const VERSION_PATHSPECS = [
   ".claude-plugin/*.json",
   ".codex-plugin/*.json",
   "legacy/*/.claude-plugin/*.json",
-  "README.md",
-  "docs/*.md",
 ];
 
 export function parseVersion(text) {
