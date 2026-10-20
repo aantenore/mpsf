@@ -117,6 +117,8 @@ Full walk-through: [Getting started](docs/getting-started.md). To run the `mpsf 
 | **Two hosts, one tree** | Claude Code and Codex load the same skills, schemas, templates and CLI. | [Hosts](docs/hosts/README.md) |
 | **Windows included** | The local-release smoke test runs in a sandbox on all three systems: built in on macOS, bubblewrap on Linux, a per-run AppContainer on Windows 10 1809+ with no admin rights. | [Windows](docs/windows.md) |
 
+Want to see two of these checks fail on purpose before installing anything else? [See it catch problems in one minute](docs/see-it-work.md): edit one word of the history, commit a fake key, and read what the CLI prints.
+
 <p align="center">
   <img src="docs/images/observatory-timeline.png" alt="Change Observatory timeline: requests, agreements, changes, decisions and checks over time" width="900">
   <br><sub>Every recorded request, agreement, change, decision and check, filterable by story (sample data).</sub>
@@ -174,6 +176,7 @@ MPSF does not replace your agent, your tests or your CI. It adds the agreement a
 
 ## What's new
 
+- **1.0.11** — new page: [see it catch problems in one minute](docs/see-it-work.md).
 - **1.0.10** — local state files written atomically: parallel hooks no longer lose state.
 - **1.0.9** — Stop hook stays within its time limit; long `run` timeouts no longer fire at once.
 - **1.0.8** — guard: follows the targeted project from any folder; comments and CRLF cannot hide commands.

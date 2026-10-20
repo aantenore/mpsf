@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.11
+
+- Docs: new page [See it catch problems in one minute](docs/see-it-work.md). In a throwaway folder you edit one word of the project history and commit a fake key, then read the real output of `trace verify` and `secret scan`. Linked from the README and the docs map. `trace verify` now says "1 event" instead of "1 events". Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.10
 
 - Local state files written whole: the coordination, presence, attention, welcome, keep-going, role and process-hygiene state files are written to a temp file and renamed, so a hook running in parallel no longer reads a half-written file and starts from an empty state (which dropped the clones this computer renews, welcomed computers and the keep-going counter). Docs: [How it works](docs/how-it-works.md) states the shorter SIGTERM waits of the Stop and session end hooks. Change Observatory: no change. Compatibility: no record, ref or config key changed.

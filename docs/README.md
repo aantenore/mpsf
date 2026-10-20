@@ -5,6 +5,7 @@ This page is the documentation map. Start with the goal that matches what you wa
 ## Start here
 
 - [Getting started](getting-started.md) — try it in five minutes, choose a natural-language starter, understand what you will approve, and distinguish a new PR, an existing PR, and a local-only result.
+- [See it catch problems in one minute](see-it-work.md) — edit the history by hand and commit a fake key in a throwaway folder, and read the real output of `trace verify` and `secret scan`.
 - [Project overview](../README.md) — what the plugin does, why it is different, and how to install it.
 - [Reference overview](reference.md) — the complete tour in one page: the guided journey, Observatory, autonomy, several computers, metering, verification, release and repository layout.
 
