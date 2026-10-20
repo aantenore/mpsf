@@ -172,6 +172,16 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 - **Software houses** that have to show a client what was asked, decided, changed and verified for each delivery.
 - **Teams in regulated environments** that need a change trail they can audit. MPSF keeps evidence; it does not certify compliance on its own.
 
+## Questions people ask first
+
+**Do I have to learn the CLI?** No. You talk to the agent as usual; the skills load when the conversation matches, and the slash commands are only shortcuts. A few steps are reserved for you in your own terminal, such as approving a standing approval; the agent hands you the exact command.
+
+**Can the agent get around it?** Partly, and the docs say where. The hooks and the CLI refuse the obvious paths, but in the default mode an agent that writes and runs its own script could still approve a standing approval. Projects that need more turn on [signed approvals](docs/how-it-works.md#signed-standing-approvals), where only the host's Ed25519 receipt counts.
+
+**What does it cost my session?** Each hook check adds a short Node start-up to shell and edit calls, and hook output is capped per event (700 tokens at session start, a few hundred elsewhere). Agents read small per-story [context packs](docs/token-efficiency.md#context-packs-and-compact-output) instead of whole records.
+
+**What if I stop using it?** `/plugin uninstall mpsf@aantenore`. The records stay in `.sdlc/` as plain files (JSON, JSONL, Markdown) in your repository, readable without the plugin.
+
 ## Documentation
 
 | Start | Go deeper | Reference |
@@ -183,6 +193,7 @@ A spec-driven kit gives the agent better instructions: spec, plan and task files
 
 ## What's new
 
+- **1.0.20** — README answers the first questions newcomers ask.
 - **1.0.19** — Change Observatory: checks show Passed or Failed; Italian fixes.
 - **1.0.18** — `/mpsf:doctor` tells a new user what to do next.
 - **1.0.17** — guard refuses switching the plugin off in host settings; lighter PreToolUse.
