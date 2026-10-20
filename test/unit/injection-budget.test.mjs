@@ -158,3 +158,15 @@ test("measurement: injected size before and after", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("forget re-injects lines the session already saw (after /clear or /compact)", () => {
+  const dir = createFixtureDir();
+  try {
+    const call = (forget) => applyInjectionBudget({ text: "standing approval SA-1 active", event: "session_start", sessionId: "s", commonDir: dir, config: WIDE, forget });
+    assert.match(call(false), /SA-1/u);
+    assert.doesNotMatch(call(false), /SA-1/u);
+    assert.match(call(true), /SA-1/u);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

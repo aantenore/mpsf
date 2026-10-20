@@ -66,13 +66,13 @@ function sessionIdOf(payload) {
  * lib/host-hooks/injection-budget.mjs). Never throws; on any failure the text
  * is returned as it was.
  */
-async function budgeted(text, { event, payload, root, pointer, extraTokens = 0 }) {
+async function budgeted(text, { event, payload, root, pointer, extraTokens = 0, forget = false }) {
   try {
     const { applyInjectionBudget } = await import("../lib/host-hooks/injection-budget.mjs");
     const { findGitCommonDir } = await import("../lib/runtime/run-registry.mjs");
     const base = root ?? payload?.cwd ?? process.cwd();
     const config = readJson(path.join(governedRoot(base) ?? base, ".sdlc", "config.json"));
-    return applyInjectionBudget({ text, event, sessionId: sessionIdOf(payload), commonDir: findGitCommonDir(base), config, pointer, extraTokens });
+    return applyInjectionBudget({ text, event, sessionId: sessionIdOf(payload), commonDir: findGitCommonDir(base), config, pointer, extraTokens, forget });
   } catch {
     return text;
   }
@@ -271,6 +271,8 @@ async function sessionStart(payload) {
     root,
     pointer: "mpsf context pack --story <id>",
     extraTokens: Math.ceil(notice.length / 4),
+    // After /clear or /compact the agent no longer holds what was injected before.
+    forget: payload.source === "clear" || payload.source === "compact",
   });
   if (filtered) process.stdout.write(`${filtered}\n`);
 }

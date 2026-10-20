@@ -2,6 +2,10 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.0.2
+
+- Robustness: after `/clear` or `/compact` the session start hook runs again and re-injects the project instructions and standing approvals instead of suppressing them as already seen. Two commands that start at the same moment on the same story can no longer both take the single-flight lock: the lock file is published complete, and a stale lock is taken over only if it is still the one judged stale. The JSON Schema validator checks only a record's own keys, so a record with a `constructor` or `toString` field is no longer misjudged. Change Observatory: no change. Compatibility: no record, ref or config key changed.
+
 ## 1.0.1
 
 - First run: `doctor` in a folder that is not set up yet now tells you to ask your agent to initialize it, and prints the plugin folder so you can run the CLI yourself. New guide section [Run the CLI from your terminal](docs/hosts/claude-code.md#run-the-cli-from-your-terminal) with an `mpsf` alias; the README notes that the local trial needs bubblewrap on Linux; the trial folder is `mpsf-trial` everywhere. Change Observatory: no change. Compatibility: no record, ref or config key changed.

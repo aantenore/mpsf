@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
@@ -77,3 +79,15 @@ function validateFormat(format, value) {
     cache: new Map([[schemaPath, { type: "string", format }]]),
   });
 }
+
+test("required and properties look only at own keys, never the prototype", () => {
+  const schemaDir = fs.mkdtempSync(path.join(os.tmpdir(), "schema-own-keys-"));
+  try {
+    fs.writeFileSync(path.join(schemaDir, "strict.schema.json"), JSON.stringify({ type: "object", required: ["toString"], properties: { name: { type: "string" } } }));
+    fs.writeFileSync(path.join(schemaDir, "open.schema.json"), JSON.stringify({ type: "object", properties: { name: { type: "string" } } }));
+    assert.equal(validateAgainstSchema({}, "strict.schema.json", { schemaDir }).valid, false);
+    assert.equal(validateAgainstSchema(JSON.parse('{"constructor":"x","__proto__":"y"}'), "open.schema.json", { schemaDir }).valid, true);
+  } finally {
+    fs.rmSync(schemaDir, { recursive: true, force: true });
+  }
+});
