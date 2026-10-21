@@ -2,6 +2,19 @@
 
 User-visible changes of the plugin, newest first. Design notes live in [docs/plans](docs/plans); this file says what changed for you and what to do about it.
 
+## 1.1.0
+
+Minor release that rolls up the 1.0.1–1.0.33 patch series. No new behaviour beyond those entries; each one below has the details.
+
+- First run and doctor: `doctor` in a folder that is not set up yet says to ask your agent to initialize it and prints the plugin folder; when every check passes, `/mpsf:doctor` gives the next step. New guide section on running the CLI from your terminal with an `mpsf` alias (1.0.1, 1.0.18).
+- Change Observatory: dark theme that follows the system setting, Now panel on the Overview only, a "No story yet" start page, a plan map that fits the page, readable charts on phones, Passed/Failed checks, quieter Decisions and fairer portfolio cards; new screenshots and `node test/helpers/change-observatory-preview-server.mjs --demo` to try it on a sample online shop (1.0.4, 1.0.6, 1.0.12, 1.0.19, 1.0.21–1.0.23, 1.0.25–1.0.28).
+- Robustness: session start re-injects instructions after `/clear` or `/compact`; single-flight and git channel locks published whole and cleared safely; local state files and the machine key written atomically; the guard follows the project a tool call targets and protects the plugin entry in host settings; Stop hook stays within its time limit; Windows program names, letter-case paths and the slow process scan handled (1.0.2, 1.0.3, 1.0.5, 1.0.8–1.0.10, 1.0.14, 1.0.16, 1.0.17, 1.0.24).
+- Project hygiene: SECURITY.md (private vulnerability reporting) and CONTRIBUTING.md; docs, skills and examples match the CLI and use neutral sample names; new "See it catch problems in one minute" page and README examples of the history check and secret scan; CLI messages start with `mpsf:` (1.0.7, 1.0.11, 1.0.13, 1.0.15, 1.0.20, 1.0.29, 1.0.30, 1.0.32).
+- CLI: a mistyped command or option gets the nearest match and a pointer to `mpsf help`; a missing required option prints the command usage (1.0.31).
+- Tests: local-release cases skip on hosts without a smoke sandbox instead of failing (1.0.33).
+
+Change Observatory: as in the entries above. Compatibility: no record, ref or config key changed since 1.0.0; upgrading needs no action.
+
 ## 1.0.33
 
 - Tests: the governance rollout matrix skips its local-release case on a host without a smoke sandbox (bubblewrap on Linux, sandbox-exec on macOS), like the other local-release tests, instead of failing. Change Observatory: no change. Compatibility: no record, ref or config key changed.
